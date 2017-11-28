@@ -558,11 +558,15 @@ namespace System
                         // Hence anything like x:sdsd is a relative path and be added to the baseUri Path
                         break;
                     }
-                    string scheme = relativeStr.Substring(0, i);
-                    fixed (char* sptr = scheme)
+                    fixed (char* relativeStrPtr = relativeStr)
                     {
+                        // Make a copy into schemPtr because CheckSchemeSyntax mutates what we give it.  
+                        char* schemePtr = stackalloc char[i];
+                        ushort schemeLen = (ushort) i;
+                        Buffer.MemoryCopy(relativeStrPtr, schemePtr, schemeLen * sizeof(char), schemeLen * sizeof(char));
+
                         UriParser syntax = null;
-                        if (CheckSchemeSyntax(sptr, (ushort)scheme.Length, ref syntax) == ParsingError.None)
+                        if (CheckSchemeSyntax(schemePtr, schemeLen, ref syntax) == ParsingError.None)
                         {
                             if (baseUri.Syntax == syntax)
                             {
@@ -3740,12 +3744,11 @@ namespace System
             }
 
             //Check the syntax, canonicalize  and avoid a GC call
-            char* schemePtr = stackalloc char[end - idx];
-            for (length = 0; idx < end; ++idx)
-            {
-                schemePtr[length++] = uriString[idx];
-            }
-            err = CheckSchemeSyntax(schemePtr, length, ref syntax);
+            ushort schemeLen = (ushort)(end - idx);
+            char * schemePtr = stackalloc char[length];
+            Buffer.MemoryCopy(&uriString[idx], schemePtr, length * sizeof(char), schemeLen * sizeof(char));
+
+            err = CheckSchemeSyntax(schemePtr, schemeLen, ref syntax);
             if (err != ParsingError.None)
             {
                 return 0;
