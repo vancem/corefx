@@ -560,7 +560,7 @@ namespace System
                     }
                     fixed (char* relativeStrPtr = relativeStr)
                     {
-                        // Make a copy into schemPtr because CheckSchemeSyntax mutates what we give it.  
+                        // Make a copy into schemePtr because CheckSchemeSyntax mutates what we give it.  
                         char* schemePtr = stackalloc char[i];
                         ushort schemeLen = (ushort) i;
                         Buffer.MemoryCopy(relativeStrPtr, schemePtr, schemeLen * sizeof(char), schemeLen * sizeof(char));
