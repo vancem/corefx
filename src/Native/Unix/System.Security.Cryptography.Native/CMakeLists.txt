@@ -29,6 +29,7 @@ set(NATIVECRYPTO_SOURCES
     pal_evp.cpp
     pal_evp_pkey.cpp
     pal_evp_pkey_dsa.cpp
+    pal_evp_pkey_ecdh.cpp
     pal_evp_pkey_eckey.cpp
     pal_evp_pkey_rsa.cpp
     pal_evp_cipher.cpp
@@ -61,8 +62,17 @@ add_library(System.Security.Cryptography.Native.OpenSsl
     $<TARGET_OBJECTS:objlib>
 )
 
+add_library(System.Security.Cryptography.Native.OpenSsl-Static
+    STATIC
+    $<TARGET_OBJECTS:objlib>
+)
+
 # Disable the "lib" prefix.
 set_target_properties(System.Security.Cryptography.Native.OpenSsl PROPERTIES PREFIX "")
+
+# Disable the "lib" prefix and override default name
+set_target_properties(System.Security.Cryptography.Native.OpenSsl-Static PROPERTIES PREFIX "")
+set_target_properties(System.Security.Cryptography.Native.OpenSsl-Static PROPERTIES OUTPUT_NAME System.Security.Cryptography.Native.OpenSsl CLEAN_DIRECT_OUTPUT 1)
 
 if (FEATURE_DISTRO_AGNOSTIC_SSL)
     add_custom_command(TARGET System.Security.Cryptography.Native.OpenSsl POST_BUILD
@@ -103,3 +113,4 @@ endif()
 include(configure.cmake)
 
 install_library_and_symbols (System.Security.Cryptography.Native.OpenSsl)
+install (TARGETS System.Security.Cryptography.Native.OpenSsl-Static DESTINATION .)

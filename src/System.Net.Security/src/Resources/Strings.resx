@@ -171,6 +171,9 @@
   <data name="net_ssl_io_frame" xml:space="preserve">
     <value>The handshake failed due to an unexpected packet format.</value>
   </data>
+  <data name="net_ssl_io_renego" xml:space="preserve">
+    <value>The remote party requested renegotiation when AllowRenegotiation was set to false.</value>
+  </data>
   <data name="net_ssl_io_cert_validation" xml:space="preserve">
     <value>The remote certificate is invalid according to the validation procedure.</value>
   </data>
@@ -205,7 +208,7 @@
     <value>Once authentication is attempted as the client or server, additional authentication attempts must use the same client or server role.</value>
   </data>
   <data name="net_auth_SSPI" xml:space="preserve">
-    <value>A call to SSPI failed, see inner exception.</value>
+    <value>Authentication failed, see inner exception.</value>
   </data>
   <data name="net_auth_eof" xml:space="preserve">
     <value>Authentication failed because the remote party has closed the transport stream.</value>
@@ -403,7 +406,7 @@
     <value>Server implementation is not supported</value>
   </data>
   <data name="net_nego_protection_level_not_supported" xml:space="preserve">
-    <value>Requested protection level is not supported with the gssapi implementation currently installed.</value>
+    <value>Requested protection level is not supported with the GSSAPI implementation currently installed.</value>
   </data>
   <data name="net_nego_not_supported_empty_target_with_defaultcreds" xml:space="preserve">
     <value>Target name should be non empty if default credentials are passed.</value>
@@ -416,6 +419,9 @@
   </data>
   <data name="net_alpn_config_failed" xml:space="preserve">
     <value>ALPN configuration failed on this platform.</value>
+  </data>
+  <data name="net_alpn_failed" xml:space="preserve">
+    <value>No common application protocol exists between the client and the server. Application negotiation failed.</value>
   </data>
   <data name="net_ssl_app_protocols_invalid" xml:space="preserve">
     <value>The application protocol list is invalid.</value>

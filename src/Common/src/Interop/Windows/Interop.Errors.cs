@@ -23,9 +23,12 @@ internal partial class Interop
         internal const int ERROR_SHARING_VIOLATION = 0x20;
         internal const int ERROR_LOCK_VIOLATION = 0x21;
         internal const int ERROR_HANDLE_EOF = 0x26;
+        internal const int ERROR_BAD_NETPATH = 0x35;
+        internal const int ERROR_BAD_NET_NAME = 0x43;
         internal const int ERROR_FILE_EXISTS = 0x50;
         internal const int ERROR_INVALID_PARAMETER = 0x57;
         internal const int ERROR_BROKEN_PIPE = 0x6D;
+        internal const int ERROR_SEM_TIMEOUT = 0x79;
         internal const int ERROR_CALL_NOT_IMPLEMENTED  = 0x78;
         internal const int ERROR_INSUFFICIENT_BUFFER = 0x7A;
         internal const int ERROR_INVALID_NAME = 0x7B;
@@ -58,6 +61,7 @@ internal partial class Interop
         internal const int ERROR_DDE_FAIL = 0x484;
         internal const int ERROR_DLL_NOT_FOUND = 0x485;
         internal const int ERROR_NOT_FOUND = 0x490;
+        internal const int ERROR_NETWORK_UNREACHABLE = 0x4CF;
         internal const int ERROR_NON_ACCOUNT_SID = 0x4E9;
         internal const int ERROR_NOT_ALL_ASSIGNED = 0x514;
         internal const int ERROR_UNKNOWN_REVISION = 0x519;
@@ -71,6 +75,7 @@ internal partial class Interop
         internal const int ERROR_BAD_IMPERSONATION_LEVEL = 0x542;
         internal const int ERROR_CANT_OPEN_ANONYMOUS = 0x543;
         internal const int ERROR_NO_SECURITY_ON_OBJECT = 0x546;
+        internal const int ERROR_CLASS_ALREADY_EXISTS = 0x582;
         internal const int ERROR_TRUSTED_RELATIONSHIP_FAILURE = 0x6FD;
         internal const int ERROR_RESOURCE_LANG_NOT_FOUND = 0x717;
         internal const int EFail = unchecked((int)0x80004005);

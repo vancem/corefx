@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.DirectoryServices.ActiveDirectory;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -64,9 +65,7 @@ namespace System.Diagnostics.Tests
             CreateDefaultProcess();
 
             ProcessPriorityClass originalPriority = _process.PriorityClass;
-
-            var expected = PlatformDetection.IsWindowsNanoServer ? ProcessPriorityClass.BelowNormal : ProcessPriorityClass.Normal; // For some reason we're BelowNormal initially on Nano
-            Assert.Equal(expected, originalPriority);
+            Assert.Equal(ProcessPriorityClass.Normal, originalPriority);
 
             try
             {
@@ -121,31 +120,66 @@ namespace System.Diagnostics.Tests
         [Fact]
         public void ProcessStart_TryExitCommandAsFileName_ThrowsWin32Exception()
         {
-            Win32Exception e = Assert.Throws<Win32Exception>(() => Process.Start(new ProcessStartInfo { UseShellExecute = false, FileName = "exit", Arguments = "42" }));
+            Assert.Throws<Win32Exception>(() => Process.Start(new ProcessStartInfo { UseShellExecute = false, FileName = "exit", Arguments = "42" }));
         }
 
         [Fact]
         public void ProcessStart_UseShellExecuteFalse_FilenameIsUrl_ThrowsWin32Exception()
         {
-            Win32Exception e = Assert.Throws<Win32Exception>(() => Process.Start(new ProcessStartInfo { UseShellExecute = false, FileName = "https://www.github.com/corefx" }));
+            Assert.Throws<Win32Exception>(() => Process.Start(new ProcessStartInfo { UseShellExecute = false, FileName = "https://www.github.com/corefx" }));
         }
 
         [Fact]
         public void ProcessStart_TryOpenFolder_UseShellExecuteIsFalse_ThrowsWin32Exception()
         {
-            Win32Exception e = Assert.Throws<Win32Exception>(() => Process.Start(new ProcessStartInfo { UseShellExecute = false, FileName = Path.GetTempPath() }));
+            Assert.Throws<Win32Exception>(() => Process.Start(new ProcessStartInfo { UseShellExecute = false, FileName = Path.GetTempPath() }));
         }
-        
+
+        [Fact]
+        [PlatformSpecific(~TestPlatforms.OSX)] // OSX doesn't support throwing on Process.Start
+        [SkipOnTargetFramework(TargetFrameworkMonikers.Uap)] // UWP overrides WorkingDirectory (https://github.com/dotnet/corefx/pull/25266#issuecomment-347719832).
+        public void TestStartWithBadWorkingDirectory()
+        {
+            string program;
+            string workingDirectory;
+            if (PlatformDetection.IsWindows)
+            {
+                program = "powershell.exe";
+                workingDirectory = @"C:\does-not-exist";
+            }
+            else
+            {
+                program = "uname";
+                workingDirectory = "/does-not-exist";
+            }
+
+            if (IsProgramInstalled(program))
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = program,
+                    UseShellExecute = false,
+                    WorkingDirectory = workingDirectory
+                };
+
+                Win32Exception e = Assert.Throws<Win32Exception>(() => Process.Start(psi));
+                Assert.NotEqual(0, e.NativeErrorCode);
+            }
+            else
+            {
+                Console.WriteLine($"Program {program} is not installed on this machine.");
+            }
+        }
+
         [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.HasWindowsShell))]
         [SkipOnTargetFramework(TargetFrameworkMonikers.Uap, "not supported on UAP")]
         [OuterLoop("Launches File Explorer")]
-        public void ProcessStart_UseShellExecuteTrue_OpenMissingFile_Throws()
+        public void ProcessStart_UseShellExecute_OnWindows_OpenMissingFile_Throws()
         {
             string fileToOpen = Path.Combine(Environment.CurrentDirectory, "_no_such_file.TXT");
-            Win32Exception e = Assert.Throws<Win32Exception>(() => Process.Start(new ProcessStartInfo { UseShellExecute = true, FileName = fileToOpen }));
+            Assert.Throws<Win32Exception>(() => Process.Start(new ProcessStartInfo { UseShellExecute = true, FileName = fileToOpen }));
         }
 
-        [PlatformSpecific(TestPlatforms.Windows)]
         [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.HasWindowsShell))]
         [InlineData(true)]
         [InlineData(false)]
@@ -649,7 +683,7 @@ namespace System.Diagnostics.Tests
         [Fact]
         public void TestProcessStartTime()
         {
-            TimeSpan allowedWindow = TimeSpan.FromSeconds(1);
+            TimeSpan allowedWindow = TimeSpan.FromSeconds(3);
 
             for (int i = 0; i < 2; i++)
             {
@@ -675,6 +709,20 @@ namespace System.Diagnostics.Tests
                 {
                     Assert.InRange(processStartTime, testStartTime - allowedWindow, testEndTime + allowedWindow);
                     break;
+                }
+            }
+        }
+
+        [Fact]
+        [PlatformSpecific(~TestPlatforms.OSX)] 
+        public void ProcessStartTime_Deterministic_Across_Instances()
+        {
+            CreateDefaultProcess();
+            for (int i = 0; i < 10; ++i)
+            {
+                using (var p = Process.GetProcessById(_process.Id))
+                {
+                    Assert.Equal(_process.StartTime, p.StartTime);
                 }
             }
         }
@@ -882,6 +930,36 @@ namespace System.Diagnostics.Tests
         public void GetProcesses_EmptyMachineName_ThrowsArgumentException()
         {
             AssertExtensions.Throws<ArgumentException>(null, () => Process.GetProcesses(""));
+        }
+
+        [Fact]
+        [ActiveIssue(26720, TargetFrameworkMonikers.Uap)]
+        public void GetProcesses_InvalidMachineName_ThrowsInvalidOperationException()
+        {
+            Type exceptionType = PlatformDetection.IsWindows ? typeof(InvalidOperationException) : typeof(PlatformNotSupportedException);
+            Assert.Throws(exceptionType, () => Process.GetProcesses(Guid.NewGuid().ToString()));
+        }
+
+        [Fact]
+        public void GetProcesses_RemoteMachinePath_ReturnsExpected()
+        {
+            try
+            {
+                Process[] processes = Process.GetProcesses(Environment.MachineName + "." + Domain.GetComputerDomain());
+                Assert.NotEmpty(processes);
+            }
+            catch (ActiveDirectoryObjectNotFoundException)
+            {
+                //This will be thrown when the executing machine is not domain-joined, i.e. in CI
+            }
+            catch (TypeInitializationException tie) when (tie.InnerException is ActiveDirectoryOperationException)
+            {
+                //Thrown if the ActiveDirectory module is unavailable
+            }
+            catch (PlatformNotSupportedException)
+            {
+                //System.DirectoryServices is not supported on all platforms
+            }
         }
 
         [Fact]
@@ -1112,6 +1190,7 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.Mono, "GC has different behavior on Mono")]
         public void CanBeFinalized()
         {
             FinalizingProcess.CreateAndRelease();
@@ -1547,19 +1626,20 @@ namespace System.Diagnostics.Tests
         [SkipOnTargetFramework(TargetFrameworkMonikers.Uap, "Retrieving information about local processes is not supported on uap")]
         public void Process_StartTest()
         {
-            string currentProcessName = GetCurrentProcessName();
+            string name = "xcopy.exe";
             string userName = string.Empty;
             string domain = "thisDomain";
             SecureString password = AsSecureString("Value");
 
-            Process p = Process.Start(currentProcessName, userName, password, domain); // This writes junk to the Console but with this overload, we can't prevent that.
-            Assert.NotNull(p);
-            Assert.Equal(currentProcessName, p.StartInfo.FileName);
-            Assert.Equal(userName, p.StartInfo.UserName);
-            Assert.Same(password, p.StartInfo.Password);
-            Assert.Equal(domain, p.StartInfo.Domain);
-
-            Assert.True(p.WaitForExit(WaitInMS));
+            using (Process p = Process.Start(name, userName, password, domain)) // This writes junk to the Console but with this overload, we can't prevent that.
+            {
+                Assert.NotNull(p);
+                Assert.Equal(name, p.StartInfo.FileName);
+                Assert.Equal(userName, p.StartInfo.UserName);
+                Assert.Same(password, p.StartInfo.Password);
+                Assert.Equal(domain, p.StartInfo.Domain);
+                Assert.True(p.WaitForExit(WaitInMS));
+            }
             password.Dispose();
         }
 
@@ -1573,15 +1653,16 @@ namespace System.Diagnostics.Tests
             string domain = Environment.UserDomainName;
             string arguments = "-xml testResults.xml";
             SecureString password = AsSecureString("Value");
-
-            Process p = Process.Start(currentProcessName, arguments, userName, password, domain);
-            Assert.NotNull(p);
-            Assert.Equal(currentProcessName, p.StartInfo.FileName);
-            Assert.Equal(arguments, p.StartInfo.Arguments);
-            Assert.Equal(userName, p.StartInfo.UserName);
-            Assert.Same(password, p.StartInfo.Password);
-            Assert.Equal(domain, p.StartInfo.Domain);
-            p.Kill();
+            using (Process p = Process.Start(currentProcessName, arguments, userName, password, domain))
+            {
+                Assert.NotNull(p);
+                Assert.Equal(currentProcessName, p.StartInfo.FileName);
+                Assert.Equal(arguments, p.StartInfo.Arguments);
+                Assert.Equal(userName, p.StartInfo.UserName);
+                Assert.Same(password, p.StartInfo.Password);
+                Assert.Equal(domain, p.StartInfo.Domain);
+                p.Kill();
+            }
             password.Dispose();
         }
 

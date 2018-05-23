@@ -1279,6 +1279,31 @@ namespace System.IO.Packaging.Tests
             packagePath1.Delete();
         }
 
+        [Fact]
+        public void OpenInternalTargetRelationships()
+        {
+            // This is to test different behavior on Mono vs .NET Core
+            using (var ms = new MemoryStream())
+            {
+                using (var package = Package.Open(ms, FileMode.OpenOrCreate, FileAccess.ReadWrite))
+                {
+                    package.CreateRelationship(new Uri("/target", UriKind.Relative), TargetMode.Internal, "type");
+                }
+
+                ms.Position = 0;
+
+                using (var package = Package.Open(ms, FileMode.OpenOrCreate, FileAccess.ReadWrite))
+                {
+                    var relationships = package.GetRelationships();
+
+                    var relationship = Assert.Single(relationships);
+
+                    Assert.Equal(new Uri("/", UriKind.Relative), relationship.SourceUri);
+                    Assert.Equal(new Uri("/target", UriKind.Relative), relationship.TargetUri);
+                    Assert.Equal(TargetMode.Internal, relationship.TargetMode);
+                }
+            }
+        }
 
         [Fact]
         public void T035_ModifyAllPackageProperties()
@@ -3487,6 +3512,44 @@ namespace System.IO.Packaging.Tests
                 Package package = Package.Open(tempGuidName.FullName, FileMode.Create, FileAccess.Read);
             });
             tempGuidName.Delete();
+        }
+
+        [Fact]
+        public void OpenPropertyStream()
+        {
+            FileInfo tempGuidFile = GetTempFileInfoWithExtension(".zip");
+
+            using (Package package = Package.Open(tempGuidFile.FullName, FileMode.OpenOrCreate, FileAccess.ReadWrite))
+            {
+                package.PackageProperties.Subject = "Subject";
+                package.PackageProperties.Creator = "Creator";
+
+                // serialize core properties
+                package.Flush();
+
+                PackageRelationshipCollection corePropsRelations = package.GetRelationshipsByType(
+                    "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties");
+
+                Assert.NotNull(corePropsRelations);
+                PackagePart corePropsPart = package.GetPart(corePropsRelations.Single().TargetUri);
+
+                string firstRead;
+
+                // If the property writer did not close out the stream properly this block will throw.
+                using (Stream stream = corePropsPart.GetStream())
+                using (var reader = new StreamReader(stream))
+                {
+                    firstRead = reader.ReadToEnd();
+                }
+
+                // May as well read it another time, just to prove we can.
+                using (Stream stream = corePropsPart.GetStream())
+                using (var reader = new StreamReader(stream))
+                {
+                    string secondRead = reader.ReadToEnd();
+                    Assert.Equal(firstRead, secondRead);
+                }
+            }
         }
 
         [Fact]

@@ -341,11 +341,6 @@ Returns 1 if any cipher could be selected, and 0 if none were available.
 extern "C" int32_t CryptoNative_SetEncryptionPolicy(SSL_CTX* ctx, EncryptionPolicy policy);
 
 /*
-Shims the SSL_CTX_set_client_CA_list method.
-*/
-extern "C" void CryptoNative_SslCtxSetClientCAList(SSL_CTX* ctx, X509NameStack* list);
-
-/*
 Shims the SSL_CTX_set_client_cert_cb method
 */
 extern "C" void CryptoNative_SslCtxSetClientCertCallback(SSL_CTX* ctx, SslClientCertCallback callback);
@@ -389,3 +384,9 @@ extern "C" int32_t CryptoNative_SslCtxSetAlpnProtos(SSL_CTX* ctx, const uint8_t*
 Shims the ssl_get0_alpn_selected method.
 */
 extern "C" void CryptoNative_SslGet0AlpnSelected(SSL* ssl, const uint8_t** protocol, uint32_t* len);
+
+/*
+Shims the SSL_set_tlsext_host_name method.
+*/
+extern "C" int32_t CryptoNative_SslSetTlsExtHostName(SSL* ssl, const uint8_t* name);
+

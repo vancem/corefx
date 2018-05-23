@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace System.Net
 {
@@ -230,7 +232,7 @@ namespace System.Net
                 return false;
             }
 
-            address = IPAddressParser.Parse(ipString.AsReadOnlySpan(), tryParse: true);
+            address = IPAddressParser.Parse(ipString.AsSpan(), tryParse: true);
             return (address != null);
         }
 
@@ -247,7 +249,7 @@ namespace System.Net
                 throw new ArgumentNullException(nameof(ipString));
             }
 
-            return IPAddressParser.Parse(ipString.AsReadOnlySpan(), tryParse: false);
+            return IPAddressParser.Parse(ipString.AsSpan(), tryParse: false);
         }
 
         public static IPAddress Parse(ReadOnlySpan<char> ipSpan)
@@ -398,36 +400,17 @@ namespace System.Net
 
         public static long HostToNetworkOrder(long host)
         {
-#if BIGENDIAN
-            return host;
-#else
-            ulong value = (ulong)host;
-            value = (value << 32) | (value >> 32);
-            value = (value & 0x0000FFFF0000FFFF) << 16 | (value & 0xFFFF0000FFFF0000) >> 16;
-            value = (value & 0x00FF00FF00FF00FF) << 8 | (value & 0xFF00FF00FF00FF00) >> 8;
-            return (long)value;
-#endif
+            return BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(host) : host;
         }
 
         public static int HostToNetworkOrder(int host)
         {
-#if BIGENDIAN
-            return host;
-#else
-            uint value = (uint)host;
-            value = (value << 16) | (value >> 16);
-            value = (value & 0x00FF00FF) << 8 | (value & 0xFF00FF00) >> 8;
-            return (int)value;
-#endif
+            return BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(host) : host;
         }
 
         public static short HostToNetworkOrder(short host)
         {
-#if BIGENDIAN
-            return host;
-#else
-            return unchecked((short)((((int)host & 0xFF) << 8) | (int)((host >> 8) & 0xFF)));
-#endif
+            return BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(host) : host;
         }
 
         public static long NetworkToHostOrder(long network)
@@ -628,22 +611,23 @@ namespace System.Net
                 const int addressAndScopeIdLength = IPAddressParserStatics.IPv6AddressBytes + sizeof(uint);
                 Span<byte> addressAndScopeIdSpan = stackalloc byte[addressAndScopeIdLength];
 
-                new ReadOnlySpan<ushort>(_numbers).AsBytes().CopyTo(addressAndScopeIdSpan);
+                MemoryMarshal.AsBytes(new ReadOnlySpan<ushort>(_numbers)).CopyTo(addressAndScopeIdSpan);
                 Span<byte> scopeIdSpan = addressAndScopeIdSpan.Slice(IPAddressParserStatics.IPv6AddressBytes);
                 bool scopeWritten = BitConverter.TryWriteBytes(scopeIdSpan, _addressOrScopeId);
                 Debug.Assert(scopeWritten);
 
                 hashCode = Marvin.ComputeHash32(
-                    ref addressAndScopeIdSpan[0],
-                    addressAndScopeIdLength,
+                    addressAndScopeIdSpan,
                     Marvin.DefaultSeed);
             }
             else
             {
+                Span<uint> addressOrScopeIdSpan = stackalloc uint[1];
+                addressOrScopeIdSpan[0] = _addressOrScopeId;
+ 
                 // For IPv4 addresses, we use Marvin on the integer representation of the Address.
                 hashCode = Marvin.ComputeHash32(
-                    ref Unsafe.As<uint, byte>(ref _addressOrScopeId),
-                    sizeof(uint),
+                    MemoryMarshal.AsBytes(addressOrScopeIdSpan),
                     Marvin.DefaultSeed);
             }
 
@@ -686,7 +670,6 @@ namespace System.Net
             return new IPAddress(address);
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
         private static byte[] ThrowAddressNullException() => throw new ArgumentNullException("address");
     }
 }

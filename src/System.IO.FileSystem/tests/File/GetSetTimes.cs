@@ -3,6 +3,8 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Linq;
+using Xunit;
 
 namespace System.IO.Tests
 {
@@ -13,6 +15,23 @@ namespace System.IO.Tests
             string path = GetTestFilePath();
             File.Create(path).Dispose();
             return path;
+        }
+
+        [Fact]
+        [PlatformSpecific(TestPlatforms.Linux)]
+        public void BirthTimeIsNotNewerThanLowestOfAccessModifiedTimes()
+        {
+            // On Linux, we synthesize CreationTime from the oldest of statuc changed time and write time
+            //  if birth time is not available. So WriteTime should never be earlier.
+
+            // Set different values for all three
+            // Status changed time will be when the file was first created, in this case)
+            string path = GetExistingItem();
+            File.SetLastWriteTime(path, DateTime.Now.AddMinutes(1));
+            File.SetLastAccessTime(path, DateTime.Now.AddMinutes(2));
+
+            // Assert.InRange is inclusive.
+            Assert.InRange(File.GetCreationTimeUtc(path), DateTime.MinValue, File.GetLastWriteTimeUtc(path));
         }
 
         public override IEnumerable<TimeFunction> TimeFunctions(bool requiresRoundtripping = false)
@@ -56,6 +75,22 @@ namespace System.IO.Tests
                 ((path, time) => File.SetLastWriteTimeUtc(path, time)),
                 ((path) => File.GetLastWriteTimeUtc(path)),
                 DateTimeKind.Utc);
+        }
+
+        [Fact]
+        [PlatformSpecific(TestPlatforms.Windows)]
+        public void PageFileHasTimes()
+        {
+            // Typically there is a page file on the C: drive, if not, don't bother trying to track it down.
+            string pageFilePath = Directory.EnumerateFiles(@"C:\", "pagefile.sys").FirstOrDefault();
+            if (pageFilePath != null)
+            {
+                Assert.All(TimeFunctions(), (item) =>
+                {
+                    var time = item.Getter(pageFilePath);
+                    Assert.NotEqual(DateTime.FromFileTime(0), time);
+                });
+            }
         }
     }
 }

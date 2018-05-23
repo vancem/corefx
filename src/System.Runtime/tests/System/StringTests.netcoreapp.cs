@@ -5,6 +5,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Xunit;
 
 namespace System.Tests
@@ -17,6 +18,13 @@ namespace System.Tests
         public static void Ctor_CharSpan_EmptyString(int length, int offset)
         {
             Assert.Same(string.Empty, new string(new ReadOnlySpan<char>(new char[length], offset, 0)));
+        }
+
+        [Fact]
+        public static unsafe void Ctor_CharSpan_Empty()
+        {
+            Assert.Same(string.Empty, new string((ReadOnlySpan<char>)null));
+            Assert.Same(string.Empty, new string(ReadOnlySpan<char>.Empty));
         }
 
         [Theory]
@@ -91,6 +99,59 @@ namespace System.Tests
         }
 
         [Theory]
+        [InlineData("Hello", 'H', true)]
+        [InlineData("Hello", 'Z', false)]
+        [InlineData("Hello", 'e', true)]
+        [InlineData("Hello", 'E', false)]
+        [InlineData("", 'H', false)]
+        public static void Contains(string s, char value, bool expected)
+        {
+            Assert.Equal(expected, s.Contains(value));
+        }
+
+        [Theory]
+        // CurrentCulture
+        [InlineData("Hello", 'H', StringComparison.CurrentCulture, true)]
+        [InlineData("Hello", 'Z', StringComparison.CurrentCulture, false)]
+        [InlineData("Hello", 'e', StringComparison.CurrentCulture, true)]
+        [InlineData("Hello", 'E', StringComparison.CurrentCulture, false)]
+        [InlineData("", 'H', StringComparison.CurrentCulture, false)]
+        // CurrentCultureIgnoreCase
+        [InlineData("Hello", 'H', StringComparison.CurrentCultureIgnoreCase, true)]
+        [InlineData("Hello", 'Z', StringComparison.CurrentCultureIgnoreCase, false)]
+        [InlineData("Hello", 'e', StringComparison.CurrentCultureIgnoreCase, true)]
+        [InlineData("Hello", 'E', StringComparison.CurrentCultureIgnoreCase, true)]
+        [InlineData("", 'H', StringComparison.CurrentCultureIgnoreCase, false)]
+        // InvariantCulture
+        [InlineData("Hello", 'H', StringComparison.InvariantCulture, true)]
+        [InlineData("Hello", 'Z', StringComparison.InvariantCulture, false)]
+        [InlineData("Hello", 'e', StringComparison.InvariantCulture, true)]
+        [InlineData("Hello", 'E', StringComparison.InvariantCulture, false)]
+        [InlineData("", 'H', StringComparison.InvariantCulture, false)]
+        // InvariantCultureIgnoreCase
+        [InlineData("Hello", 'H', StringComparison.InvariantCultureIgnoreCase, true)]
+        [InlineData("Hello", 'Z', StringComparison.InvariantCultureIgnoreCase, false)]
+        [InlineData("Hello", 'e', StringComparison.InvariantCultureIgnoreCase, true)]
+        [InlineData("Hello", 'E', StringComparison.InvariantCultureIgnoreCase, true)]
+        [InlineData("", 'H', StringComparison.InvariantCultureIgnoreCase, false)]
+        // Ordinal
+        [InlineData("Hello", 'H', StringComparison.Ordinal, true)]
+        [InlineData("Hello", 'Z', StringComparison.Ordinal, false)]
+        [InlineData("Hello", 'e', StringComparison.Ordinal, true)]
+        [InlineData("Hello", 'E', StringComparison.Ordinal, false)]
+        [InlineData("", 'H', StringComparison.Ordinal, false)]
+        // OrdinalIgnoreCase
+        [InlineData("Hello", 'H', StringComparison.OrdinalIgnoreCase, true)]
+        [InlineData("Hello", 'Z', StringComparison.OrdinalIgnoreCase, false)]
+        [InlineData("Hello", 'e', StringComparison.OrdinalIgnoreCase, true)]
+        [InlineData("Hello", 'E', StringComparison.OrdinalIgnoreCase, true)]
+        [InlineData("", 'H', StringComparison.OrdinalIgnoreCase, false)]
+        public static void Contains(string s, char value, StringComparison comparisionType, bool expected)
+        {
+            Assert.Equal(expected, s.Contains(value, comparisionType));
+        }
+
+        [Theory]
         // CurrentCulture
         [InlineData("Hello", "ello", StringComparison.CurrentCulture, true)]
         [InlineData("Hello", "ELL", StringComparison.CurrentCulture, false)]
@@ -160,6 +221,7 @@ namespace System.Tests
         public static void Contains(string s, string value, StringComparison comparisonType, bool expected)
         {
             Assert.Equal(expected, s.Contains(value, comparisonType));
+            Assert.Equal(expected, s.AsSpan().Contains(value, comparisonType));
         }
 
         [Fact]
@@ -171,6 +233,7 @@ namespace System.Tests
                 CultureInfo.CurrentCulture = new CultureInfo("tr-TR");
 
                 Assert.True(source.Contains("\u0069\u0069", StringComparison.CurrentCultureIgnoreCase));
+                Assert.True(source.AsSpan().Contains("\u0069\u0069", StringComparison.CurrentCultureIgnoreCase));
 
                 return SuccessExitCode;
             }, str).Dispose();
@@ -180,6 +243,7 @@ namespace System.Tests
                 CultureInfo.CurrentCulture = new CultureInfo("en-US");
 
                 Assert.False(source.Contains("\u0069\u0069", StringComparison.CurrentCultureIgnoreCase));
+                Assert.False(source.AsSpan().Contains("\u0069\u0069", StringComparison.CurrentCultureIgnoreCase));
 
                 return SuccessExitCode;
             }, str).Dispose();
@@ -500,6 +564,222 @@ namespace System.Tests
         public static void GetHashCode_NoSuchStringComparison_ThrowsArgumentException(StringComparison comparisonType)
         {
             AssertExtensions.Throws<ArgumentException>("comparisonType", () => "abc".GetHashCode(comparisonType));
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("a")]
+        [InlineData("\0")]
+        [InlineData("abc")]
+        public static unsafe void ImplicitCast_ResultingSpanMatches(string s)
+        {
+            ReadOnlySpan<char> span = s;
+            Assert.Equal(s.Length, span.Length);
+            fixed (char* stringPtr = s)
+            fixed (char* spanPtr = &MemoryMarshal.GetReference(span))
+            {
+                Assert.Equal((IntPtr)stringPtr, (IntPtr)spanPtr);
+            }
+        }
+
+        [Fact]
+        public static void ImplicitCast_NullString_ReturnsDefaultSpan()
+        {
+            ReadOnlySpan<char> span = (string)null;
+            Assert.True(span == default);
+        }
+
+        [Theory]
+        [InlineData("Hello", 'l', StringComparison.Ordinal, 2)]
+        [InlineData("Hello", 'x', StringComparison.Ordinal, -1)]
+        [InlineData("Hello", 'h', StringComparison.Ordinal, -1)]
+        [InlineData("Hello", 'o', StringComparison.Ordinal, 4)]
+        [InlineData("Hello", 'h', StringComparison.OrdinalIgnoreCase, 0)]
+        [InlineData("HelLo", 'L', StringComparison.OrdinalIgnoreCase, 2)]
+        [InlineData("HelLo", 'L', StringComparison.Ordinal, 3)]
+        [InlineData("HelLo", '\0', StringComparison.Ordinal, -1)]
+        [InlineData("!@#$%", '%', StringComparison.Ordinal, 4)]
+        [InlineData("!@#$", '!', StringComparison.Ordinal, 0)]
+        [InlineData("!@#$", '@', StringComparison.Ordinal, 1)]
+        [InlineData("!@#$%", '%', StringComparison.OrdinalIgnoreCase, 4)]
+        [InlineData("!@#$", '!', StringComparison.OrdinalIgnoreCase, 0)]
+        [InlineData("!@#$", '@', StringComparison.OrdinalIgnoreCase, 1)]
+        [InlineData("_____________\u807f", '\u007f', StringComparison.Ordinal, -1)]
+        [InlineData("_____________\u807f__", '\u007f', StringComparison.Ordinal, -1)]
+        [InlineData("_____________\u807f\u007f_", '\u007f', StringComparison.Ordinal, 14)]
+        [InlineData("__\u807f_______________", '\u007f', StringComparison.Ordinal, -1)]
+        [InlineData("__\u807f___\u007f___________", '\u007f', StringComparison.Ordinal, 6)]
+        [InlineData("_____________\u807f", '\u007f', StringComparison.OrdinalIgnoreCase, -1)]
+        [InlineData("_____________\u807f__", '\u007f', StringComparison.OrdinalIgnoreCase, -1)]
+        [InlineData("_____________\u807f\u007f_", '\u007f', StringComparison.OrdinalIgnoreCase, 14)]
+        [InlineData("__\u807f_______________", '\u007f', StringComparison.OrdinalIgnoreCase, -1)]
+        [InlineData("__\u807f___\u007f___________", '\u007f', StringComparison.OrdinalIgnoreCase, 6)]
+        public static void IndexOf_SingleLetter(string s, char target, StringComparison stringComparison, int expected)
+        {
+            Assert.Equal(expected, s.IndexOf(target, stringComparison));
+            var charArray = new char[1];
+            charArray[0] = target;
+            Assert.Equal(expected, s.AsSpan().IndexOf(charArray, stringComparison));
+        }
+
+        [Fact]
+        public static void IndexOf_TurkishI_TurkishCulture_Char()
+        {
+            RemoteInvoke(() =>
+            {
+                CultureInfo.CurrentCulture = new CultureInfo("tr-TR");
+
+                string s = "Turkish I \u0131s TROUBL\u0130NG!";
+                char value = '\u0130';
+                Assert.Equal(19, s.IndexOf(value));
+                Assert.Equal(19, s.IndexOf(value, StringComparison.CurrentCulture));
+                Assert.Equal(4, s.IndexOf(value, StringComparison.CurrentCultureIgnoreCase));
+                Assert.Equal(19, s.IndexOf(value, StringComparison.Ordinal));
+                Assert.Equal(19, s.IndexOf(value, StringComparison.OrdinalIgnoreCase));
+
+                ReadOnlySpan<char> span = s.AsSpan();
+                Assert.Equal(19, span.IndexOf(new char[] { value }, StringComparison.CurrentCulture));
+                Assert.Equal(4, span.IndexOf(new char[] { value }, StringComparison.CurrentCultureIgnoreCase));
+                Assert.Equal(19, span.IndexOf(new char[] { value }, StringComparison.Ordinal));
+                Assert.Equal(19, span.IndexOf(new char[] { value }, StringComparison.OrdinalIgnoreCase));
+
+                value = '\u0131';
+                Assert.Equal(10, s.IndexOf(value, StringComparison.CurrentCulture));
+                Assert.Equal(8, s.IndexOf(value, StringComparison.CurrentCultureIgnoreCase));
+                Assert.Equal(10, s.IndexOf(value, StringComparison.Ordinal));
+                Assert.Equal(10, s.IndexOf(value, StringComparison.OrdinalIgnoreCase));
+
+                Assert.Equal(10, span.IndexOf(new char[] { value }, StringComparison.CurrentCulture));
+                Assert.Equal(8, span.IndexOf(new char[] { value }, StringComparison.CurrentCultureIgnoreCase));
+                Assert.Equal(10, span.IndexOf(new char[] { value }, StringComparison.Ordinal));
+                Assert.Equal(10, span.IndexOf(new char[] { value }, StringComparison.OrdinalIgnoreCase));
+
+                return SuccessExitCode;
+            }).Dispose();
+        }
+
+        [Fact]
+        public static void IndexOf_TurkishI_InvariantCulture_Char()
+        {
+            RemoteInvoke(() =>
+            {
+                CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+
+                string s = "Turkish I \u0131s TROUBL\u0130NG!";
+                char value = '\u0130';
+
+                Assert.Equal(19, s.IndexOf(value));
+                Assert.Equal(19, s.IndexOf(value, StringComparison.CurrentCulture));
+                Assert.Equal(19, s.IndexOf(value, StringComparison.CurrentCultureIgnoreCase));
+
+                value = '\u0131';
+                Assert.Equal(10, s.IndexOf(value, StringComparison.CurrentCulture));
+                Assert.Equal(10, s.IndexOf(value, StringComparison.CurrentCultureIgnoreCase));
+
+                return SuccessExitCode;
+            }).Dispose();
+        }
+
+        [Fact]
+        public static void IndexOf_TurkishI_EnglishUSCulture_Char()
+        {
+            RemoteInvoke(() =>
+            {
+                CultureInfo.CurrentCulture = new CultureInfo("en-US");
+
+                string s = "Turkish I \u0131s TROUBL\u0130NG!";
+                char value = '\u0130';
+
+                Assert.Equal(19, s.IndexOf(value));
+                Assert.Equal(19, s.IndexOf(value, StringComparison.CurrentCulture));
+                Assert.Equal(19, s.IndexOf(value, StringComparison.CurrentCultureIgnoreCase));
+
+                value = '\u0131';
+                Assert.Equal(10, s.IndexOf(value, StringComparison.CurrentCulture));
+                Assert.Equal(10, s.IndexOf(value, StringComparison.CurrentCultureIgnoreCase));
+
+                return SuccessExitCode;
+            }).Dispose();
+        }
+
+        [Fact]
+        public static void IndexOf_EquivalentDiacritics_EnglishUSCulture_Char()
+        {
+            RemoteInvoke(() =>
+            {
+                string s = "Exhibit a\u0300\u00C0";
+                char value = '\u00C0';
+
+                CultureInfo.CurrentCulture = new CultureInfo("en-US");
+                Assert.Equal(10, s.IndexOf(value));
+                Assert.Equal(10, s.IndexOf(value, StringComparison.CurrentCulture));
+                Assert.Equal(8, s.IndexOf(value, StringComparison.CurrentCultureIgnoreCase));
+                Assert.Equal(10, s.IndexOf(value, StringComparison.Ordinal));
+                Assert.Equal(10, s.IndexOf(value, StringComparison.OrdinalIgnoreCase));
+
+                return SuccessExitCode;
+            }).Dispose();
+        }
+
+        [Fact]
+        public static void IndexOf_EquivalentDiacritics_InvariantCulture_Char()
+        {
+            RemoteInvoke(() =>
+            {
+                string s = "Exhibit a\u0300\u00C0";
+                char value = '\u00C0';
+
+                CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+                Assert.Equal(10, s.IndexOf(value));
+                Assert.Equal(10, s.IndexOf(value, StringComparison.CurrentCulture));
+                Assert.Equal(8, s.IndexOf(value, StringComparison.CurrentCultureIgnoreCase));
+
+                return SuccessExitCode;
+            }).Dispose();
+        }
+
+        [Fact]
+        public static void IndexOf_CyrillicE_EnglishUSCulture_Char()
+        {
+            RemoteInvoke(() =>
+            {
+                string s = "Foo\u0400Bar";
+                char value = '\u0400';
+
+                CultureInfo.CurrentCulture = new CultureInfo("en-US");
+                Assert.Equal(3, s.IndexOf(value));
+                Assert.Equal(3, s.IndexOf(value, StringComparison.CurrentCulture));
+                Assert.Equal(3, s.IndexOf(value, StringComparison.CurrentCultureIgnoreCase));
+                Assert.Equal(3, s.IndexOf(value, StringComparison.Ordinal));
+                Assert.Equal(3, s.IndexOf(value, StringComparison.OrdinalIgnoreCase));
+
+                return SuccessExitCode;
+            }).Dispose();
+        }
+
+        [Fact]
+        public static void IndexOf_CyrillicE_InvariantCulture_Char()
+        {
+            RemoteInvoke(() =>
+            {
+                string s = "Foo\u0400Bar";
+                char value = '\u0400';
+
+                CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+                Assert.Equal(3, s.IndexOf(value));
+                Assert.Equal(3, s.IndexOf(value, StringComparison.CurrentCulture));
+                Assert.Equal(3, s.IndexOf(value, StringComparison.CurrentCultureIgnoreCase));
+
+                return SuccessExitCode;
+            }).Dispose();
+        }
+
+        [Fact]
+        public static void IndexOf_Invalid_Char()
+        {
+            // Invalid comparison type
+            AssertExtensions.Throws<ArgumentException>("comparisonType", () => "foo".IndexOf('o', StringComparison.CurrentCulture - 1));
+            AssertExtensions.Throws<ArgumentException>("comparisonType", () => "foo".IndexOf('o', StringComparison.OrdinalIgnoreCase + 1));
         }
     }
 }

@@ -4,7 +4,6 @@
 
 using System.Runtime.InteropServices;
 using System.Globalization;
-using System.Security.Permissions;
 using System.Security;
 using System.Text;
 using System.Threading;
@@ -51,8 +50,9 @@ namespace System.Diagnostics
         private string _machineName;
         private string _perfLcid;
 
-        private Hashtable _customCategoryTable;
+
         private static volatile Hashtable s_libraryTable;
+        private Hashtable _customCategoryTable;
         private Hashtable _categoryTable;
         private Hashtable _nameTable;
         private Hashtable _helpTable;
@@ -210,19 +210,12 @@ namespace System.Diagnostics
                     {
                         if (s_iniFilePath == null)
                         {
-                            // Need to assert Environment permissions here
-                            //                        the environment check is not exposed as a public
-                            //                        method
-                            EnvironmentPermission environmentPermission = new EnvironmentPermission(PermissionState.Unrestricted);
-                            environmentPermission.Assert();
                             try
                             {
                                 s_iniFilePath = Path.GetTempFileName();
                             }
                             finally
-                            {
-                                EnvironmentPermission.RevertAssert();
-                            }
+                            { }
                         }
                     }
                 }
@@ -261,24 +254,14 @@ namespace System.Diagnostics
                         {
                             string tempPath;
 
-                            EnvironmentPermission environmentPermission = new EnvironmentPermission(PermissionState.Unrestricted);
-                            environmentPermission.Assert();
                             tempPath = Path.GetTempPath();
-                            EnvironmentPermission.RevertAssert();
 
-                            // We need both FileIOPermission EvironmentPermission
-                            PermissionSet ps = new PermissionSet(PermissionState.None);
-                            ps.AddPermission(new EnvironmentPermission(PermissionState.Unrestricted));
-                            ps.AddPermission(new FileIOPermission(FileIOPermissionAccess.Write, tempPath));
-                            ps.Assert();
                             try
                             {
                                 s_symbolFilePath = Path.GetTempFileName();
                             }
                             finally
-                            {
-                                PermissionSet.RevertAssert();
-                            }
+                            { }
                         }
                     }
                 }
@@ -317,10 +300,17 @@ namespace System.Diagnostics
         {
             if (s_libraryTable != null)
             {
-                foreach (PerformanceCounterLib library in s_libraryTable.Values)
-                    library.Close();
+                //race with GetPerformanceCounterLib
+                lock (InternalSyncObject)
+                {
+                    if (s_libraryTable != null)
+                    {
+                        foreach (PerformanceCounterLib library in s_libraryTable.Values)
+                            library.Close();
 
-                s_libraryTable = null;
+                        s_libraryTable = null;
+                    }
+                }
             }
         }
 
@@ -406,9 +396,6 @@ namespace System.Diagnostics
 
         private static void CreateIniFile(string categoryName, string categoryHelp, CounterCreationDataCollection creationData, string[] languageIds)
         {
-            //SECREVIEW: PerformanceCounterPermission must have been demanded before
-            FileIOPermission permission = new FileIOPermission(PermissionState.Unrestricted);
-            permission.Assert();
             try
             {
                 StreamWriter iniWriter = new StreamWriter(IniFilePath, false, Encoding.Unicode);
@@ -501,9 +488,7 @@ namespace System.Diagnostics
                 }
             }
             finally
-            {
-                FileIOPermission.RevertAssert();
-            }
+            { }
         }
 
         private static void CreateRegistryEntry(string categoryName, PerformanceCounterCategoryType categoryType, CounterCreationDataCollection creationData, ref bool iniRegistered)
@@ -512,11 +497,6 @@ namespace System.Diagnostics
             RegistryKey serviceKey = null;
             RegistryKey linkageKey = null;
 
-            //SECREVIEW: Whoever is able to call this function, must already
-            //                         have demmanded PerformanceCounterPermission
-            //                         we can therefore assert the RegistryPermission.
-            RegistryPermission registryPermission = new RegistryPermission(PermissionState.Unrestricted);
-            registryPermission.Assert();
             try
             {
                 serviceParentKey = Registry.LocalMachine.OpenSubKey(ServicePath, true);
@@ -565,16 +545,11 @@ namespace System.Diagnostics
 
                 if (serviceParentKey != null)
                     serviceParentKey.Close();
-
-                RegistryPermission.RevertAssert();
             }
         }
 
         private static void CreateSymbolFile(CounterCreationDataCollection creationData)
         {
-            //SECREVIEW: PerformanceCounterPermission must have been demanded before
-            FileIOPermission permission = new FileIOPermission(PermissionState.Unrestricted);
-            permission.Assert();
             try
             {
                 StreamWriter symbolWriter = new StreamWriter(SymbolFilePath);
@@ -604,20 +579,13 @@ namespace System.Diagnostics
                 }
             }
             finally
-            {
-                FileIOPermission.RevertAssert();
-            }
+            { }
         }
 
         private static void DeleteRegistryEntry(string categoryName)
         {
             RegistryKey serviceKey = null;
 
-            //SECREVIEW: Whoever is able to call this function, must already
-            //                         have demmanded PerformanceCounterPermission
-            //                         we can therefore assert the RegistryPermission.
-            RegistryPermission registryPermission = new RegistryPermission(PermissionState.Unrestricted);
-            registryPermission.Assert();
             try
             {
                 serviceKey = Registry.LocalMachine.OpenSubKey(ServicePath, true);
@@ -646,8 +614,6 @@ namespace System.Diagnostics
             {
                 if (serviceKey != null)
                     serviceKey.Close();
-
-                RegistryPermission.RevertAssert();
             }
         }
 
@@ -680,14 +646,14 @@ namespace System.Diagnostics
             RegistryKey baseKey = null;
             categoryType = PerformanceCounterCategoryType.Unknown;
 
-            if (_customCategoryTable == null)
-            {
-                Interlocked.CompareExchange(ref _customCategoryTable, new Hashtable(StringComparer.OrdinalIgnoreCase), null);
-            }
+            Hashtable table =
+                _customCategoryTable ??
+                Interlocked.CompareExchange(ref _customCategoryTable, new Hashtable(StringComparer.OrdinalIgnoreCase), null) ??
+                _customCategoryTable;
 
-            if (_customCategoryTable.ContainsKey(category))
+            if (table.ContainsKey(category))
             {
-                categoryType = (PerformanceCounterCategoryType)_customCategoryTable[category];
+                categoryType = (PerformanceCounterCategoryType)table[category];
                 return true;
             }
             else
@@ -716,7 +682,10 @@ namespace System.Diagnostics
                                 // In this case we return an 'Unknown' category type and 'false' to indicate the category is *not* custom.
                                 //
                                 categoryType = PerformanceCounterCategoryType.Unknown;
-                                _customCategoryTable[category] = categoryType;
+                                lock (table)
+                                {
+                                    table[category] = categoryType;
+                                }
                                 return false;
                             }
                         }
@@ -744,8 +713,10 @@ namespace System.Diagnostics
                             if (objectID != null)
                             {
                                 int firstID = (int)objectID;
-
-                                _customCategoryTable[category] = categoryType;
+                                lock (table)
+                                {
+                                    table[category] = categoryType;
+                                }
                                 return true;
                             }
                         }
@@ -757,9 +728,9 @@ namespace System.Diagnostics
                         key.Close();
                     if (baseKey != null)
                         baseKey.Close();
-                    PermissionSet.RevertAssert();
                 }
             }
+
             return false;
         }
 
@@ -991,19 +962,10 @@ namespace System.Diagnostics
                 return help;
         }
 
-        internal string GetCounterName(int index)
-        {
-            if (NameTable.ContainsKey(index))
-                return (string)NameTable[index];
-
-            return "";
-        }
-
         private static string[] GetLanguageIds()
         {
             RegistryKey libraryParentKey = null;
             string[] ids = Array.Empty<string>();
-            new RegistryPermission(PermissionState.Unrestricted).Assert();
             try
             {
                 libraryParentKey = Registry.LocalMachine.OpenSubKey(PerflibPath);
@@ -1015,8 +977,6 @@ namespace System.Diagnostics
             {
                 if (libraryParentKey != null)
                     libraryParentKey.Close();
-
-                RegistryPermission.RevertAssert();
             }
 
             return ids;
@@ -1028,23 +988,21 @@ namespace System.Diagnostics
 
             machineName = (machineName == "." ? ComputerName : machineName).ToLowerInvariant();
 
-            if (PerformanceCounterLib.s_libraryTable == null)
+            //race with CloseAllLibraries
+            lock (InternalSyncObject)
             {
-                lock (InternalSyncObject)
-                {
-                    if (PerformanceCounterLib.s_libraryTable == null)
-                        PerformanceCounterLib.s_libraryTable = new Hashtable();
-                }
-            }
+                if (PerformanceCounterLib.s_libraryTable == null)
+                    PerformanceCounterLib.s_libraryTable = new Hashtable();
 
-            string libraryKey = machineName + ":" + lcidString;
-            if (PerformanceCounterLib.s_libraryTable.Contains(libraryKey))
-                return (PerformanceCounterLib)PerformanceCounterLib.s_libraryTable[libraryKey];
-            else
-            {
-                PerformanceCounterLib library = new PerformanceCounterLib(machineName, lcidString);
-                PerformanceCounterLib.s_libraryTable[libraryKey] = library;
-                return library;
+                string libraryKey = machineName + ":" + lcidString;
+                if (PerformanceCounterLib.s_libraryTable.Contains(libraryKey))
+                    return (PerformanceCounterLib)PerformanceCounterLib.s_libraryTable[libraryKey];
+                else
+                {
+                    PerformanceCounterLib library = new PerformanceCounterLib(machineName, lcidString);
+                    PerformanceCounterLib.s_libraryTable[libraryKey] = library;
+                    return library;
+                }
             }
         }
 
@@ -1355,7 +1313,6 @@ namespace System.Diagnostics
             int error = 0;
 
             // no need to revert here since we'll fall off the end of the method
-            new RegistryPermission(PermissionState.Unrestricted).Assert();
             while (waitRetries > 0)
             {
                 try

@@ -98,7 +98,6 @@ namespace System.Threading.Tasks
         /// <param name="OperationType">The kind of fork/join operation.</param>
         /// <param name="InclusiveFrom">The lower bound of the loop.</param>
         /// <param name="ExclusiveTo">The upper bound of the loop.</param>
-        [SecuritySafeCritical]
         [Event(PARALLELLOOPBEGIN_ID, Level = EventLevel.Informational, Task = ParallelEtwProvider.Tasks.Loop, Opcode = EventOpcode.Start)]
         public void ParallelLoopBegin(Int32 OriginatingTaskSchedulerID, Int32 OriginatingTaskID,      // PFX_COMMON_EVENT_HEADER
                                       Int32 ForkJoinContextID, ForkJoinOperationType OperationType, // PFX_FORKJOIN_COMMON_EVENT_HEADER
@@ -114,18 +113,36 @@ namespace System.Threading.Tasks
                 {
                     EventData* eventPayload = stackalloc EventData[6];
 
-                    eventPayload[0].Size = sizeof(Int32);
-                    eventPayload[0].DataPointer = ((IntPtr)(&OriginatingTaskSchedulerID));
-                    eventPayload[1].Size = sizeof(Int32);
-                    eventPayload[1].DataPointer = ((IntPtr)(&OriginatingTaskID));
-                    eventPayload[2].Size = sizeof(Int32);
-                    eventPayload[2].DataPointer = ((IntPtr)(&ForkJoinContextID));
-                    eventPayload[3].Size = sizeof(Int32);
-                    eventPayload[3].DataPointer = ((IntPtr)(&OperationType));
-                    eventPayload[4].Size = sizeof(Int64);
-                    eventPayload[4].DataPointer = ((IntPtr)(&InclusiveFrom));
-                    eventPayload[5].Size = sizeof(Int64);
-                    eventPayload[5].DataPointer = ((IntPtr)(&ExclusiveTo));
+                    eventPayload[0] = new EventData
+                    {
+                        Size = sizeof(Int32),
+                        DataPointer = ((IntPtr)(&OriginatingTaskSchedulerID))
+                    };
+                    eventPayload[1] = new EventData
+                    {
+                        Size = sizeof(Int32),
+                        DataPointer = ((IntPtr)(&OriginatingTaskID))
+                    };
+                    eventPayload[2] = new EventData
+                    {
+                        Size = sizeof(Int32),
+                        DataPointer = ((IntPtr)(&ForkJoinContextID))
+                    };
+                    eventPayload[3] = new EventData
+                    {
+                        Size = sizeof(Int32),
+                        DataPointer = ((IntPtr)(&OperationType))
+                    };
+                    eventPayload[4] = new EventData
+                    {
+                        Size = sizeof(Int64),
+                        DataPointer = ((IntPtr)(&InclusiveFrom))
+                    };
+                    eventPayload[5] = new EventData
+                    {
+                        Size = sizeof(Int64),
+                        DataPointer = ((IntPtr)(&ExclusiveTo))
+                    };
 
                     WriteEventCore(PARALLELLOOPBEGIN_ID, 6, eventPayload);
                 }
@@ -141,7 +158,6 @@ namespace System.Threading.Tasks
         /// <param name="OriginatingTaskID">The task ID.</param>
         /// <param name="ForkJoinContextID">The loop ID.</param>
         /// <param name="TotalIterations">the total number of iterations processed.</param>
-        [SecuritySafeCritical]
         [Event(PARALLELLOOPEND_ID, Level = EventLevel.Informational, Task = ParallelEtwProvider.Tasks.Loop, Opcode = EventOpcode.Stop)]
         public void ParallelLoopEnd(Int32 OriginatingTaskSchedulerID, Int32 OriginatingTaskID,  // PFX_COMMON_EVENT_HEADER
                                     Int32 ForkJoinContextID, Int64 TotalIterations)
@@ -155,14 +171,26 @@ namespace System.Threading.Tasks
                 {
                     EventData* eventPayload = stackalloc EventData[4];
 
-                    eventPayload[0].Size = sizeof(Int32);
-                    eventPayload[0].DataPointer = ((IntPtr)(&OriginatingTaskSchedulerID));
-                    eventPayload[1].Size = sizeof(Int32);
-                    eventPayload[1].DataPointer = ((IntPtr)(&OriginatingTaskID));
-                    eventPayload[2].Size = sizeof(Int32);
-                    eventPayload[2].DataPointer = ((IntPtr)(&ForkJoinContextID));
-                    eventPayload[3].Size = sizeof(Int64);
-                    eventPayload[3].DataPointer = ((IntPtr)(&TotalIterations));
+                    eventPayload[0] = new EventData
+                    {
+                        Size = sizeof(Int32),
+                        DataPointer = ((IntPtr)(&OriginatingTaskSchedulerID))
+                    };
+                    eventPayload[1] = new EventData
+                    {
+                        Size = sizeof(Int32),
+                        DataPointer = ((IntPtr)(&OriginatingTaskID))
+                    };
+                    eventPayload[2] = new EventData
+                    {
+                        Size = sizeof(Int32),
+                        DataPointer = ((IntPtr)(&ForkJoinContextID))
+                    };
+                    eventPayload[3] = new EventData
+                    {
+                        Size = sizeof(Int64),
+                        DataPointer = ((IntPtr)(&TotalIterations))
+                    };
 
                     WriteEventCore(PARALLELLOOPEND_ID, 4, eventPayload);
                 }
@@ -177,7 +205,6 @@ namespace System.Threading.Tasks
         /// <param name="ForkJoinContextID">The invoke ID.</param>
         /// <param name="OperationType">The kind of fork/join operation.</param>
         /// <param name="ActionCount">The number of actions being invoked.</param>
-        [SecuritySafeCritical]
         [Event(PARALLELINVOKEBEGIN_ID, Level = EventLevel.Informational, Task = ParallelEtwProvider.Tasks.Invoke, Opcode = EventOpcode.Start)]
         public void ParallelInvokeBegin(Int32 OriginatingTaskSchedulerID, Int32 OriginatingTaskID,      // PFX_COMMON_EVENT_HEADER
                                         Int32 ForkJoinContextID, ForkJoinOperationType OperationType, // PFX_FORKJOIN_COMMON_EVENT_HEADER
@@ -192,16 +219,31 @@ namespace System.Threading.Tasks
                 {
                     EventData* eventPayload = stackalloc EventData[5];
 
-                    eventPayload[0].Size = sizeof(Int32);
-                    eventPayload[0].DataPointer = ((IntPtr)(&OriginatingTaskSchedulerID));
-                    eventPayload[1].Size = sizeof(Int32);
-                    eventPayload[1].DataPointer = ((IntPtr)(&OriginatingTaskID));
-                    eventPayload[2].Size = sizeof(Int32);
-                    eventPayload[2].DataPointer = ((IntPtr)(&ForkJoinContextID));
-                    eventPayload[3].Size = sizeof(Int32);
-                    eventPayload[3].DataPointer = ((IntPtr)(&OperationType));
-                    eventPayload[4].Size = sizeof(Int32);
-                    eventPayload[4].DataPointer = ((IntPtr)(&ActionCount));
+                    eventPayload[0] = new EventData
+                    {
+                        Size = sizeof(Int32),
+                        DataPointer = ((IntPtr)(&OriginatingTaskSchedulerID))
+                    };
+                    eventPayload[1] = new EventData
+                    {
+                        Size = sizeof(Int32),
+                        DataPointer = ((IntPtr)(&OriginatingTaskID))
+                    };
+                    eventPayload[2] = new EventData
+                    {
+                        Size = sizeof(Int32),
+                        DataPointer = ((IntPtr)(&ForkJoinContextID))
+                    };
+                    eventPayload[3] = new EventData
+                    {
+                        Size = sizeof(Int32),
+                        DataPointer = ((IntPtr)(&OperationType))
+                    };
+                    eventPayload[4] = new EventData
+                    {
+                        Size = sizeof(Int32),
+                        DataPointer = ((IntPtr)(&ActionCount))
+                    };
 
                     WriteEventCore(PARALLELINVOKEBEGIN_ID, 5, eventPayload);
                 }

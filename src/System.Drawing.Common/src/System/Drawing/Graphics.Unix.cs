@@ -50,7 +50,6 @@ namespace System.Drawing
         private bool disposed = false;
         private static float defDpiX = 0;
         private static float defDpiY = 0;
-        private IntPtr deviceContextHdc;
 
         public delegate bool EnumerateMetafileProc(EmfPlusRecordType recordType,
                                 int flags,
@@ -116,7 +115,6 @@ namespace System.Drawing
             }
         }
 
-        [MonoTODO("Metafiles, both WMF and EMF formats, aren't supported.")]
         public void AddMetafileComment(byte[] data)
         {
             throw new NotImplementedException();
@@ -131,7 +129,6 @@ namespace System.Drawing
             return new GraphicsContainer(state);
         }
 
-        [MonoTODO("The rectangles and unit parameters aren't supported in libgdiplus")]
         public GraphicsContainer BeginContainer(Rectangle dstrect, Rectangle srcrect, GraphicsUnit unit)
         {
             int state;
@@ -145,7 +142,6 @@ namespace System.Drawing
             return new GraphicsContainer(state);
         }
 
-        [MonoTODO("The rectangles and unit parameters aren't supported in libgdiplus")]
         public GraphicsContainer BeginContainer(RectangleF dstrect, RectangleF srcrect, GraphicsUnit unit)
         {
             int state;
@@ -166,28 +162,25 @@ namespace System.Drawing
             status = SafeNativeMethods.Gdip.GdipGraphicsClear(nativeObject, color.ToArgb());
             SafeNativeMethods.Gdip.CheckStatus(status);
         }
-        [MonoLimitation("Works on Win32 and on X11 (but not on Cocoa and Quartz)")]
+
         public void CopyFromScreen(Point upperLeftSource, Point upperLeftDestination, Size blockRegionSize)
         {
             CopyFromScreen(upperLeftSource.X, upperLeftSource.Y, upperLeftDestination.X, upperLeftDestination.Y,
                 blockRegionSize, CopyPixelOperation.SourceCopy);
         }
 
-        [MonoLimitation("Works on Win32 and (for CopyPixelOperation.SourceCopy only) on X11 but not on Cocoa and Quartz")]
         public void CopyFromScreen(Point upperLeftSource, Point upperLeftDestination, Size blockRegionSize, CopyPixelOperation copyPixelOperation)
         {
             CopyFromScreen(upperLeftSource.X, upperLeftSource.Y, upperLeftDestination.X, upperLeftDestination.Y,
                 blockRegionSize, copyPixelOperation);
         }
 
-        [MonoLimitation("Works on Win32 and on X11 (but not on Cocoa and Quartz)")]
         public void CopyFromScreen(int sourceX, int sourceY, int destinationX, int destinationY, Size blockRegionSize)
         {
             CopyFromScreen(sourceX, sourceY, destinationX, destinationY, blockRegionSize,
                 CopyPixelOperation.SourceCopy);
         }
 
-        [MonoLimitation("Works on Win32 and (for CopyPixelOperation.SourceCopy only) on X11 but not on Cocoa and Quartz")]
         public void CopyFromScreen(int sourceX, int sourceY, int destinationX, int destinationY, Size blockRegionSize, CopyPixelOperation copyPixelOperation)
         {
             if (!Enum.IsDefined(typeof(CopyPixelOperation), copyPixelOperation))
@@ -197,19 +190,10 @@ namespace System.Drawing
             {
                 CopyFromScreenX11(sourceX, sourceY, destinationX, destinationY, blockRegionSize, copyPixelOperation);
             }
-            else if (SafeNativeMethods.Gdip.UseCarbonDrawable)
+            else
             {
-                CopyFromScreenMac(sourceX, sourceY, destinationX, destinationY, blockRegionSize, copyPixelOperation);
+                throw new PlatformNotSupportedException();
             }
-            else if (SafeNativeMethods.Gdip.UseCocoaDrawable)
-            {
-                CopyFromScreenMac(sourceX, sourceY, destinationX, destinationY, blockRegionSize, copyPixelOperation);
-            }
-        }
-
-        private void CopyFromScreenMac(int sourceX, int sourceY, int destinationX, int destinationY, Size blockRegionSize, CopyPixelOperation copyPixelOperation)
-        {
-            throw new NotImplementedException();
         }
 
         private void CopyFromScreenX11(int sourceX, int sourceY, int destinationX, int destinationY, Size blockRegionSize, CopyPixelOperation copyPixelOperation)
@@ -233,18 +217,6 @@ namespace System.Drawing
             visual.visualid = LibX11Functions.XVisualIDFromVisual(defvisual);
             vPtr = LibX11Functions.XGetVisualInfo(SafeNativeMethods.Gdip.Display, 0x1 /* VisualIDMask */, ref visual, ref nitems);
             visual = (XVisualInfo)Marshal.PtrToStructure(vPtr, typeof(XVisualInfo));
-#if false
-            Console.WriteLine ("visual\t{0}", visual.visual);
-            Console.WriteLine ("visualid\t{0}", visual.visualid);
-            Console.WriteLine ("screen\t{0}", visual.screen);
-            Console.WriteLine ("depth\t{0}", visual.depth);
-            Console.WriteLine ("klass\t{0}", visual.klass);
-            Console.WriteLine ("red_mask\t{0:X}", visual.red_mask);
-            Console.WriteLine ("green_mask\t{0:X}", visual.green_mask);
-            Console.WriteLine ("blue_mask\t{0:X}", visual.blue_mask);
-            Console.WriteLine ("colormap_size\t{0}", visual.colormap_size);
-            Console.WriteLine ("bits_per_rgb\t{0}", visual.bits_per_rgb);
-#endif
             image = LibX11Functions.XGetImage(SafeNativeMethods.Gdip.Display, window, sourceX, sourceY, blockRegionSize.Width,
                 blockRegionSize.Height, AllPlanes, 2 /* ZPixmap*/);
             if (image == IntPtr.Zero)
@@ -298,7 +270,12 @@ namespace System.Drawing
             int status;
             if (!disposed)
             {
-                if (SafeNativeMethods.Gdip.UseCarbonDrawable || SafeNativeMethods.Gdip.UseCocoaDrawable)
+                if (_nativeHdc != IntPtr.Zero) // avoid a handle leak.
+                {
+                    ReleaseHdc();
+                }
+
+                if (!SafeNativeMethods.Gdip.UseX11Drawable)
                 {
                     Flush();
                     if (maccontext != null)
@@ -643,7 +620,7 @@ namespace System.Drawing
             if (image == null)
                 throw new ArgumentNullException("image");
 
-            int status = SafeNativeMethods.Gdip.GdipDrawImageRect(nativeObject, image.NativeObject, rect.X, rect.Y, rect.Width, rect.Height);
+            int status = SafeNativeMethods.Gdip.GdipDrawImageRect(nativeObject, image.nativeImage, rect.X, rect.Y, rect.Width, rect.Height);
             SafeNativeMethods.Gdip.CheckStatus(status);
         }
 
@@ -652,7 +629,7 @@ namespace System.Drawing
             if (image == null)
                 throw new ArgumentNullException("image");
 
-            int status = SafeNativeMethods.Gdip.GdipDrawImage(nativeObject, image.NativeObject, point.X, point.Y);
+            int status = SafeNativeMethods.Gdip.GdipDrawImage(nativeObject, image.nativeImage, point.X, point.Y);
             SafeNativeMethods.Gdip.CheckStatus(status);
         }
 
@@ -663,7 +640,7 @@ namespace System.Drawing
             if (destPoints == null)
                 throw new ArgumentNullException("destPoints");
 
-            int status = SafeNativeMethods.Gdip.GdipDrawImagePointsI(nativeObject, image.NativeObject, destPoints, destPoints.Length);
+            int status = SafeNativeMethods.Gdip.GdipDrawImagePointsI(nativeObject, image.nativeImage, destPoints, destPoints.Length);
             SafeNativeMethods.Gdip.CheckStatus(status);
         }
 
@@ -687,7 +664,7 @@ namespace System.Drawing
                 throw new ArgumentNullException("image");
             if (destPoints == null)
                 throw new ArgumentNullException("destPoints");
-            int status = SafeNativeMethods.Gdip.GdipDrawImagePoints(nativeObject, image.NativeObject, destPoints, destPoints.Length);
+            int status = SafeNativeMethods.Gdip.GdipDrawImagePoints(nativeObject, image.nativeImage, destPoints, destPoints.Length);
             SafeNativeMethods.Gdip.CheckStatus(status);
         }
 
@@ -695,7 +672,7 @@ namespace System.Drawing
         {
             if (image == null)
                 throw new ArgumentNullException("image");
-            int status = SafeNativeMethods.Gdip.GdipDrawImageI(nativeObject, image.NativeObject, x, y);
+            int status = SafeNativeMethods.Gdip.GdipDrawImageI(nativeObject, image.nativeImage, x, y);
             SafeNativeMethods.Gdip.CheckStatus(status);
         }
 
@@ -703,7 +680,7 @@ namespace System.Drawing
         {
             if (image == null)
                 throw new ArgumentNullException("image");
-            int status = SafeNativeMethods.Gdip.GdipDrawImage(nativeObject, image.NativeObject, x, y);
+            int status = SafeNativeMethods.Gdip.GdipDrawImage(nativeObject, image.nativeImage, x, y);
             SafeNativeMethods.Gdip.CheckStatus(status);
         }
 
@@ -711,7 +688,7 @@ namespace System.Drawing
         {
             if (image == null)
                 throw new ArgumentNullException("image");
-            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRectI(nativeObject, image.NativeObject,
+            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRectI(nativeObject, image.nativeImage,
                 destRect.X, destRect.Y, destRect.Width, destRect.Height,
                 srcRect.X, srcRect.Y, srcRect.Width, srcRect.Height,
                 srcUnit, IntPtr.Zero, null, IntPtr.Zero);
@@ -722,7 +699,7 @@ namespace System.Drawing
         {
             if (image == null)
                 throw new ArgumentNullException("image");
-            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRect(nativeObject, image.NativeObject,
+            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRect(nativeObject, image.nativeImage,
                 destRect.X, destRect.Y, destRect.Width, destRect.Height,
                 srcRect.X, srcRect.Y, srcRect.Width, srcRect.Height,
                 srcUnit, IntPtr.Zero, null, IntPtr.Zero);
@@ -736,7 +713,7 @@ namespace System.Drawing
             if (destPoints == null)
                 throw new ArgumentNullException("destPoints");
 
-            int status = SafeNativeMethods.Gdip.GdipDrawImagePointsRectI(nativeObject, image.NativeObject,
+            int status = SafeNativeMethods.Gdip.GdipDrawImagePointsRectI(nativeObject, image.nativeImage,
                 destPoints, destPoints.Length, srcRect.X, srcRect.Y,
                 srcRect.Width, srcRect.Height, srcUnit, IntPtr.Zero,
                 null, IntPtr.Zero);
@@ -750,7 +727,7 @@ namespace System.Drawing
             if (destPoints == null)
                 throw new ArgumentNullException("destPoints");
 
-            int status = SafeNativeMethods.Gdip.GdipDrawImagePointsRect(nativeObject, image.NativeObject,
+            int status = SafeNativeMethods.Gdip.GdipDrawImagePointsRect(nativeObject, image.nativeImage,
                 destPoints, destPoints.Length, srcRect.X, srcRect.Y,
                 srcRect.Width, srcRect.Height, srcUnit, IntPtr.Zero,
                 null, IntPtr.Zero);
@@ -764,7 +741,7 @@ namespace System.Drawing
                 throw new ArgumentNullException("image");
             if (destPoints == null)
                 throw new ArgumentNullException("destPoints");
-            int status = SafeNativeMethods.Gdip.GdipDrawImagePointsRectI(nativeObject, image.NativeObject,
+            int status = SafeNativeMethods.Gdip.GdipDrawImagePointsRectI(nativeObject, image.nativeImage,
                 destPoints, destPoints.Length, srcRect.X, srcRect.Y,
                 srcRect.Width, srcRect.Height, srcUnit,
                 imageAttr != null ? imageAttr.nativeImageAttributes : IntPtr.Zero, null, IntPtr.Zero);
@@ -775,7 +752,7 @@ namespace System.Drawing
         {
             if (image == null)
                 throw new ArgumentNullException("image");
-            int status = SafeNativeMethods.Gdip.GdipDrawImageRect(nativeObject, image.NativeObject, x, y,
+            int status = SafeNativeMethods.Gdip.GdipDrawImageRect(nativeObject, image.nativeImage, x, y,
                            width, height);
             SafeNativeMethods.Gdip.CheckStatus(status);
         }
@@ -787,7 +764,7 @@ namespace System.Drawing
                 throw new ArgumentNullException("image");
             if (destPoints == null)
                 throw new ArgumentNullException("destPoints");
-            int status = SafeNativeMethods.Gdip.GdipDrawImagePointsRect(nativeObject, image.NativeObject,
+            int status = SafeNativeMethods.Gdip.GdipDrawImagePointsRect(nativeObject, image.nativeImage,
                 destPoints, destPoints.Length, srcRect.X, srcRect.Y,
                 srcRect.Width, srcRect.Height, srcUnit,
                 imageAttr != null ? imageAttr.nativeImageAttributes : IntPtr.Zero, null, IntPtr.Zero);
@@ -798,7 +775,7 @@ namespace System.Drawing
         {
             if (image == null)
                 throw new ArgumentNullException("image");
-            int status = SafeNativeMethods.Gdip.GdipDrawImagePointRectI(nativeObject, image.NativeObject, x, y, srcRect.X, srcRect.Y, srcRect.Width, srcRect.Height, srcUnit);
+            int status = SafeNativeMethods.Gdip.GdipDrawImagePointRectI(nativeObject, image.nativeImage, x, y, srcRect.X, srcRect.Y, srcRect.Width, srcRect.Height, srcUnit);
             SafeNativeMethods.Gdip.CheckStatus(status);
         }
 
@@ -806,7 +783,7 @@ namespace System.Drawing
         {
             if (image == null)
                 throw new ArgumentNullException("image");
-            int status = SafeNativeMethods.Gdip.GdipDrawImageRectI(nativeObject, image.nativeObject, x, y, width, height);
+            int status = SafeNativeMethods.Gdip.GdipDrawImageRectI(nativeObject, image.nativeImage, x, y, width, height);
             SafeNativeMethods.Gdip.CheckStatus(status);
         }
 
@@ -814,7 +791,7 @@ namespace System.Drawing
         {
             if (image == null)
                 throw new ArgumentNullException("image");
-            int status = SafeNativeMethods.Gdip.GdipDrawImagePointRect(nativeObject, image.nativeObject, x, y, srcRect.X, srcRect.Y, srcRect.Width, srcRect.Height, srcUnit);
+            int status = SafeNativeMethods.Gdip.GdipDrawImagePointRect(nativeObject, image.nativeImage, x, y, srcRect.X, srcRect.Y, srcRect.Width, srcRect.Height, srcUnit);
             SafeNativeMethods.Gdip.CheckStatus(status);
         }
 
@@ -824,7 +801,7 @@ namespace System.Drawing
                 throw new ArgumentNullException("image");
             if (destPoints == null)
                 throw new ArgumentNullException("destPoints");
-            int status = SafeNativeMethods.Gdip.GdipDrawImagePointsRect(nativeObject, image.NativeObject,
+            int status = SafeNativeMethods.Gdip.GdipDrawImagePointsRect(nativeObject, image.nativeImage,
                 destPoints, destPoints.Length, srcRect.X, srcRect.Y,
                 srcRect.Width, srcRect.Height, srcUnit,
                 imageAttr != null ? imageAttr.nativeImageAttributes : IntPtr.Zero, callback, IntPtr.Zero);
@@ -838,7 +815,7 @@ namespace System.Drawing
             if (destPoints == null)
                 throw new ArgumentNullException("destPoints");
 
-            int status = SafeNativeMethods.Gdip.GdipDrawImagePointsRectI(nativeObject, image.NativeObject,
+            int status = SafeNativeMethods.Gdip.GdipDrawImagePointsRectI(nativeObject, image.nativeImage,
                 destPoints, destPoints.Length, srcRect.X, srcRect.Y,
                 srcRect.Width, srcRect.Height, srcUnit,
                 imageAttr != null ? imageAttr.nativeImageAttributes : IntPtr.Zero, callback, IntPtr.Zero);
@@ -852,7 +829,7 @@ namespace System.Drawing
             if (destPoints == null)
                 throw new ArgumentNullException("destPoints");
 
-            int status = SafeNativeMethods.Gdip.GdipDrawImagePointsRectI(nativeObject, image.NativeObject,
+            int status = SafeNativeMethods.Gdip.GdipDrawImagePointsRectI(nativeObject, image.nativeImage,
                 destPoints, destPoints.Length, srcRect.X, srcRect.Y,
                 srcRect.Width, srcRect.Height, srcUnit,
                 imageAttr != null ? imageAttr.nativeImageAttributes : IntPtr.Zero, callback, (IntPtr)callbackData);
@@ -863,7 +840,7 @@ namespace System.Drawing
         {
             if (image == null)
                 throw new ArgumentNullException("image");
-            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRect(nativeObject, image.NativeObject,
+            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRect(nativeObject, image.nativeImage,
                                 destRect.X, destRect.Y, destRect.Width, destRect.Height,
                                srcX, srcY, srcWidth, srcHeight, srcUnit, IntPtr.Zero,
                                null, IntPtr.Zero);
@@ -872,7 +849,7 @@ namespace System.Drawing
 
         public void DrawImage(Image image, PointF[] destPoints, RectangleF srcRect, GraphicsUnit srcUnit, ImageAttributes imageAttr, DrawImageAbort callback, int callbackData)
         {
-            int status = SafeNativeMethods.Gdip.GdipDrawImagePointsRect(nativeObject, image.NativeObject,
+            int status = SafeNativeMethods.Gdip.GdipDrawImagePointsRect(nativeObject, image.nativeImage,
                 destPoints, destPoints.Length, srcRect.X, srcRect.Y,
                 srcRect.Width, srcRect.Height, srcUnit,
                 imageAttr != null ? imageAttr.nativeImageAttributes : IntPtr.Zero, callback, (IntPtr)callbackData);
@@ -883,7 +860,7 @@ namespace System.Drawing
         {
             if (image == null)
                 throw new ArgumentNullException("image");
-            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRectI(nativeObject, image.NativeObject,
+            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRectI(nativeObject, image.nativeImage,
                                 destRect.X, destRect.Y, destRect.Width, destRect.Height,
                                srcX, srcY, srcWidth, srcHeight, srcUnit, IntPtr.Zero,
                                null, IntPtr.Zero);
@@ -894,7 +871,7 @@ namespace System.Drawing
         {
             if (image == null)
                 throw new ArgumentNullException("image");
-            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRect(nativeObject, image.NativeObject,
+            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRect(nativeObject, image.nativeImage,
                                 destRect.X, destRect.Y, destRect.Width, destRect.Height,
                                srcX, srcY, srcWidth, srcHeight, srcUnit,
                 imageAttrs != null ? imageAttrs.nativeImageAttributes : IntPtr.Zero, null, IntPtr.Zero);
@@ -905,7 +882,7 @@ namespace System.Drawing
         {
             if (image == null)
                 throw new ArgumentNullException("image");
-            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRectI(nativeObject, image.NativeObject,
+            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRectI(nativeObject, image.nativeImage,
                                         destRect.X, destRect.Y, destRect.Width,
                     destRect.Height, srcX, srcY, srcWidth, srcHeight,
                     srcUnit, imageAttr != null ? imageAttr.nativeImageAttributes : IntPtr.Zero, null, IntPtr.Zero);
@@ -916,7 +893,7 @@ namespace System.Drawing
         {
             if (image == null)
                 throw new ArgumentNullException("image");
-            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRectI(nativeObject, image.NativeObject,
+            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRectI(nativeObject, image.nativeImage,
                                         destRect.X, destRect.Y, destRect.Width,
                     destRect.Height, srcX, srcY, srcWidth, srcHeight,
                     srcUnit, imageAttr != null ? imageAttr.nativeImageAttributes : IntPtr.Zero, callback,
@@ -928,7 +905,7 @@ namespace System.Drawing
         {
             if (image == null)
                 throw new ArgumentNullException("image");
-            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRect(nativeObject, image.NativeObject,
+            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRect(nativeObject, image.nativeImage,
                                         destRect.X, destRect.Y, destRect.Width,
                     destRect.Height, srcX, srcY, srcWidth, srcHeight,
                     srcUnit, imageAttrs != null ? imageAttrs.nativeImageAttributes : IntPtr.Zero,
@@ -940,7 +917,7 @@ namespace System.Drawing
         {
             if (image == null)
                 throw new ArgumentNullException("image");
-            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRect(nativeObject, image.NativeObject,
+            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRect(nativeObject, image.nativeImage,
                 destRect.X, destRect.Y, destRect.Width, destRect.Height,
                 srcX, srcY, srcWidth, srcHeight, srcUnit,
                 imageAttrs != null ? imageAttrs.nativeImageAttributes : IntPtr.Zero, callback, callbackData);
@@ -951,7 +928,7 @@ namespace System.Drawing
         {
             if (image == null)
                 throw new ArgumentNullException("image");
-            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRect(nativeObject, image.NativeObject,
+            int status = SafeNativeMethods.Gdip.GdipDrawImageRectRect(nativeObject, image.nativeImage,
                                destRect.X, destRect.Y, destRect.Width, destRect.Height,
                 srcX, srcY, srcWidth, srcHeight, srcUnit,
                 imageAttrs != null ? imageAttrs.nativeImageAttributes : IntPtr.Zero, callback, callbackData);
@@ -1215,219 +1192,181 @@ namespace System.Drawing
             SafeNativeMethods.Gdip.CheckStatus(status);
         }
 
-        private const string MetafileEnumeration = "Metafiles enumeration, for both WMF and EMF formats, isn't supported.";
-
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, Point[] destPoints, EnumerateMetafileProc callback)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, RectangleF destRect, EnumerateMetafileProc callback)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, PointF[] destPoints, EnumerateMetafileProc callback)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, Rectangle destRect, EnumerateMetafileProc callback)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, Point destPoint, EnumerateMetafileProc callback)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, PointF destPoint, EnumerateMetafileProc callback)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, PointF destPoint, EnumerateMetafileProc callback, IntPtr callbackData)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, Rectangle destRect, EnumerateMetafileProc callback, IntPtr callbackData)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, PointF[] destPoints, EnumerateMetafileProc callback, IntPtr callbackData)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, Point destPoint, EnumerateMetafileProc callback, IntPtr callbackData)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, Point[] destPoints, EnumerateMetafileProc callback, IntPtr callbackData)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, RectangleF destRect, EnumerateMetafileProc callback, IntPtr callbackData)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, PointF destPoint, RectangleF srcRect, GraphicsUnit srcUnit, EnumerateMetafileProc callback)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, Point destPoint, Rectangle srcRect, GraphicsUnit srcUnit, EnumerateMetafileProc callback)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, PointF[] destPoints, RectangleF srcRect, GraphicsUnit srcUnit, EnumerateMetafileProc callback)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, Point[] destPoints, Rectangle srcRect, GraphicsUnit srcUnit, EnumerateMetafileProc callback)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, RectangleF destRect, RectangleF srcRect, GraphicsUnit srcUnit, EnumerateMetafileProc callback)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, Rectangle destRect, Rectangle srcRect, GraphicsUnit srcUnit, EnumerateMetafileProc callback)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, RectangleF destRect, EnumerateMetafileProc callback, IntPtr callbackData, ImageAttributes imageAttr)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, Point destPoint, EnumerateMetafileProc callback, IntPtr callbackData, ImageAttributes imageAttr)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, PointF destPoint, EnumerateMetafileProc callback, IntPtr callbackData, ImageAttributes imageAttr)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, Point[] destPoints, EnumerateMetafileProc callback, IntPtr callbackData, ImageAttributes imageAttr)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, PointF[] destPoints, EnumerateMetafileProc callback, IntPtr callbackData, ImageAttributes imageAttr)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, Rectangle destRect, EnumerateMetafileProc callback, IntPtr callbackData, ImageAttributes imageAttr)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, Rectangle destRect, Rectangle srcRect, GraphicsUnit srcUnit, EnumerateMetafileProc callback, IntPtr callbackData)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, PointF[] destPoints, RectangleF srcRect, GraphicsUnit srcUnit, EnumerateMetafileProc callback, IntPtr callbackData)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, RectangleF destRect, RectangleF srcRect, GraphicsUnit srcUnit, EnumerateMetafileProc callback, IntPtr callbackData)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, PointF destPoint, RectangleF srcRect, GraphicsUnit srcUnit, EnumerateMetafileProc callback, IntPtr callbackData)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, Point destPoint, Rectangle srcRect, GraphicsUnit srcUnit, EnumerateMetafileProc callback, IntPtr callbackData)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, Point[] destPoints, Rectangle srcRect, GraphicsUnit srcUnit, EnumerateMetafileProc callback, IntPtr callbackData)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, Point[] destPoints, Rectangle srcRect, GraphicsUnit unit, EnumerateMetafileProc callback, IntPtr callbackData, ImageAttributes imageAttr)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, Rectangle destRect, Rectangle srcRect, GraphicsUnit unit, EnumerateMetafileProc callback, IntPtr callbackData, ImageAttributes imageAttr)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, Point destPoint, Rectangle srcRect, GraphicsUnit unit, EnumerateMetafileProc callback, IntPtr callbackData, ImageAttributes imageAttr)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, RectangleF destRect, RectangleF srcRect, GraphicsUnit unit, EnumerateMetafileProc callback, IntPtr callbackData, ImageAttributes imageAttr)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, PointF[] destPoints, RectangleF srcRect, GraphicsUnit unit, EnumerateMetafileProc callback, IntPtr callbackData, ImageAttributes imageAttr)
         {
             throw new NotImplementedException();
         }
 
-        [MonoTODO(MetafileEnumeration)]
         public void EnumerateMetafile(Metafile metafile, PointF destPoint, RectangleF srcRect, GraphicsUnit unit, EnumerateMetafileProc callback, IntPtr callbackData, ImageAttributes imageAttr)
         {
             throw new NotImplementedException();
@@ -1662,26 +1601,7 @@ namespace System.Drawing
             SafeNativeMethods.Gdip.CheckStatus(status);
         }
 
-
-        public void Flush()
-        {
-            Flush(FlushIntention.Flush);
-        }
-
-
-        public void Flush(FlushIntention intention)
-        {
-            if (nativeObject == IntPtr.Zero)
-            {
-                return;
-            }
-
-            int status = SafeNativeMethods.Gdip.GdipFlush(nativeObject, intention);
-            SafeNativeMethods.Gdip.CheckStatus(status);
-
-            if (maccontext != null)
-                maccontext.Synchronize();
-        }
+        private void FlushCore() => maccontext?.Synchronize();
 
         [EditorBrowsable(EditorBrowsableState.Advanced)]
         public static Graphics FromHdc(IntPtr hdc)
@@ -1692,7 +1612,6 @@ namespace System.Drawing
             return new Graphics(graphics);
         }
 
-        [MonoTODO]
         [EditorBrowsable(EditorBrowsableState.Advanced)]
         public static Graphics FromHdc(IntPtr hdc, IntPtr hdevice)
         {
@@ -1711,18 +1630,7 @@ namespace System.Drawing
         {
             IntPtr graphics;
 
-            if (SafeNativeMethods.Gdip.UseCocoaDrawable)
-            {
-                CocoaContext context = MacSupport.GetCGContextForNSView(hwnd);
-                SafeNativeMethods.Gdip.GdipCreateFromContext_macosx(context.ctx, context.width, context.height, out graphics);
-
-                Graphics g = new Graphics(graphics);
-                g.maccontext = context;
-
-                return g;
-            }
-
-            if (SafeNativeMethods.Gdip.UseCarbonDrawable)
+            if (!SafeNativeMethods.Gdip.UseX11Drawable)
             {
                 CarbonContext context = MacSupport.GetCGContextForView(hwnd);
                 SafeNativeMethods.Gdip.GdipCreateFromContext_macosx(context.ctx, context.width, context.height, out graphics);
@@ -1732,7 +1640,7 @@ namespace System.Drawing
 
                 return g;
             }
-            if (SafeNativeMethods.Gdip.UseX11Drawable)
+            else
             {
                 if (SafeNativeMethods.Gdip.Display == IntPtr.Zero)
                 {
@@ -1746,13 +1654,7 @@ namespace System.Drawing
                 }
 
                 return FromXDrawable(hwnd, SafeNativeMethods.Gdip.Display);
-
             }
-
-            int status = SafeNativeMethods.Gdip.GdipCreateFromHWND(hwnd, out graphics);
-            SafeNativeMethods.Gdip.CheckStatus(status);
-
-            return new Graphics(graphics);
         }
 
         [EditorBrowsable(EditorBrowsableState.Advanced)]
@@ -1769,9 +1671,9 @@ namespace System.Drawing
                 throw new ArgumentNullException("image");
 
             if ((image.PixelFormat & PixelFormat.Indexed) != 0)
-                throw new Exception("Cannot create Graphics from an indexed bitmap.");
+                throw new ArgumentException("Cannot create Graphics from an indexed bitmap.", nameof(image));            
 
-            int status = SafeNativeMethods.Gdip.GdipGetImageGraphicsContext(image.nativeObject, out graphics);
+            int status = SafeNativeMethods.Gdip.GdipGetImageGraphicsContext(image.nativeImage, out graphics);
             SafeNativeMethods.Gdip.CheckStatus(status);
             Graphics result = new Graphics(graphics);
 
@@ -1790,16 +1692,9 @@ namespace System.Drawing
             return new Graphics(graphics);
         }
 
-        [MonoTODO]
         public static IntPtr GetHalftonePalette()
         {
             throw new NotImplementedException();
-        }
-
-        public IntPtr GetHdc()
-        {
-            SafeNativeMethods.Gdip.CheckStatus(SafeNativeMethods.Gdip.GdipGetDC(this.nativeObject, out deviceContextHdc));
-            return deviceContextHdc;
         }
 
         public Color GetNearestColor(Color color)
@@ -1815,7 +1710,7 @@ namespace System.Drawing
         public Region[] MeasureCharacterRanges(string text, Font font, RectangleF layoutRect, StringFormat stringFormat)
         {
             if ((text == null) || (text.Length == 0))
-                return new Region[0];
+                return Array.Empty<Region>();
 
             if (font == null)
                 throw new ArgumentNullException("font");
@@ -1825,7 +1720,7 @@ namespace System.Drawing
 
             int regcount = stringFormat.GetMeasurableCharacterRangeCount();
             if (regcount == 0)
-                return new Region[0];
+                return Array.Empty<Region>();
 
             IntPtr[] native_regions = new IntPtr[regcount];
             Region[] regions = new Region[regcount];
@@ -1928,26 +1823,14 @@ namespace System.Drawing
             return new SizeF(boundingBox.Width, boundingBox.Height);
         }
 
-        [EditorBrowsable(EditorBrowsableState.Advanced)]
-        public void ReleaseHdc(IntPtr hdc)
-        {
-            ReleaseHdcInternal(hdc);
-        }
-
-        public void ReleaseHdc()
-        {
-            ReleaseHdcInternal(deviceContextHdc);
-        }
-
-        [MonoLimitation("Can only be used when hdc was provided by Graphics.GetHdc() method")]
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void ReleaseHdcInternal(IntPtr hdc)
         {
             int status = SafeNativeMethods.Gdip.InvalidParameter;
-            if (hdc == deviceContextHdc)
+            if (hdc == _nativeHdc)
             {
-                status = SafeNativeMethods.Gdip.GdipReleaseDC(nativeObject, deviceContextHdc);
-                deviceContextHdc = IntPtr.Zero;
+                status = SafeNativeMethods.Gdip.GdipReleaseDC(nativeObject, _nativeHdc);
+                _nativeHdc = IntPtr.Zero;
             }
             SafeNativeMethods.Gdip.CheckStatus(status);
         }
@@ -2105,7 +1988,6 @@ namespace System.Drawing
             }
         }
 
-        [MonoTODO("This property does not do anything when used with libgdiplus.")]
         public PixelOffsetMode PixelOffsetMode
         {
             get
@@ -2158,7 +2040,6 @@ namespace System.Drawing
             }
         }
 
-        [MonoTODO("This property does not do anything when used with libgdiplus.")]
         public int TextContrast
         {
             get
@@ -2207,7 +2088,6 @@ namespace System.Drawing
             }
         }
 
-        [MonoTODO]
         [EditorBrowsable(EditorBrowsableState.Never)]
         public object GetContextInfo()
         {

@@ -32,10 +32,6 @@
 // Validate that our Signals enum values are correct for the platform
 static_assert(PAL_SIGKILL == SIGKILL, "");
 
-// Validate that our WaitPidOptions enum values are correct for the platform
-static_assert(PAL_WNOHANG == WNOHANG, "");
-static_assert(PAL_WUNTRACED == WUNTRACED, "");
-
 // Validate that our SysLogPriority values are correct for the platform
 static_assert(PAL_LOG_EMERG == LOG_EMERG, "");
 static_assert(PAL_LOG_ALERT == LOG_ALERT, "");
@@ -92,6 +88,58 @@ static int Dup2WithInterruptedRetry(int oldfd, int newfd)
     return result;
 }
 
+static ssize_t WriteSize(int fd, const void* buffer, size_t count)
+{
+    ssize_t rv = 0;
+    while (count > 0)
+    {
+        ssize_t result = 0;
+        while (CheckInterrupted(result = write(fd, buffer, count)));
+        if (result > 0)
+        {
+            rv += result;
+            buffer = reinterpret_cast<const uint8_t*>(buffer) + result;
+            count -= static_cast<size_t>(result);
+        }
+        else
+        {
+            return -1;
+        }
+    }
+    return rv;
+}
+
+static ssize_t ReadSize(int fd, void* buffer, size_t count)
+{
+    ssize_t rv = 0;
+    while (count > 0)
+    {
+        ssize_t result = 0;
+        while (CheckInterrupted(result = read(fd, buffer, count)));
+        if (result > 0)
+        {
+            rv += result;
+            buffer = reinterpret_cast<uint8_t*>(buffer) + result;
+            count -= static_cast<size_t>(result);
+        }
+        else
+        {
+            return -1;
+        }
+    }
+    return rv;
+}
+
+__attribute__((noreturn))
+static void ExitChild(int pipeToParent, int error)
+{
+    if (pipeToParent != -1)
+    {
+        WriteSize(pipeToParent, &error, sizeof(error));
+    }
+    _exit(error != 0 ? error : EXIT_FAILURE);
+}
+
 extern "C" int32_t SystemNative_ForkAndExecProcess(const char* filename,
                                       char* const argv[],
                                       char* const envp[],
@@ -99,6 +147,9 @@ extern "C" int32_t SystemNative_ForkAndExecProcess(const char* filename,
                                       int32_t redirectStdin,
                                       int32_t redirectStdout,
                                       int32_t redirectStderr,
+                                      int32_t setCredentials,
+                                      uint32_t userId,
+                                      uint32_t groupId,
                                       int32_t* childPid,
                                       int32_t* stdinFd,
                                       int32_t* stdoutFd,
@@ -118,7 +169,7 @@ extern "C" int32_t SystemNative_ForkAndExecProcess(const char* filename,
         goto done;
     }
 
-    if ((redirectStdin & ~1) != 0 || (redirectStdout & ~1) != 0 || (redirectStderr & ~1) != 0)
+    if ((redirectStdin & ~1) != 0 || (redirectStdout & ~1) != 0 || (redirectStderr & ~1) != 0 || (setCredentials & ~1) != 0)
     {
         assert(false && "Boolean redirect* inputs must be 0 or 1.");
         errno = EINVAL;
@@ -153,6 +204,12 @@ extern "C" int32_t SystemNative_ForkAndExecProcess(const char* filename,
     // child process is actually transitioned to the target program.  This avoids problems
     // where the parent process uses members of Process, like ProcessName, when the Process
     // is still the clone of this one. This is a best-effort attempt, so ignore any errors.
+    // If the child fails to exec we use the pipe to pass the errno to the parent process.
+    // NOTE: It's tempting to use SystemNative_Pipe here, as that would simulate pipe2 even
+    // on platforms that don't have it.  But it's potentially problematic, in that if another
+    // process is launched between the pipe creation and the fcntl call to set CLOEXEC on it,
+    // that file descriptor will be inherited into the child process, which will in turn cause
+    // the loop below that waits for that pipe to be closed to loop indefinitely.
 #if HAVE_PIPE2
     pipe2(waitForChildToExecPipe, O_CLOEXEC);
 #endif
@@ -172,7 +229,15 @@ extern "C" int32_t SystemNative_ForkAndExecProcess(const char* filename,
             (redirectStdout && Dup2WithInterruptedRetry(stdoutFds[WRITE_END_OF_PIPE], STDOUT_FILENO) == -1) ||
             (redirectStderr && Dup2WithInterruptedRetry(stderrFds[WRITE_END_OF_PIPE], STDERR_FILENO) == -1))
         {
-            _exit(errno != 0 ? errno : EXIT_FAILURE);
+            ExitChild(waitForChildToExecPipe[WRITE_END_OF_PIPE], errno);
+        }
+
+        if (setCredentials)
+        {
+            if (setgid(groupId) == -1 || setuid(userId) == -1)
+            {
+                ExitChild(waitForChildToExecPipe[WRITE_END_OF_PIPE], errno);
+            }
         }
 
         // Change to the designated working directory, if one was specified
@@ -182,13 +247,13 @@ extern "C" int32_t SystemNative_ForkAndExecProcess(const char* filename,
             while (CheckInterrupted(result = chdir(cwd)));
             if (result == -1)
             {
-                _exit(errno != 0 ? errno : EXIT_FAILURE);
+                ExitChild(waitForChildToExecPipe[WRITE_END_OF_PIPE], errno);
             }
         }
 
         // Finally, execute the new process.  execve will not return if it's successful.
         execve(filename, argv, envp);
-        _exit(errno != 0 ? errno : EXIT_FAILURE); // execve failed
+        ExitChild(waitForChildToExecPipe[WRITE_END_OF_PIPE], errno); // execve failed
     }
 
     // This is the parent process. processId == pid of the child
@@ -212,10 +277,15 @@ done:
     CloseIfOpen(waitForChildToExecPipe[WRITE_END_OF_PIPE]);
     if (waitForChildToExecPipe[READ_END_OF_PIPE] != -1)
     {
-        int ignored;
+        int childError;
         if (success)
         {
-            while (CheckInterrupted(read(waitForChildToExecPipe[READ_END_OF_PIPE], &ignored, 1)));
+            ssize_t result = ReadSize(waitForChildToExecPipe[READ_END_OF_PIPE], &childError, sizeof(childError));
+            if (result == sizeof(childError))
+            {
+                success = false;
+                priorErrno = childError;
+            }
         }
         CloseIfOpen(waitForChildToExecPipe[READ_END_OF_PIPE]);
     }
@@ -226,6 +296,13 @@ done:
         CloseIfOpen(stdinFds[WRITE_END_OF_PIPE]);
         CloseIfOpen(stdoutFds[READ_END_OF_PIPE]);
         CloseIfOpen(stderrFds[READ_END_OF_PIPE]);
+
+        // Reap child
+        if (processId > 0)
+        {
+            int status;
+            waitpid(processId, &status, 0);
+        }
 
         *stdinFd = -1;
         *stdoutFd = -1;
@@ -290,7 +367,12 @@ static int32_t ConvertRLimitResourcesPalToPlatform(RLimitResources value)
 static rlim_t ConvertFromManagedRLimitInfinityToPalIfNecessary(uint64_t value)
 {
     // rlim_t type can vary per platform, so we also treat anything outside its range as infinite.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-pragmas"
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wtautological-type-limit-compare"
     if (value == UINT64_MAX || value > std::numeric_limits<rlim_t>::max())
+#pragma clang diagnostic pop
         return RLIM_INFINITY;
 
     return static_cast<rlim_t>(value);
@@ -368,33 +450,48 @@ extern "C" void SystemNative_SysLog(SysLogPriority priority, const char* message
     syslog(static_cast<int>(priority), message, arg1);
 }
 
-extern "C" int32_t SystemNative_WaitPid(int32_t pid, int32_t* status, WaitPidOptions options)
+extern "C" int32_t SystemNative_WaitIdAnyExitedNoHangNoWait()
 {
-    assert(status != nullptr);
-
+    siginfo_t siginfo;
     int32_t result;
-    while (CheckInterrupted(result = waitpid(pid, status, static_cast<int>(options))));
+    while (CheckInterrupted(result = waitid(P_ALL, 0, &siginfo, WEXITED | WNOHANG | WNOWAIT)));
+    if (result == -1 && errno == ECHILD)
+    {
+        // The calling process has no existing unwaited-for child processes.
+        result = 0;
+    }
+    else if (result == 0 && siginfo.si_signo == SIGCHLD)
+    {
+        result = siginfo.si_pid;
+    }
     return result;
 }
 
-extern "C" int32_t SystemNative_WExitStatus(int32_t status)
+extern "C" int32_t SystemNative_WaitPidExitedNoHang(int32_t pid, int32_t* exitCode)
 {
-    return WEXITSTATUS(status);
-}
+    assert(exitCode != nullptr);
 
-extern "C" int32_t SystemNative_WIfExited(int32_t status)
-{
-    return WIFEXITED(status);
-}
-
-extern "C" int32_t SystemNative_WIfSignaled(int32_t status)
-{
-    return WIFSIGNALED(status);
-}
-
-extern "C" int32_t SystemNative_WTermSig(int32_t status)
-{
-    return WTERMSIG(status);
+    int32_t result;
+    int status;
+    while (CheckInterrupted(result = waitpid(pid, &status, WNOHANG)));
+    if (result > 0)
+    {
+        if (WIFEXITED(status))
+        {
+            // the child terminated normally.
+            *exitCode = WEXITSTATUS(status);
+        }
+        else if (WIFSIGNALED(status))
+        {
+            // child process was terminated by a signal.
+            *exitCode = 128 + WTERMSIG(status);
+        }
+        else
+        {
+            assert(false);
+        }
+    }
+    return result;
 }
 
 extern "C" int64_t SystemNative_PathConf(const char* path, PathConfName name)
@@ -439,17 +536,6 @@ extern "C" int64_t SystemNative_PathConf(const char* path, PathConfName name)
     }
 
     return pathconf(path, confValue);
-}
-
-extern "C" int64_t SystemNative_GetMaximumPath()
-{
-    int64_t result = pathconf("/", _PC_PATH_MAX);
-    if (result == -1)
-    {
-        result = PATH_MAX;
-    }
-
-    return result;
 }
 
 extern "C" int32_t SystemNative_GetPriority(PriorityWhich which, int32_t who)

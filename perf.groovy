@@ -49,7 +49,7 @@ def osShortName = ['Windows 10': 'win10',
 // **************************
 [true, false].each { isPR ->
     ['Release'].each { configurationGroup ->
-        ['Windows_NT', 'Ubuntu14.04'].each { os ->
+        ['Windows_NT', 'Ubuntu16.04'].each { os ->
             def osGroup = osGroupMap[os]
             def newJobName = "perf_${os.toLowerCase()}_${configurationGroup.toLowerCase()}"
 
@@ -58,7 +58,7 @@ def osShortName = ['Windows 10': 'win10',
                     label('windows_server_2016_clr_perf')
                 }
                 else {
-                    label('linux_clr_perf')
+                    label('ubuntu_1604_clr_perf')
                 }
 
                 wrappers {
@@ -95,7 +95,9 @@ def osShortName = ['Windows 10': 'win10',
                         "py \"%WORKSPACE%\\Tools\\Microsoft.BenchView.JSONFormat\\tools\\submission-metadata.py\" --name " + "\"" + benchViewName + "\"" + " --user-email " + "\"dotnet-bot@microsoft.com\"\n" +
                         "py \"%WORKSPACE%\\Tools\\Microsoft.BenchView.JSONFormat\\tools\\build.py\" git --branch %GIT_BRANCH_WITHOUT_ORIGIN% --type " + runType)
                         batchFile("py \"%WORKSPACE%\\Tools\\Microsoft.BenchView.JSONFormat\\tools\\machinedata.py\"")
-                        batchFile("call \"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat\" x86 && build-managed.cmd -release -tests -- /p:Performance=true /p:TargetOS=${osGroup} /m:1 /p:LogToBenchview=true /p:BenchviewRunType=${runType}")
+
+                        batchFile("call \"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat\" x86 && build-managed.cmd -release -tests -- /p:Performance=true /p:TargetOS=${osGroup} /m:1 /p:LogToBenchview=true /p:BenchviewRunType=${runType} /p:PerformanceType=Profile")
+                        batchFile("call \"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat\" x86 && build-managed.cmd -release -tests -- /p:Performance=true /p:TargetOS=${osGroup} /m:1 /p:LogToBenchview=true /p:BenchviewRunType=${runType} /p:PerformanceType=Diagnostic")
                     }
                 }
                 else {
@@ -103,7 +105,7 @@ def osShortName = ['Windows 10': 'win10',
                     steps {
                         //We need to specify the max cpu count to be one as we do not want to be executing performance tests in parallel
                         shell("./build.sh -release")
-                        shell("sudo find . -type f -name dotnet | xargs chmod +x")
+                        shell("find . -type f -name dotnet | xargs chmod u+x")
                         shell("curl \"http://benchviewtestfeed.azurewebsites.net/nuget/FindPackagesById()?id='Microsoft.BenchView.JSONFormat'\" | grep \"content type\" | sed \"\$ s/.*src=\\\"\\([^\\\"]*\\)\\\".*/\\1/;tx;d;:x\" | xargs curl -o benchview.zip")
                         shell("unzip -q -o benchview.zip -d \"\${WORKSPACE}/Tools/Microsoft.BenchView.JSONFormat\"")
 
@@ -113,27 +115,41 @@ def osShortName = ['Windows 10': 'win10',
                         "python3.5 \"\${WORKSPACE}/Tools/Microsoft.BenchView.JSONFormat/tools/submission-metadata.py\" --name " + "\"" + benchViewName + "\"" + " --user-email " + "\"dotnet-bot@microsoft.com\"\n" +
                         "python3.5 \"\${WORKSPACE}/Tools/Microsoft.BenchView.JSONFormat/tools/build.py\" git --branch \$GIT_BRANCH_WITHOUT_ORIGIN --type " + runType)
                         shell("python3.5 \"\${WORKSPACE}/Tools/Microsoft.BenchView.JSONFormat/tools/machinedata.py\"")
-                        shell("sudo -E bash ./build-managed.sh -release -tests -- /p:Performance=true /p:TargetOS=${osGroup} /m:1 /p:LogToBenchview=true /p:BenchviewRunType=${runType}")
+
+                        shell("bash ./build-managed.sh -release -tests -- /p:Performance=true /p:TargetOS=${osGroup} /m:1 /p:LogToBenchview=true /p:BenchviewRunType=${runType} /p:PerformanceType=Profile")
                     }
                 }
             }
+
+            // Add the unit test results
+            def archiveSettings = new ArchivalSettings()
+            archiveSettings.addFiles('msbuild.log')
+            archiveSettings.addFiles('machinedata.json')
+            archiveSettings.addFiles('bin/**/Perf-*Performance.Tests.csv')
+            archiveSettings.addFiles('bin/**/Perf-*Performance.Tests.etl')
+            archiveSettings.addFiles('bin/**/Perf-*Performance.Tests.md')
+            archiveSettings.addFiles('bin/**/Perf-*Performance.Tests.xml')
+            archiveSettings.setAlwaysArchive()
+
+            // Add archival for the built data.
+            Utilities.addArchival(newJob, archiveSettings)
 
             // Set up standard options.
             Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
-            //Set timeout to non-default
             newJob.with {
+                logRotator {
+                    artifactDaysToKeep(30)
+                    daysToKeep(30)
+                    artifactNumToKeep(200)
+                    numToKeep(200)
+                }
                 wrappers {
                     timeout {
-                        absolute(240)
+                        absolute(360)
                     }
                 }
             }
-            // Add the unit test results
-            Utilities.addXUnitDotNETResults(newJob, 'bin/**/Perf-*.xml')
-            def archiveContents = "msbuild.log"
 
-            // Add archival for the built data.
-            Utilities.addArchival(newJob, archiveContents)
             // Set up triggers
             if (isPR) {
                 TriggerBuilder builder = TriggerBuilder.triggerOnPullRequest()

@@ -21,11 +21,11 @@ namespace System.Net.Security
         {
         }
 
-        internal void ValidateCreateContext(SslClientAuthenticationOptions sslClientAuthenticationOptions)
+        internal void ValidateCreateContext(SslClientAuthenticationOptions sslClientAuthenticationOptions, RemoteCertValidationCallback remoteCallback, LocalCertSelectionCallback localCallback)
         {
         }
 
-        internal void ValidateCreateContext(SslServerAuthenticationOptions sslServerAuthenticationOptions)
+        internal void ValidateCreateContext(SslAuthenticationOptions sslAuthenticationOptions)
         {
         }
 
@@ -279,7 +279,12 @@ namespace System.Net.Security
             throw new NotImplementedException();
         }
                 
-        public new Task WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
+        public new ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }
@@ -290,6 +295,11 @@ namespace System.Net.Security
         }
 
         public override int EndRead(IAsyncResult asyncResult)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }

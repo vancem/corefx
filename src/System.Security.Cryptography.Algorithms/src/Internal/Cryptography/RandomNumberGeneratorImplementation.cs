@@ -2,10 +2,22 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Runtime.InteropServices;
+
 namespace System.Security.Cryptography
 {
     internal sealed partial class RandomNumberGeneratorImplementation : RandomNumberGenerator
     {
+        // As long as each implementation can provide a static GetBytes(ref byte buf, int length)
+        // they can share this one implementation of FillSpan.
+        internal static void FillSpan(Span<byte> data)
+        {
+            if (data.Length > 0)
+            {
+                GetBytes(ref MemoryMarshal.GetReference(data), data.Length);
+            }
+        }
+
         public override void GetBytes(byte[] data)
         {
             if (data == null) throw new ArgumentNullException(nameof(data));
@@ -22,7 +34,7 @@ namespace System.Security.Cryptography
         {
             if (data.Length > 0)
             {
-                GetBytes(ref data.DangerousGetPinnableReference(), data.Length);
+                GetBytes(ref MemoryMarshal.GetReference(data), data.Length);
             }
         }
 

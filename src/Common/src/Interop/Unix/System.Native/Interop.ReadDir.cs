@@ -3,14 +3,16 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 using Microsoft.Win32.SafeHandles;
 
 internal static partial class Interop
 {
     internal static partial class Sys
     {
-        private static readonly int s_direntSize = GetDirentSize();
+        internal static int ReadBufferSize { get; } = GetReadDirRBufferSize();
 
         internal enum NodeType : int
         {
@@ -26,54 +28,59 @@ internal static partial class Interop
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        private unsafe struct InternalDirectoryEntry
+        internal unsafe struct DirectoryEntry
         {
-            internal IntPtr     Name;
-            internal int        NameLength;
-            internal NodeType   InodeType;
-        }
+            internal byte* Name;
+            internal int NameLength;
+            internal NodeType InodeType;
 
-        internal struct DirectoryEntry
-        {
-            internal NodeType   InodeType;
-            internal string     InodeName;
+            internal ReadOnlySpan<char> GetName(Span<char> buffer)
+            {
+                Debug.Assert(buffer.Length >= Encoding.UTF8.GetMaxCharCount(255), "should have enough space for the max file name");
+                Debug.Assert(Name != null, "should not have a null name");
+
+                ReadOnlySpan<byte> nameBytes = (NameLength == -1)
+                    // In this case the struct was allocated via struct dirent *readdir(DIR *dirp);
+                    ? new ReadOnlySpan<byte>(Name, new ReadOnlySpan<byte>(Name, 255).IndexOf<byte>(0))
+                    : new ReadOnlySpan<byte>(Name, NameLength);
+
+                Debug.Assert(nameBytes.Length > 0, "we shouldn't have gotten a garbage value from the OS");
+                if (nameBytes.Length == 0)
+                    return buffer.Slice(0, 0);
+
+                int charCount = Encoding.UTF8.GetChars(nameBytes, buffer);
+                ReadOnlySpan<char> value = buffer.Slice(0, charCount);
+                Debug.Assert(NameLength != -1 || value.IndexOf('\0') == -1, "should not have embedded nulls if we parsed the end of string");
+                return value;
+            }
         }
 
         [DllImport(Libraries.SystemNative, EntryPoint = "SystemNative_OpenDir", SetLastError = true)]
-        internal static extern Microsoft.Win32.SafeHandles.SafeDirectoryHandle OpenDir(string path);
+        internal static extern IntPtr OpenDir(string path);
 
-        [DllImport(Libraries.SystemNative, EntryPoint = "SystemNative_GetDirentSize", SetLastError = false)]
-        internal static extern int GetDirentSize();
+        [DllImport(Libraries.SystemNative, EntryPoint = "SystemNative_GetReadDirRBufferSize", SetLastError = false)]
+        internal static extern int GetReadDirRBufferSize();
 
         [DllImport(Libraries.SystemNative, EntryPoint = "SystemNative_ReadDirR", SetLastError = false)]
-        private static extern unsafe int ReadDirR(SafeDirectoryHandle dir, byte* buffer, int bufferSize, out InternalDirectoryEntry outputEntry);
+        private static extern unsafe int ReadDirR(IntPtr dir, ref byte buffer, int bufferSize, ref DirectoryEntry outputEntry);
 
         [DllImport(Libraries.SystemNative, EntryPoint = "SystemNative_CloseDir", SetLastError = true)]
         internal static extern int CloseDir(IntPtr dir);
 
-        // The calling pattern for ReadDir is described in src/Native/System.Native/pal_readdir.cpp
-        internal static int ReadDir(SafeDirectoryHandle dir, out DirectoryEntry outputEntry)
+        /// <summary>
+        /// Get the next directory entry for the given handle. **Note** the actual memory used may be allocated
+        /// by the OS and will be freed when the handle is closed. As such, the handle lifespan MUST be kept tightly
+        /// controlled. The DirectoryEntry name cannot be accessed after the handle is closed.
+        /// 
+        /// Call <see cref="ReadBufferSize"/> to see what size buffer to allocate.
+        /// </summary>
+        internal static int ReadDir(IntPtr dir, Span<byte> buffer, ref DirectoryEntry entry)
         {
-            unsafe
-            {
-                // To reduce strcpys, alloc a buffer here and get the result from OS, then copy it over for the caller.
-                byte* buffer = stackalloc byte[s_direntSize];
-                InternalDirectoryEntry temp;
-                int ret = ReadDirR(dir, buffer, s_direntSize, out temp);
-                outputEntry = ret == 0 ?
-                            new DirectoryEntry() { InodeName = GetDirectoryEntryName(temp), InodeType = temp.InodeType } : 
-                            default(DirectoryEntry);
+            // The calling pattern for ReadDir is described in src/Native/Unix/System.Native/pal_io.cpp|.h
+            Debug.Assert(buffer.Length >= ReadBufferSize, "should have a big enough buffer for the raw data");
 
-                return ret;
-            }
-        }
-
-        private static unsafe string GetDirectoryEntryName(InternalDirectoryEntry dirEnt)
-        {
-            if (dirEnt.NameLength == -1)
-                return Marshal.PtrToStringAnsi(dirEnt.Name);
-            else
-                return Marshal.PtrToStringAnsi(dirEnt.Name, dirEnt.NameLength);
+            // ReadBufferSize is zero when the native implementation does not support reading into a buffer.
+            return ReadDirR(dir, ref MemoryMarshal.GetReference(buffer), ReadBufferSize, ref entry);
         }
     }
 }

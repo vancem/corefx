@@ -4,14 +4,15 @@
   <PropertyGroup>
     <ProjectGuid>{507DB29F-74F5-4B34-A240-ABE7BD168DF6}</ProjectGuid>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netstandard-Debug|AnyCPU'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netstandard-Release|AnyCPU'" />
   <ItemGroup>
     <Compile Include="AsyncReaderLateInitTests.cs" />
     <Compile Include="DisposeTests.cs" />
     <Compile Include="BaseUriTests.cs" />
+    <Compile Include="$(CommonTestPath)\System\Threading\TrackingSynchronizationContext.cs">
+      <Link>Common\System\Threading\TrackingSynchronizationContext.cs</Link>
+    </Compile>
   </ItemGroup>
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.targets))\dir.targets" />
 </Project>

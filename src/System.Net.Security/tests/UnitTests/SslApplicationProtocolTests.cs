@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Text;
 using Xunit;
 
@@ -36,6 +37,18 @@ namespace System.Net.Security.Tests
             Assert.Throws<ArgumentException>(() => { new SslApplicationProtocol(Encoding.UTF8.GetBytes(new string('a', 256))); });
             Assert.Throws<ArgumentException>(() => { new SslApplicationProtocol(new string('a', 256)); });
             Assert.Throws<EncoderFallbackException>(() => { new SslApplicationProtocol("\uDC00"); });
+        }
+
+        [Fact]
+        public void Constructor_ByteArray_Copies()
+        {
+            byte[] expected = Encoding.UTF8.GetBytes("hello");
+            SslApplicationProtocol byteProtocol = new SslApplicationProtocol(expected);
+
+            ArraySegment<byte> arraySegment;
+            Assert.True(MemoryMarshal.TryGetArray(byteProtocol.Protocol, out arraySegment));
+            Assert.Equal(expected, arraySegment.Array);
+            Assert.NotSame(expected, arraySegment.Array);
         }
 
         [Theory]

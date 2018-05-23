@@ -81,13 +81,23 @@ namespace Internal.Cryptography
         public abstract byte[] GetSubjectKeyIdentifier(X509Certificate2 certificate);
 
         /// <summary>
+        /// Retrieve a private key object for the certificate to use with signing.
+        /// </summary>
+        public abstract T GetPrivateKeyForSigning<T>(X509Certificate2 certificate, bool silent) where T : AsymmetricAlgorithm;
+
+        /// <summary>
+        /// Retrieve a private key object for the certificate to use with decryption.
+        /// </summary>
+        public abstract T GetPrivateKeyForDecryption<T>(X509Certificate2 certificate, bool silent) where T : AsymmetricAlgorithm;
+
+        /// <summary>
         /// Get the one (and only) instance of PkcsPal.
         /// </summary>
         public static PkcsPal Instance
         {
             get
             {
-                // Wondering where "s_instance" is declared? It's declared in Pal\Windows\PkcsPal.cs and Pal\Unix\PkcsPal.cs, since the static initializer
+                // Wondering where "s_instance" is declared? It's declared in Pal\Windows\PkcsPal.Windows.cs and Pal\AnyOS\PkcsPal.AnyOS.cs, since the static initializer
                 // for that field is platform-specific.
                 return s_instance;
             }

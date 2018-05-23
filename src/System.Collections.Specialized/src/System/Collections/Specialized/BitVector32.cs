@@ -174,7 +174,7 @@ namespace System.Collections.Specialized
         {
             if (maxValue < 1)
             {
-                throw new ArgumentException(SR.Format(SR.Argument_InvalidValue, nameof(maxValue), 1), nameof(maxValue));
+                throw new ArgumentException(SR.Format(SR.Argument_InvalidValue_TooSmall, nameof(maxValue), 1), nameof(maxValue));
             }
 
             short offset = (short)(priorOffset + CountBitsSet(priorMask));
@@ -230,7 +230,7 @@ namespace System.Collections.Specialized
         ///    <para>
         ///       Represents an section of the vector that can contain a integer number.</para>
         /// </devdoc>
-        public struct Section
+        public readonly struct Section
         {
             private readonly short _mask;
             private readonly short _offset;

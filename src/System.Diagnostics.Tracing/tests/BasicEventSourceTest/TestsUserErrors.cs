@@ -70,39 +70,43 @@ namespace BasicEventSourceTests
         /// <summary>
         /// Test the 
         /// </summary>
-        [Fact]
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindowsNanoServer))] // ActiveIssue: https://github.com/dotnet/corefx/issues/29754
         [SkipOnTargetFramework(TargetFrameworkMonikers.UapAot, "Depends on inspecting IL at runtime.")]
         public void Test_BadEventSource_MismatchedIds()
         {
-#if USE_ETW // TODO: Enable when TraceEvent is available on CoreCLR. GitHub issue #4864.
+#if USE_ETW
             // We expect only one session to be on when running the test but if a ETW session was left
-            // hanging, it will confuse the EventListener tests.   
-            EtwListener.EnsureStopped();
+            // hanging, it will confuse the EventListener tests.
+            if(TestUtilities.IsProcessElevated)
+            {
+                EtwListener.EnsureStopped();
+            }
 #endif // USE_ETW
 
             TestUtilities.CheckNoEventSourcesRunning("Start");
             var onStartups = new bool[] { false, true };
-            
-                    var listenerGenerators = new Func<Listener>[]
-                    {
-                        () => new EventListenerListener(),
-#if USE_ETW // TODO: Enable when TraceEvent is available on CoreCLR. GitHub issue #4864.
-                        () => new EtwListener()
+
+            var listenerGenerators = new List<Func<Listener>>();
+            listenerGenerators.Add(() => new EventListenerListener());
+#if USE_ETW
+            if(TestUtilities.IsProcessElevated)
+            {
+                listenerGenerators.Add(() => new EtwListener());
+            }
 #endif // USE_ETW
-                    };
 
-                    var settings = new EventSourceSettings[] { EventSourceSettings.Default, EventSourceSettings.EtwSelfDescribingEventFormat };
+            var settings = new EventSourceSettings[] { EventSourceSettings.Default, EventSourceSettings.EtwSelfDescribingEventFormat };
 
-                    // For every interesting combination, run the test and see that we get a nice failure message.  
-                    foreach (bool onStartup in onStartups)
+            // For every interesting combination, run the test and see that we get a nice failure message.  
+            foreach (bool onStartup in onStartups)
+            {
+                foreach (Func<Listener> listenerGenerator in listenerGenerators)
+                {
+                    foreach (EventSourceSettings setting in settings)
                     {
-                        foreach (Func<Listener> listenerGenerator in listenerGenerators)
-                        {
-                            foreach (EventSourceSettings setting in settings)
-                            {
-                                Test_Bad_EventSource_Startup(onStartup, listenerGenerator(), setting);
-                            }
-                        }
+                        Test_Bad_EventSource_Startup(onStartup, listenerGenerator(), setting);
+                    }
+                }
             }
 
             TestUtilities.CheckNoEventSourcesRunning("Stop");
@@ -142,8 +146,9 @@ namespace BasicEventSourceTests
             Assert.Equal("EventSourceMessage", _event.EventName);
             string message = _event.PayloadString(0, "message");
             Debug.WriteLine(String.Format("Message=\"{0}\"", message));
-            // expected message: "ERROR: Exception in Command Processing for EventSource BadEventSource_MismatchedIds: Event Event2 is given event ID 2 but 1 was passed to WriteEvent. "
-            Assert.True(Regex.IsMatch(message, "Event Event2 is givien event ID 2 but 1 was passed to WriteEvent"));
+            // expected message: "ERROR: Exception in Command Processing for EventSource BadEventSource_MismatchedIds: Event Event2 was assigned event ID 2 but 1 was passed to WriteEvent. "
+            if (!PlatformDetection.IsFullFramework) // Full framework has typo
+                Assert.True(Regex.IsMatch(message, "Event Event2 was assigned event ID 2 but 1 was passed to WriteEvent"));
         }
 
         [Fact]

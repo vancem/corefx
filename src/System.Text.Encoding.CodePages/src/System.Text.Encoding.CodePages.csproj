@@ -12,6 +12,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netcoreapp-Windows_NT-Debug|AnyCPU'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netcoreapp-Windows_NT-Release|AnyCPU'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netcoreapp2.0-Windows_NT-Debug|AnyCPU'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netcoreapp2.0-Windows_NT-Release|AnyCPU'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netstandard-Debug|AnyCPU'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netstandard-Release|AnyCPU'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netstandard-Windows_NT-Debug|AnyCPU'" />
@@ -41,15 +43,15 @@
     <Compile Include="System\Text\SBCSCodePageEncoding.cs" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetsWindows)' == 'true' ">
-    <Compile Include="System\Text\CodePagesEncodingProvider.Windows.cs" />
-    <Compile Include="$(CommonPath)\Interop\Windows\kernel32\Interop.Encoding.Constants.cs">
-      <Link>Common\Interop\Windows\kernel32\Interop.Encoding.Constants.cs</Link>
-    </Compile>
+    <Compile Include="System\Text\CodePagesEncodingProvider.Windows.cs" />    
     <Compile Include="$(CommonPath)\Interop\Windows\Interop.Libraries.cs">
       <Link>Common\Interop\Windows\Interop.Libraries.cs</Link>
     </Compile>
     <Compile Include="$(CommonPath)\Interop\Windows\kernel32\Interop.GetCPInfoEx.cs">
       <Link>Common\Interop\Windows\Interop.GetCPInfoEx.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\CoreLib\Interop\Windows\Kernel32\Interop.WideCharToMultiByte.cs">
+      <Link>Common\CoreLib\Interop\Windows\Kernel32\Interop.WideCharToMultiByte.cs</Link>
     </Compile>
   </ItemGroup>
   <ItemGroup Condition="'$(TargetGroup)' == 'netstandard' AND '$(TargetsWindows)' != 'true' ">
@@ -64,7 +66,6 @@
     <None Include="Data\CodePageNameMappings.csv" />
     <None Include="Data\PreferredCodePageNames.csv" />
     <Reference Include="System.Collections" />
-    <Reference Include="System.Diagnostics.Contracts" />
     <Reference Include="System.Diagnostics.Debug" />
     <Reference Include="System.Diagnostics.Tools" />
     <Reference Include="System.Resources.ResourceManager" />
@@ -72,6 +73,7 @@
     <Reference Include="System.Runtime.Extensions" />
     <Reference Include="System.Runtime.InteropServices" />
     <Reference Include="System.Threading" />
+    <Reference Include="System.Runtime.CompilerServices.Unsafe" />
   </ItemGroup>
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.targets))\dir.targets" />
   <!-- Generator for code mapping table, target to invoke is GenerateEncodingSource -->

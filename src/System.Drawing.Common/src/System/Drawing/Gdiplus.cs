@@ -63,11 +63,9 @@ using System.Runtime.CompilerServices;
 
 namespace System.Drawing
 {
-    [SuppressUnmanagedCodeSecurity]
     internal partial class SafeNativeMethods
     {
         // We make this a nested class so that we don't have to initialize GDI+ to access SafeNativeMethods (mostly gdi/user32).
-        [SuppressUnmanagedCodeSecurityAttribute]
         internal partial class Gdip
         {
             private static readonly TraceSwitch s_gdiPlusInitialization = new TraceSwitch("GdiPlusInitialization", "Tracks GDI+ initialization and teardown");
@@ -275,35 +273,35 @@ namespace System.Drawing
                 switch (status)
                 {
                     case GenericError:
-                        return new ExternalException(SR.Format(SR.GdiplusGenericError), E_FAIL);
+                        return new ExternalException(SR.GdiplusGenericError, E_FAIL);
                     case InvalidParameter:
-                        return new ArgumentException(SR.Format(SR.GdiplusInvalidParameter));
+                        return new ArgumentException(SR.GdiplusInvalidParameter);
                     case OutOfMemory:
-                        return new OutOfMemoryException(SR.Format(SR.GdiplusOutOfMemory));
+                        return new OutOfMemoryException(SR.GdiplusOutOfMemory);
                     case ObjectBusy:
-                        return new InvalidOperationException(SR.Format(SR.GdiplusObjectBusy));
+                        return new InvalidOperationException(SR.GdiplusObjectBusy);
                     case InsufficientBuffer:
-                        return new OutOfMemoryException(SR.Format(SR.GdiplusInsufficientBuffer));
+                        return new OutOfMemoryException(SR.GdiplusInsufficientBuffer);
                     case NotImplemented:
-                        return new NotImplementedException(SR.Format(SR.GdiplusNotImplemented));
+                        return new NotImplementedException(SR.GdiplusNotImplemented);
                     case Win32Error:
-                        return new ExternalException(SR.Format(SR.GdiplusGenericError), E_FAIL);
+                        return new ExternalException(SR.GdiplusGenericError, E_FAIL);
                     case WrongState:
-                        return new InvalidOperationException(SR.Format(SR.GdiplusWrongState));
+                        return new InvalidOperationException(SR.GdiplusWrongState);
                     case Aborted:
-                        return new ExternalException(SR.Format(SR.GdiplusAborted), E_ABORT);
+                        return new ExternalException(SR.GdiplusAborted, E_ABORT);
                     case FileNotFound:
-                        return new FileNotFoundException(SR.Format(SR.GdiplusFileNotFound));
+                        return new FileNotFoundException(SR.GdiplusFileNotFound);
                     case ValueOverflow:
-                        return new OverflowException(SR.Format(SR.GdiplusOverflow));
+                        return new OverflowException(SR.GdiplusOverflow);
                     case AccessDenied:
-                        return new ExternalException(SR.Format(SR.GdiplusAccessDenied), E_ACCESSDENIED);
+                        return new ExternalException(SR.GdiplusAccessDenied, E_ACCESSDENIED);
                     case UnknownImageFormat:
-                        return new ArgumentException(SR.Format(SR.GdiplusUnknownImageFormat));
+                        return new ArgumentException(SR.GdiplusUnknownImageFormat);
                     case PropertyNotFound:
-                        return new ArgumentException(SR.Format(SR.GdiplusPropertyNotFoundError));
+                        return new ArgumentException(SR.GdiplusPropertyNotFoundError);
                     case PropertyNotSupported:
-                        return new ArgumentException(SR.Format(SR.GdiplusPropertyNotSupportedError));
+                        return new ArgumentException(SR.GdiplusPropertyNotSupportedError);
 
                     case FontFamilyNotFound:
                         Debug.Fail("We should be special casing FontFamilyNotFound so we can provide the font name");
@@ -315,16 +313,16 @@ namespace System.Drawing
 
                     case NotTrueTypeFont:
                         Debug.Fail("We should be special casing NotTrueTypeFont so we can provide the font name");
-                        return new ArgumentException(SR.Format(SR.GdiplusNotTrueTypeFont_NoName));
+                        return new ArgumentException(SR.GdiplusNotTrueTypeFont_NoName);
 
                     case UnsupportedGdiplusVersion:
-                        return new ExternalException(SR.Format(SR.GdiplusUnsupportedGdiplusVersion), E_FAIL);
+                        return new ExternalException(SR.GdiplusUnsupportedGdiplusVersion, E_FAIL);
 
                     case GdiplusNotInitialized:
-                        return new ExternalException(SR.Format(SR.GdiplusNotInitialized), E_FAIL);
+                        return new ExternalException(SR.GdiplusNotInitialized, E_FAIL);
                 }
 
-                return new ExternalException(SR.Format(SR.GdiplusUnknown), E_UNEXPECTED);
+                return new ExternalException(SR.GdiplusUnknown, E_UNEXPECTED);
             }
 
             //----------------------------------------------------------------------------------------                                                           
@@ -1318,56 +1316,41 @@ namespace System.Drawing
         [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
         public interface IPicture
         {
-            [SuppressUnmanagedCodeSecurity]
             IntPtr GetHandle();
 
-            [SuppressUnmanagedCodeSecurity]
             IntPtr GetHPal();
 
             [return: MarshalAs(UnmanagedType.I2)]
-            [SuppressUnmanagedCodeSecurity]
             short GetPictureType();
 
-            [SuppressUnmanagedCodeSecurity]
             int GetWidth();
 
-            [SuppressUnmanagedCodeSecurity]
             int GetHeight();
 
-            [SuppressUnmanagedCodeSecurity]
             void Render();
 
-            [SuppressUnmanagedCodeSecurity]
             void SetHPal([In] IntPtr phpal);
 
-            [SuppressUnmanagedCodeSecurity]
             IntPtr GetCurDC();
 
-            [SuppressUnmanagedCodeSecurity]
             void SelectPicture([In] IntPtr hdcIn,
                                [Out, MarshalAs(UnmanagedType.LPArray)] int[] phdcOut,
                                [Out, MarshalAs(UnmanagedType.LPArray)] int[] phbmpOut);
 
             [return: MarshalAs(UnmanagedType.Bool)]
-            [SuppressUnmanagedCodeSecurity]
             bool GetKeepOriginalFormat();
 
-            [SuppressUnmanagedCodeSecurity]
             void SetKeepOriginalFormat([In, MarshalAs(UnmanagedType.Bool)] bool pfkeep);
 
-            [SuppressUnmanagedCodeSecurity]
             void PictureChanged();
 
-            [SuppressUnmanagedCodeSecurity]
             [PreserveSig]
             int SaveAsFile([In, MarshalAs(UnmanagedType.Interface)] UnsafeNativeMethods.IStream pstm,
                            [In] int fSaveMemCopy,
                            [Out] out int pcbSize);
 
-            [SuppressUnmanagedCodeSecurity]
             int GetAttributes();
 
-            [SuppressUnmanagedCodeSecurity]
             void SetHdc([In] IntPtr hdc);
         }
     }

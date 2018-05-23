@@ -1,9 +1,7 @@
-// ------------------------------------------------------------------------------
-// <copyright file="ToolboxItemCollection.cs" company="Microsoft">
-//     Copyright (c) Microsoft Corporation.  All rights reserved.
-// </copyright> 
-// ------------------------------------------------------------------------------
-// 
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 namespace System.Drawing.Design {
 
     using System;
@@ -15,7 +13,6 @@ namespace System.Drawing.Design {
     ///       A collection that stores <see cref='System.Drawing.Design.ToolboxItem'/> objects.
     ///    </para>
     /// </devdoc>
-    [System.Security.Permissions.PermissionSetAttribute(System.Security.Permissions.SecurityAction.LinkDemand, Name="FullTrust")]
     public sealed class ToolboxItemCollection : ReadOnlyCollectionBase {
         
         /// <include file='doc\ToolboxItemCollection.uex' path='docs/doc[@for="ToolboxItemCollection.ToolboxItemCollection"]/*' />

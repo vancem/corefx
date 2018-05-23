@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Text;
 
@@ -54,6 +56,47 @@ namespace System.Diagnostics
             get
             {
                 return BootTimeToDateTime(TicksToTimeSpan(GetStat().starttime));
+            }
+        }
+
+        /// <summary>Computes a time based on a number of ticks since boot.</summary>
+        /// <param name="timespanAfterBoot">The timespan since boot.</param>
+        /// <returns>The converted time.</returns>
+        internal static DateTime BootTimeToDateTime(TimeSpan timespanAfterBoot)
+        {
+            // And use that to determine the absolute time for timespan.
+            DateTime dt = BootTime + timespanAfterBoot;
+
+            // The return value is expected to be in the local time zone.
+            // It is converted here (rather than starting with DateTime.Now) to avoid DST issues.
+            return dt.ToLocalTime();
+        }
+
+        /// <summary>Gets the system boot time.</summary>
+        private static DateTime BootTime
+        {
+            get
+            {
+                // '/proc/stat -> btime' gets the boot time.
+                // btime is the time of system boot in seconds since the Unix epoch.
+                // It includes suspended time and is updated based on the system time (settimeofday).
+                const string StatFile = Interop.procfs.ProcStatFilePath;
+                string text = File.ReadAllText(StatFile);
+                int btimeLineStart = text.IndexOf("\nbtime ");
+                if (btimeLineStart >= 0)
+                {
+                    int btimeStart = btimeLineStart + "\nbtime ".Length;
+                    int btimeEnd = text.IndexOf('\n', btimeStart);
+                    if (btimeEnd > btimeStart)
+                    {
+                        if (Int64.TryParse(text.AsSpan(btimeStart, btimeEnd - btimeStart), out long bootTimeSeconds))
+                        {
+                            return DateTime.UnixEpoch + TimeSpan.FromSeconds(bootTimeSeconds);
+                        }
+                    }
+                }
+
+                return DateTime.UtcNow;
             }
         }
 
@@ -153,7 +196,7 @@ namespace System.Diagnostics
             ulong rsslim = GetStat().rsslim;
 
             // rsslim is a ulong, but maxWorkingSet is an IntPtr, so we need to cap rsslim
-            // at the max size of IntPtr.  This often happens when there is no configured 
+            // at the max size of IntPtr.  This often happens when there is no configured
             // rsslim other than ulong.MaxValue, which without these checks would show up
             // as a maxWorkingSet == -1.
             switch (IntPtr.Size)
@@ -194,33 +237,7 @@ namespace System.Diagnostics
                 Interop.procfs.SelfExeFilePath :
                 Interop.procfs.GetExeFilePathForProcess(processId);
 
-            // Determine the maximum size of a path
-            int maxPath = Interop.Sys.MaxPath;
-
-            // Start small with a buffer allocation, and grow only up to the max path
-            for (int pathLen = 256; pathLen < maxPath; pathLen *= 2)
-            {
-                // Read from procfs the symbolic link to this process' executable
-                byte[] buffer = new byte[pathLen + 1]; // +1 for null termination
-                int resultLength = Interop.Sys.ReadLink(exeFilePath, buffer, pathLen);
-
-                // If we got one, null terminate it (readlink doesn't do this) and return the string
-                if (resultLength > 0)
-                {
-                    buffer[resultLength] = (byte)'\0';
-                    return Encoding.UTF8.GetString(buffer, 0, resultLength);
-                }
-
-                // If the buffer was too small, loop around again and try with a larger buffer.
-                // Otherwise, bail.
-                if (resultLength == 0 || Interop.Sys.GetLastError() != Interop.Error.ENAMETOOLONG)
-                {
-                    break;
-                }
-            }
-
-            // Could not get a path
-            return null;
+            return Interop.Sys.ReadLink(exeFilePath);
         }
 
         // ----------------------------------

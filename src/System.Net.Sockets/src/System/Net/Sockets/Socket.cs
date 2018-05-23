@@ -72,9 +72,12 @@ namespace System.Net.Sockets
 
         #region Constructors
         public Socket(SocketType socketType, ProtocolType protocolType)
-            : this(AddressFamily.InterNetworkV6, socketType, protocolType)
+            : this(OSSupportsIPv6 ? AddressFamily.InterNetworkV6 : AddressFamily.InterNetwork, socketType, protocolType)
         {
-            DualMode = true;
+            if (OSSupportsIPv6)
+            {
+                DualMode = true;
+            }
         }
 
         // Initializes a new instance of the Sockets.Socket class.
@@ -737,6 +740,7 @@ namespace System.Net.Sockets
             // This may throw ObjectDisposedException.
             SocketError errorCode = SocketPal.Bind(
                 _handle,
+                _protocolType,
                 socketAddress.Buffer,
                 socketAddress.Size);
 
@@ -786,6 +790,11 @@ namespace System.Net.Sockets
             if (_isListening)
             {
                 throw new InvalidOperationException(SR.net_sockets_mustnotlisten);
+            }
+
+            if (_isConnected)
+            {
+                throw new SocketException((int)SocketError.IsConnected);
             }
 
             ValidateBlockingMode();
@@ -839,6 +848,11 @@ namespace System.Net.Sockets
             if (!TcpValidationHelpers.ValidatePortNumber(port))
             {
                 throw new ArgumentOutOfRangeException(nameof(port));
+            }
+
+            if (_isConnected)
+            {
+                throw new SocketException((int)SocketError.IsConnected);
             }
 
             ValidateForMultiConnect(isMultiEndpoint: false); // needs to come before CanTryAddressFamily call
@@ -914,6 +928,11 @@ namespace System.Net.Sockets
             if (_addressFamily != AddressFamily.InterNetwork && _addressFamily != AddressFamily.InterNetworkV6)
             {
                 throw new NotSupportedException(SR.net_invalidversion);
+            }
+
+            if (_isConnected)
+            {
+                throw new SocketException((int)SocketError.IsConnected);
             }
 
             ValidateForMultiConnect(isMultiEndpoint: true); // needs to come before CanTryAddressFamily call
@@ -2073,6 +2092,11 @@ namespace System.Net.Sockets
                 throw new InvalidOperationException(SR.net_sockets_mustnotlisten);
             }
 
+            if (_isConnected)
+            {
+                throw new SocketException((int)SocketError.IsConnected);
+            }
+
 
             DnsEndPoint dnsEP = remoteEP as DnsEndPoint;
             if (dnsEP != null)
@@ -2153,6 +2177,11 @@ namespace System.Net.Sockets
                 throw new InvalidOperationException(SR.net_sockets_mustnotlisten);
             }
 
+            if (_isConnected)
+            {
+                throw new SocketException((int)SocketError.IsConnected);
+            }
+
             IPAddress parsedAddress;
             if (IPAddress.TryParse(host, out parsedAddress))
             {
@@ -2200,6 +2229,11 @@ namespace System.Net.Sockets
                 throw new ArgumentOutOfRangeException(nameof(port));
             }
 
+            if (_isConnected)
+            {
+                throw new SocketException((int)SocketError.IsConnected);
+            }
+
             ValidateForMultiConnect(isMultiEndpoint: false); // needs to be called before CanTryAddressFamily
 
             if (!CanTryAddressFamily(address.AddressFamily))
@@ -2240,6 +2274,11 @@ namespace System.Net.Sockets
             if (_isListening)
             {
                 throw new InvalidOperationException(SR.net_sockets_mustnotlisten);
+            }
+
+            if (_isConnected)
+            {
+                throw new SocketException((int)SocketError.IsConnected);
             }
 
             ValidateForMultiConnect(isMultiEndpoint: true);
@@ -2357,36 +2396,10 @@ namespace System.Net.Sockets
                 throw new ArgumentNullException(nameof(asyncResult));
             }
 
-            LazyAsyncResult castedAsyncResult = null;
-            EndPoint remoteEndPoint = null;
-            ConnectOverlappedAsyncResult coar;
-            MultipleAddressConnectAsyncResult macar;
-            ConnectAsyncResult car;
-
-            coar = asyncResult as ConnectOverlappedAsyncResult;
-            if (coar == null)
-            {
-                macar = asyncResult as MultipleAddressConnectAsyncResult;
-                if (macar == null)
-                {
-                    car = asyncResult as ConnectAsyncResult;
-                    if (car != null)
-                    {
-                        remoteEndPoint = car.RemoteEndPoint;
-                        castedAsyncResult = car;
-                    }
-                }
-                else
-                {
-                    remoteEndPoint = macar.RemoteEndPoint;
-                    castedAsyncResult = macar;
-                }
-            }
-            else
-            {
-                remoteEndPoint = coar.RemoteEndPoint;
-                castedAsyncResult = coar;
-            }
+            ContextAwareResult castedAsyncResult =
+                asyncResult as ConnectOverlappedAsyncResult ??
+                asyncResult as MultipleAddressConnectAsyncResult ??
+                (ContextAwareResult)(asyncResult as ConnectAsyncResult);
 
             if (castedAsyncResult == null || castedAsyncResult.AsyncObject != this)
             {
@@ -2408,7 +2421,7 @@ namespace System.Net.Sockets
                 if (ex == null)
                 {
                     // Update the internal state of this socket according to the error before throwing.
-                    SocketException se = SocketExceptionFactory.CreateSocketException(castedAsyncResult.ErrorCode, remoteEndPoint);
+                    SocketException se = SocketExceptionFactory.CreateSocketException(castedAsyncResult.ErrorCode, castedAsyncResult.RemoteEndPoint);
                     UpdateStatusAfterSocketError(se);
                     ex = se;
                 }
@@ -3782,14 +3795,10 @@ namespace System.Net.Sockets
             SafeCloseSocket acceptHandle;
             e.AcceptSocket = GetOrCreateAcceptSocket(e.AcceptSocket, true, "AcceptSocket", out acceptHandle);
 
-            // Prepare for the native call.
-            e.StartOperationCommon(this);
+            // Prepare for and make the native call.
+            e.StartOperationCommon(this, SocketAsyncOperation.Accept);
             e.StartOperationAccept();
-
-            // Local variables for sync completion.
             SocketError socketError = SocketError.Success;
-
-            // Make the native call.
             try
             {
                 socketError = e.DoOperationAccept(this, _handle, acceptHandle);
@@ -3833,6 +3842,11 @@ namespace System.Net.Sockets
                 throw new InvalidOperationException(SR.net_sockets_mustnotlisten);
             }
 
+            if (_isConnected)
+            {
+                throw new SocketException((int)SocketError.IsConnected);
+            }
+
             // Prepare SocketAddress.
             EndPoint endPointSnapshot = e.RemoteEndPoint;
             DnsEndPoint dnsEP = endPointSnapshot as DnsEndPoint;
@@ -3850,8 +3864,8 @@ namespace System.Net.Sockets
 
                 MultipleConnectAsync multipleConnectAsync = new SingleSocketMultipleConnectAsync(this, true);
 
-                e.StartOperationCommon(this);
-                e.StartOperationWrapperConnect(multipleConnectAsync);
+                e.StartOperationCommon(this, SocketAsyncOperation.Connect);
+                e.StartOperationConnect(multipleConnectAsync);
 
                 pending = multipleConnectAsync.StartConnectAsync(e, dnsEP);
             }
@@ -3888,7 +3902,7 @@ namespace System.Net.Sockets
                 }
 
                 // Prepare for the native call.
-                e.StartOperationCommon(this);
+                e.StartOperationCommon(this, SocketAsyncOperation.Connect);
                 e.StartOperationConnect();
 
                 // Make the native call.
@@ -3951,8 +3965,8 @@ namespace System.Net.Sockets
                     multipleConnectAsync = new SingleSocketMultipleConnectAsync(attemptSocket, false);
                 }
 
-                e.StartOperationCommon(attemptSocket);
-                e.StartOperationWrapperConnect(multipleConnectAsync);
+                e.StartOperationCommon(attemptSocket, SocketAsyncOperation.Connect);
+                e.StartOperationConnect(multipleConnectAsync);
 
                 pending = multipleConnectAsync.StartConnectAsync(e, dnsEP);
             }
@@ -3985,10 +3999,8 @@ namespace System.Net.Sockets
                 throw new ObjectDisposedException(GetType().FullName);
             }
 
-            // Prepare for the native call.
-            e.StartOperationCommon(this);
-            e.StartOperationDisconnect();
-
+            // Prepare for and make the native call.
+            e.StartOperationCommon(this, SocketAsyncOperation.Disconnect);
             SocketError socketError = SocketError.Success;
             try
             {
@@ -4020,18 +4032,12 @@ namespace System.Net.Sockets
                 throw new ArgumentNullException(nameof(e));
             }
 
-            // Prepare for the native call.
-            e.StartOperationCommon(this);
-            e.StartOperationReceive();
-
-            // Local vars for sync completion of native call.
-            SocketFlags flags;
+            // Prepare for and make the native call.
+            e.StartOperationCommon(this, SocketAsyncOperation.Receive);
             SocketError socketError;
-
-            // Wrap native methods with try/catch so event args object can be cleaned up.
             try
             {
-                socketError = e.DoOperationReceive(_handle, out flags);
+                socketError = e.DoOperationReceive(_handle);
             }
             catch
             {
@@ -4079,17 +4085,12 @@ namespace System.Net.Sockets
             // e.m_SocketAddres for Create to work later.
             e.RemoteEndPoint = endPointSnapshot;
 
-            // Prepare for the native call.
-            e.StartOperationCommon(this);
-            e.StartOperationReceiveFrom();
-
-            // Make the native call.
-            SocketFlags flags;
+            // Prepare for and make the native call.
+            e.StartOperationCommon(this, SocketAsyncOperation.ReceiveFrom);
             SocketError socketError;
-
             try
             {
-                socketError = e.DoOperationReceiveFrom(_handle, out flags);
+                socketError = e.DoOperationReceiveFrom(_handle);
             }
             catch
             {
@@ -4139,13 +4140,9 @@ namespace System.Net.Sockets
 
             SetReceivingPacketInformation();
 
-            // Prepare for the native call.
-            e.StartOperationCommon(this);
-            e.StartOperationReceiveMessageFrom();
-
-            // Make the native call.
+            // Prepare for and make the native call.
+            e.StartOperationCommon(this, SocketAsyncOperation.ReceiveMessageFrom);
             SocketError socketError;
-
             try
             {
                 socketError = e.DoOperationReceiveMessageFrom(this, _handle);
@@ -4176,14 +4173,9 @@ namespace System.Net.Sockets
                 throw new ArgumentNullException(nameof(e));
             }
 
-            // Prepare for the native call.
-            e.StartOperationCommon(this);
-            e.StartOperationSend();
-
-            // Local vars for sync completion of native call.
+            // Prepare for and make the native call.
+            e.StartOperationCommon(this, SocketAsyncOperation.Send);
             SocketError socketError;
-
-            // Wrap native methods with try/catch so event args object can be cleaned up.
             try
             {
                 socketError = e.DoOperationSend(_handle);
@@ -4223,33 +4215,18 @@ namespace System.Net.Sockets
                 throw new NotSupportedException(SR.net_notconnected);
             }
 
-            // Prepare for the native call.
-            e.StartOperationCommon(this);
-            e.StartOperationSendPackets();
-
-            // Make the native call.
+            // Prepare for and make the native call.
+            e.StartOperationCommon(this, SocketAsyncOperation.SendPackets);
             SocketError socketError;
-
-            Debug.Assert(e.SendPacketsDescriptorCount != null);
-
-            if (e.SendPacketsDescriptorCount > 0)
+            try
             {
-                try
-                {
-                    socketError = e.DoOperationSendPackets(this, _handle);
-                }
-                catch (Exception)
-                {
-                    // Clear in-use flag on event args object.
-                    e.Complete();
-                    throw;
-                }
+                socketError = e.DoOperationSendPackets(this, _handle);
             }
-            else
+            catch (Exception)
             {
-                // No buffers or files to send.
-                e.FinishOperationSyncSuccess(0, SocketFlags.None);
-                socketError = SocketError.Success;
+                // Clear in-use flag on event args object.
+                e.Complete();
+                throw;
             }
 
             bool pending = (socketError == SocketError.IOPending);
@@ -4279,14 +4256,9 @@ namespace System.Net.Sockets
             EndPoint endPointSnapshot = e.RemoteEndPoint;
             e._socketAddress = SnapshotAndSerialize(ref endPointSnapshot);
 
-            // Prepare for the native call.
-            e.StartOperationCommon(this);
-            e.StartOperationSendTo();
-
-            // Make the native call.
+            // Prepare for and make the native call.
+            e.StartOperationCommon(this, SocketAsyncOperation.SendTo);
             SocketError socketError;
-
-            // Wrap native methods with try/catch so event args object can be cleaned up.
             try
             {
                 socketError = e.DoOperationSendTo(_handle);
@@ -4404,14 +4376,16 @@ namespace System.Net.Sockets
         {
             if (!s_initialized)
             {
+                InitializeSocketsCore();
+            }
+
+            void InitializeSocketsCore()
+            {
                 lock (InternalSyncObject)
                 {
                     if (!s_initialized)
                     {
                         SocketPal.Initialize();
-
-                        // Cache some settings locally.
-                        // s_perfCountersEnabled = SocketPerfCounter.Instance.Enabled; // TODO (#7833): Implement socket perf counters.
                         s_initialized = true;
                     }
                 }
@@ -4478,15 +4452,8 @@ namespace System.Net.Sockets
                 catch (Exception exception) when (!ExceptionCheck.IsFatal(exception)) { }
             }
 
-            // Make sure we're the first call to Dispose and no SetAsyncEventSelect is in progress.
-            int last;
-            SpinWait sw = new SpinWait();
-            while ((last = Interlocked.CompareExchange(ref _intCleanedUp, 1, 0)) == 2)
-            {
-                sw.SpinOnce();
-            }
-
-            if (last == 1)
+            // Make sure we're the first call to Dispose
+            if (Interlocked.CompareExchange(ref _intCleanedUp, 1, 0) == 1)
             {
                 if (NetEventSource.IsEnabled) NetEventSource.Exit(this);
                 return;
@@ -4951,7 +4918,7 @@ namespace System.Net.Sockets
                 _endPoint = endPoint;
             }
 
-            internal EndPoint RemoteEndPoint
+            internal override EndPoint RemoteEndPoint
             {
                 get { return _endPoint; }
             }
@@ -4973,7 +4940,7 @@ namespace System.Net.Sockets
             internal int _port;
             internal Exception _lastException;
 
-            internal EndPoint RemoteEndPoint
+            internal override EndPoint RemoteEndPoint
             {
                 get
                 {

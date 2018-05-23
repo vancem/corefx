@@ -1,5 +1,8 @@
+include(CheckCXXCompilerFlag)
 include(CheckCXXSourceCompiles)
 include(CheckCXXSourceRuns)
+include(CheckCSourceCompiles)
+include(CheckCSourceRuns)
 include(CheckFunctionExists)
 include(CheckIncludeFiles)
 include(CheckPrototypeDefinition)
@@ -25,7 +28,16 @@ else ()
 endif ()
 
 # We compile with -Werror, so we need to make sure these code fragments compile without warnings.
-set(CMAKE_REQUIRED_FLAGS -Werror)
+# Older CMake versions (3.8) do not assign the result of their tests, causing unused-value errors
+# which are not distinguished from the test failing. So no error for that one.
+set(CMAKE_REQUIRED_FLAGS "-Werror -Wno-error=unused-value")
+
+# This compiler warning will fail code as innocuous as:
+# static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+# Check if the compiler knows about this warning so we can disable it
+check_cxx_compiler_flag(
+    -Wzero-as-null-pointer-constant
+    HAVE_ZERO_AS_NULL_POINTER_CONSTANT_FLAG)
 
 # in_pktinfo: Find whether this struct exists
 check_include_files(
@@ -95,8 +107,9 @@ check_function_exists(
     stat64
     HAVE_STAT64)
 
-check_function_exists(
+check_symbol_exists(
     pipe2
+    unistd.h
     HAVE_PIPE2)
 
 check_function_exists(
@@ -126,6 +139,10 @@ check_function_exists(
 check_function_exists(
     sched_setaffinity
     HAVE_SCHED_SETAFFINITY)
+
+check_function_exists(
+    arc4random
+    HAVE_ARC4RANDOM)
 
 check_symbol_exists(
     TIOCGWINSZ
@@ -157,9 +174,27 @@ check_symbol_exists(
 
 check_struct_has_member(
     "struct stat"
-    st_birthtime
+    st_birthtimespec
     "sys/types.h;sys/stat.h"
     HAVE_STAT_BIRTHTIME)
+
+check_struct_has_member(
+    "struct stat"
+    st_atimespec
+    "sys/types.h;sys/stat.h"
+    HAVE_STAT_TIMESPEC)
+
+check_struct_has_member(
+    "struct stat"
+    st_atim
+    "sys/types.h;sys/stat.h"
+    HAVE_STAT_TIM)
+
+check_struct_has_member(
+    "struct stat"
+    st_atimensec
+    "sys/types.h;sys/stat.h"
+    HAVE_STAT_NSEC)
 
 check_struct_has_member(
     "struct dirent"
@@ -194,19 +229,19 @@ check_type_size(
 set(CMAKE_EXTRA_INCLUDE_FILES) # reset CMAKE_EXTRA_INCLUDE_FILES
 # /statfs
 
-check_cxx_source_compiles(
+check_c_source_compiles(
     "
     #include <string.h>
     int main()
     {
         char buffer[1];
-        char* c = strerror_r(0, buffer, 0);
+        char c = *strerror_r(0, buffer, 0);
         return 0;
     }
     "
     HAVE_GNU_STRERROR_R)
 
-check_cxx_source_compiles(
+check_c_source_compiles(
     "
     #include <dirent.h>
     int main(void)
@@ -220,7 +255,7 @@ check_cxx_source_compiles(
     "
     HAVE_READDIR_R)
 
-check_cxx_source_compiles(
+check_c_source_compiles(
     "
     #include <sys/types.h>
     #include <sys/event.h>
@@ -246,14 +281,14 @@ check_struct_has_member(
     "sys/select.h"
     HAVE_PRIVATE_FDS_BITS)
 
-check_cxx_source_compiles(
+check_c_source_compiles(
     "
     #include <sys/sendfile.h>
     int main() { int i = sendfile(0, 0, 0, 0); return 0; }
     "
     HAVE_SENDFILE_4)
 
-check_cxx_source_compiles(
+check_c_source_compiles(
     "
     #include <stdlib.h>
     #include <sys/types.h>
@@ -279,48 +314,8 @@ check_function_exists(
     kqueue
     HAVE_KQUEUE)
 
-check_cxx_source_compiles(
-     "
-     #include <sys/types.h>
-     #include <netdb.h>
-
-     int main()
-     {
-         const void* addr;
-         socklen_t len;
-         int type;
-         struct hostent* result;
-         char* buffer;
-         size_t buflen;
-         struct hostent** entry;
-         int* error;
-         gethostbyaddr_r(addr,  len, type, result, buffer, buflen, entry, error);
-         return 0;
-     }
-     "
-     HAVE_GETHOSTBYADDR_R)
-
-check_cxx_source_compiles(
-     "
-     #include <sys/types.h>
-     #include <netdb.h>
-
-     int main()
-     {
-         const char* hostname;
-         struct hostent* result;
-         char* buffer;
-         size_t buflen;
-         struct hostent** entry;
-         int* error;
-         gethostbyname_r(hostname, result, buffer, buflen, entry, error);
-         return 0;
-     }
-     "
-     HAVE_GETHOSTBYNAME_R)
-
 set(CMAKE_REQUIRED_FLAGS "-Werror -Wsign-conversion")
-check_cxx_source_compiles(
+check_c_source_compiles(
      "
      #include <sys/types.h>
      #include <netdb.h>
@@ -342,7 +337,6 @@ check_cxx_source_compiles(
 set(CMAKE_REQUIRED_FLAGS -Werror)
 
 set(HAVE_SUPPORT_FOR_DUAL_MODE_IPV4_PACKET_INFO 0)
-set(HAVE_THREAD_SAFE_GETHOSTBYNAME_AND_GETHOSTBYADDR 0)
 
 if (CMAKE_SYSTEM_NAME STREQUAL Linux)
     if (NOT CLR_CMAKE_PLATFORM_ANDROID)
@@ -350,12 +344,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL Linux)
     endif ()
 
     set(HAVE_SUPPORT_FOR_DUAL_MODE_IPV4_PACKET_INFO 1)
-
-    if (CLR_CMAKE_PLATFORM_ANDROID)
-       set(HAVE_THREAD_SAFE_GETHOSTBYNAME_AND_GETHOSTBYADDR 1)
-    endif()
-elseif (CMAKE_SYSTEM_NAME STREQUAL Darwin)
-    set(HAVE_THREAD_SAFE_GETHOSTBYNAME_AND_GETHOSTBYADDR 1)
+    
 endif ()
 
 check_cxx_source_runs(
@@ -407,14 +396,14 @@ check_function_exists(
 set (PREVIOUS_CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS})
 set (CMAKE_REQUIRED_FLAGS "-Werror -Wsign-conversion")
 
-check_cxx_source_compiles(
+check_c_source_compiles(
     "
     #include <sys/socket.h>
 
     int main()
     {
         int fd;
-        sockaddr* addr;
+        struct sockaddr* addr;
         socklen_t addrLen;
 
         int err = bind(fd, addr, addrLen);
@@ -424,14 +413,14 @@ check_cxx_source_compiles(
     BIND_ADDRLEN_UNSIGNED
 )
 
-check_cxx_source_compiles(
+check_c_source_compiles(
     "
     #include <netinet/in.h>
     #include <netinet/tcp.h>
 
     int main()
     {
-        ipv6_mreq opt;
+        struct ipv6_mreq opt;
         unsigned int index = 0;
         opt.ipv6mr_interface = index;
         return 0;
@@ -440,7 +429,7 @@ check_cxx_source_compiles(
     IPV6MR_INTERFACE_UNSIGNED
 )
 
-check_cxx_source_compiles(
+check_c_source_compiles(
     "
     #include <sys/inotify.h>
 
@@ -455,7 +444,7 @@ check_cxx_source_compiles(
 
 set (CMAKE_REQUIRED_FLAGS ${PREVIOUS_CMAKE_REQUIRED_FLAGS})
 
-check_cxx_source_runs(
+check_c_source_runs(
     "
     #include <sys/mman.h>
     #include <fcntl.h>
@@ -494,7 +483,7 @@ check_prototype_definition(
     "sys/types.h;sys/event.h"
     KEVENT_REQUIRES_INT_PARAMS)
 
-check_cxx_source_compiles(
+check_c_source_compiles(
     "
     #include <stdlib.h>
     #include <unistd.h>
@@ -502,13 +491,12 @@ check_cxx_source_compiles(
 
     int main()
     {
-        char* path = strdup(\"abc\");
-        return mkstemps(path, 3);
+        return mkstemps(\"abc\", 3);
     }
     "
     HAVE_MKSTEMPS)
 
-check_cxx_source_compiles(
+check_c_source_compiles(
     "
     #include <stdlib.h>
     #include <unistd.h>
@@ -516,8 +504,7 @@ check_cxx_source_compiles(
 
     int main()
     {
-        char* path = strdup(\"abc\");
-        return mkstemp(path);
+        return mkstemp(\"abc\");
     }
     "
     HAVE_MKSTEMP)
@@ -526,7 +513,7 @@ if (NOT HAVE_MKSTEMPS AND NOT HAVE_MKSTEMP)
     message(FATAL_ERROR "Cannot find mkstemp nor mkstemp on this platform.")
 endif()
 
-check_cxx_source_compiles(
+check_c_source_compiles(
     "
     #include <sys/types.h>
     #include <sys/socketvar.h>
@@ -548,7 +535,7 @@ endif()
 
 # If sys/cdefs is not included on Android, this check will fail because
 # __BEGIN_DECLS is not defined
-check_cxx_source_compiles(
+check_c_source_compiles(
     "
 #ifdef HAVE_SYS_CDEFS_H
     #include <sys/cdefs.h>
@@ -600,7 +587,7 @@ check_function_exists(
 # check if compiling with 'size_t' would cause a warning
 set (PREVIOUS_CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS})
 set (CMAKE_REQUIRED_FLAGS "-Werror -Weverything")
-check_cxx_source_compiles(
+check_c_source_compiles(
     "
     #include <unistd.h>
     int main() { size_t namelen = 20; char name[20]; getdomainname(name, namelen); return 0; }
@@ -638,9 +625,9 @@ check_cxx_source_compiles(
 check_cxx_source_compiles(
     "
     #include <curl/multi.h>
-    int main() { int i = CURL_HTTP_VERSION_2_0; return 0; }
+    int main() { int i = CURL_HTTP_VERSION_2TLS; return 0; }
     "
-    HAVE_CURL_HTTP_VERSION_2_0)
+    HAVE_CURL_HTTP_VERSION_2TLS)
 
 check_cxx_source_compiles(
     "
@@ -711,7 +698,7 @@ endif()
 
 set (CMAKE_REQUIRED_LIBRARIES)
 
-check_cxx_source_compiles(
+check_c_source_compiles(
     "
     #include <sys/inotify.h>
     int main()

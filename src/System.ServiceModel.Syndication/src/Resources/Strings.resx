@@ -105,20 +105,20 @@
       </xsd:complexType>
     </xsd:element>
   </xsd:schema>
-  <resheader name="reader">
-    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </resheader>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
   <resheader name="version">
     <value>2.0</value>
   </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Atom10SpecRequiresTextConstruct" xml:space="preserve">
-    <value>The Atom10 specification requires '{0}' to have one of these values: "text", "html", "xhtml", however this value is '{1}' in the document being deserialized.</value>
+    <value>The Atom10 specification requires '{0}' to have one of these values: \"text\", \"html\", \"xhtml\", however this value is '{1}' in the document being deserialized.</value>
   </data>
   <data name="DocumentFormatterDoesNotHaveDocument" xml:space="preserve">
     <value>The document formatter must be configured with a document.</value>
@@ -138,14 +138,23 @@
   <data name="ErrorParsingItem" xml:space="preserve">
     <value>An error was encountered when parsing the item's XML. Refer to the inner exception for more details.</value>
   </data>
+  <data name="ErrorParsingUri" xml:space="preserve">
+    <value>An error was encountered when parsing a Uri value in the XML.</value>
+  </data>
   <data name="ExtensionNameNotSpecified" xml:space="preserve">
     <value>The name of the extension element must be specified.</value>
+  </data>
+  <data name="FeedAuthorsIgnoredOnWrite" xml:space="preserve">
+    <value>The feed's authors were not serialized as part of serializing the feed in RSS 2.0 format.</value>
+  </data>
+  <data name="FeedContributorsIgnoredOnWrite" xml:space="preserve">
+    <value>The feed's contributors were not serialized as part of serializing the feed in RSS 2.0 format.</value>
   </data>
   <data name="FeedCreatedNullCategory" xml:space="preserve">
     <value>The feed created a null category.</value>
   </data>
   <data name="FeedCreatedNullItem" xml:space="preserve">
-    <value>=The feed created a null item.</value>
+    <value>The feed created a null item.</value>
   </data>
   <data name="FeedCreatedNullPerson" xml:space="preserve">
     <value>The feed created a null person.</value>
@@ -153,8 +162,29 @@
   <data name="FeedFormatterDoesNotHaveFeed" xml:space="preserve">
     <value>The syndication feed formatter must be configured with a syndication feed.</value>
   </data>
+  <data name="FeedHasNonContiguousItems" xml:space="preserve">
+    <value>The feed being deserialized has non-contiguous sets of items in it. This is not supported by '{0}'.</value>
+  </data>
+  <data name="FeedIdIgnoredOnWrite" xml:space="preserve">
+    <value>The feed's id was not serialized as part of serializing the feed in RSS 2.0 format.</value>
+  </data>
+  <data name="FeedLinksIgnoredOnWrite" xml:space="preserve">
+    <value>The feed's links were not serialized as part of serializing the feed in RSS 2.0 format.</value>
+  </data>
   <data name="InvalidObjectTypePassed" xml:space="preserve">
     <value>The Type of object passed as parameter '{0}' is not derived from {1}. Ensure that the type of object passed is either of type {1} or derived from {1}.</value>
+  </data>
+  <data name="ItemAuthorsIgnoredOnWrite" xml:space="preserve">
+    <value>The item's authors were not serialized as part of serializing the feed in RSS 2.0 format.</value>
+  </data>
+  <data name="ItemContentIgnoredOnWrite" xml:space="preserve">
+    <value>The item's content was not serialized as part of serializing the feed in RSS 2.0 format.</value>
+  </data>
+  <data name="ItemContributorsIgnoredOnWrite" xml:space="preserve">
+    <value>The item's contributors were not serialized as part of serializing the feed in RSS 2.0 format.</value>
+  </data>
+  <data name="ItemCopyrightIgnoredOnWrite" xml:space="preserve">
+    <value>The item's copyrights were not serialized as part of serializing the feed in RSS 2.0 format.</value>
   </data>
   <data name="ItemCreatedNullCategory" xml:space="preserve">
     <value>The item created a null category.</value>
@@ -164,6 +194,12 @@
   </data>
   <data name="ItemFormatterDoesNotHaveItem" xml:space="preserve">
     <value>The syndication item formatter must be configured with a syndication item.</value>
+  </data>
+  <data name="ItemLastUpdatedTimeIgnoredOnWrite" xml:space="preserve">
+    <value>The item's last updated time was not serialized as part of serializing the feed in RSS 2.0 format.</value>
+  </data>
+  <data name="ItemLinksIgnoredOnWrite" xml:space="preserve">
+    <value>The item's links were not serialized as part of serializing the feed in RSS 2.0 format.</value>
   </data>
   <data name="OuterElementNameNotSpecified" xml:space="preserve">
     <value>The outer element name must be specified.</value>
@@ -191,21 +227,6 @@
   </data>
   <data name="ValueMustBeNonNegative" xml:space="preserve">
     <value>The value of this argument must be non-negative.</value>
-  </data>
-  <data name="Xml_ElementNotFound" xml:space="preserve">
-    <value>Element '{0}' was not found.</value>
-  </data>
-  <data name="Xml_ElementNotFoundNs" xml:space="preserve">
-    <value>Element '{0}' with namespace name '{1}' was not found.</value>
-  </data>
-  <data name="Xml_InvalidNodeType" xml:space="preserve">
-    <value>'{0}' is an invalid XmlNodeType.</value>
-  </data>
-  <data name="Xml_InvalidOperation" xml:space="preserve">
-    <value>Operation is not valid due to the current state of the object.</value>
-  </data>
-  <data name="Xml_UnexpectedNodeInSimpleContent" xml:space="preserve">
-    <value>Unexpected node type {0}. {1} method can only be called on elements with simple or empty content.</value>
   </data>
   <data name="XmlBufferInInvalidState" xml:space="preserve">
     <value>An internal error has occurred. The XML buffer is not in the correct state to perform the operation.</value>
@@ -236,5 +257,11 @@
   </data>
   <data name="XmlStartElementExpected" xml:space="preserve">
     <value>Start element expected. Found {0}.</value>
+  </data>
+  <data name="InvalidSkipHourValue" xml:space="preserve">
+    <value>Cannot parse string `{0}` as skip hour. The value for skip hours must be an integer betwen 0 and 23.</value>
+  </data>
+  <data name="InvalidTimeToLiveValue" xml:space="preserve">
+    <value>The value for TimeToLive must be a non-negative whole number of minutes.</value>
   </data>
 </root>

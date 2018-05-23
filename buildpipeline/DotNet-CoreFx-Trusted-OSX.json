@@ -3,6 +3,27 @@
     {
       "environment": {},
       "enabled": true,
+      "continueOnError": true,
+      "displayName": "run begin.sh",
+      "timeoutInMinutes": 0,
+      "alwaysRun": true,
+      "task": {
+        "id": "10f1f9a1-74b0-47ab-87bf-e3c9c68e8b0d",
+        "versionSpec": "0.*",
+        "definitionType": "task"
+      },
+      "inputs": {
+        "type": "InlineScript",
+        "scriptPath": "",
+        "args": "",
+        "cwd": "",
+        "failOnStandardError": "false",
+        "script": "if [ -f \"$AGENTTOOLSPATH/begin.sh\" ]; then echo \"$AGENTTOOLSPATH/begin.sh script found. Executing...\"; $AGENTTOOLSPATH/begin.sh ; else echo \"$AGENTTOOLSPATH/begin.sh script does not exist. Moving on.\" ; fi"
+      }
+    },
+    {
+      "environment": {},
+      "enabled": true,
       "continueOnError": false,
       "alwaysRun": false,
       "displayName": "Delete files from $(Agent.BuildDirectory)/s",
@@ -145,6 +166,7 @@
       "alwaysRun": false,
       "displayName": "Run $(Agent.BuildDirectory)/s/corefx/build-tests.sh",
       "timeoutInMinutes": 0,
+      "condition": "and(succeeded(), ne(variables.PB_SkipTests, 'true'))",
       "refName": "Task8",
       "task": {
         "id": "d9bafed4-0b18-4f58-968d-86655b4d2ce9",
@@ -165,6 +187,7 @@
       "alwaysRun": false,
       "displayName": "Create Helix Test Jobs",
       "timeoutInMinutes": 0,
+      "condition": "and(succeeded(), ne(variables.PB_SkipTests, 'true'), ne(variables.PB_EnableCloudTest, 'false'))",
       "refName": "Task9",
       "task": {
         "id": "d9bafed4-0b18-4f58-968d-86655b4d2ce9",
@@ -173,7 +196,7 @@
       },
       "inputs": {
         "filename": "$(Agent.BuildDirectory)/s/corefx/Tools/msbuild.sh",
-        "arguments": "$(Agent.BuildDirectory)/s/corefx/src/upload-tests.proj $(PB_CreateHelixArguments) /p:\"CloudDropAccountName=$(PB_CloudDropAccountName)\" /p:\"CloudResultsAccountName=$(PB_CloudResultsAccountName)\" /p:\"CloudDropAccessToken=$(CloudDropAccessToken)\" /p:\"CloudResultsAccessToken=$(OutputCloudResultsAccessToken)\" /p:\"HelixApiAccessKey=$(HelixApiAccessKey)\" /p:HelixApiEndpoint=$(PB_HelixApiEndPoint) /p:\"Branch=$(SourceBranch)\" /p:\"TargetQueues=$(PB_TargetQueue)\" /p:\"OfficialBuildId=$(OfficialBuildId)\"",
+        "arguments": "$(Agent.BuildDirectory)/s/corefx/src/upload-tests.proj $(PB_CreateHelixArguments) /p:\"CloudDropAccountName=$(PB_CloudDropAccountName)\" /p:\"CloudResultsAccountName=$(PB_CloudResultsAccountName)\" /p:\"CloudDropAccessToken=$(CloudDropAccessToken)\" /p:\"CloudResultsAccessToken=$(OutputCloudResultsAccessToken)\" /p:\"HelixApiAccessKey=$(HelixApiAccessKey)\" /p:HelixApiEndpoint=$(PB_HelixApiEndPoint) /p:\"Branch=$(SourceBranch)\" /p:\"TargetQueues=$(PB_TargetQueue)\" /p:\"OfficialBuildId=$(OfficialBuildId)\" /p:\"ProductBuildId=$(ProductBuildId)\"",
         "workingFolder": "",
         "failOnStandardError": "false"
       }
@@ -205,6 +228,7 @@
       "alwaysRun": true,
       "displayName": "Copy Files to: $(Build.StagingDirectory)\\BuildLogs",
       "timeoutInMinutes": 0,
+      "condition": "succeededOrFailed()",
       "refName": "CopyFiles1",
       "task": {
         "id": "5bfb729a-a7c8-4a78-a7c3-8d717bb7c13c",
@@ -227,6 +251,7 @@
       "alwaysRun": true,
       "displayName": "Publish Artifact: BuildLogs",
       "timeoutInMinutes": 0,
+      "condition": "succeededOrFailed()",
       "refName": "PublishBuildArtifacts2",
       "task": {
         "id": "2ff763a7-ce83-4e1f-bc89-0ae63477cebe",
@@ -240,6 +265,27 @@
         "TargetPath": "\\\\my\\share\\$(Build.DefinitionName)\\$(Build.BuildNumber)",
         "Parallel": "false",
         "ParallelCount": "8"
+      }
+    },
+    {
+      "environment": {},
+      "enabled": true,
+      "continueOnError": true,
+      "displayName": "run end.sh",
+      "timeoutInMinutes": 0,
+      "alwaysRun": true,
+      "task": {
+        "id": "10f1f9a1-74b0-47ab-87bf-e3c9c68e8b0d",
+        "versionSpec": "0.*",
+        "definitionType": "task"
+      },
+      "inputs": {
+        "type": "InlineScript",
+        "scriptPath": "",
+        "args": "",
+        "cwd": "",
+        "failOnStandardError": "false",
+        "script": "if [ -f \"$AGENTTOOLSPATH/end.sh\" ]; then echo \"$AGENTTOOLSPATH/end.sh script found. Executing...\"; $AGENTTOOLSPATH/end.sh ; else echo \"$AGENTTOOLSPATH/end.sh script does not exist. Moving on.\" ; fi"
       }
     }
   ],
@@ -287,8 +333,20 @@
       "value": null,
       "isSecret": true
     },
+    "OutputCloudResultsAccessToken": {
+      "value": null,
+      "isSecret": true
+    },
+    "HelixApiAccessKey": {
+      "value": null,
+      "isSecret": true
+    },
     "OfficialBuildId": {
       "value": "$(Build.BuildNumber)",
+      "allowOverride": true
+    },
+    "ProductBuildId": {
+      "value": "",
       "allowOverride": true
     },
     "PB_Label": {
@@ -311,7 +369,8 @@
       "allowOverride": true
     },
     "PB_VsoCorefxGitUrl": {
-      "value": "https://github.com/dotnet/corefx"
+      "value": "https://github.com/dotnet/corefx",
+      "isSecret": true
     },
     "PB_BuildArguments": {
       "value": "-buildArch=x64 -Release",
@@ -328,6 +387,19 @@
     "PB_CreateHelixArguments": {
       "value": "/t:CloudBuild /p:ArchGroup=x64 /p:ConfigurationGroup=Release /p:\"EnableCloudTest=true /p:\"TestProduct=corefx /p:\"TimeoutInSeconds=1200\" /p:\"TargetOS=OSX\" /p:FilterToOSGroup=OSX",
       "allowOverride": true
+    },
+    "PB_SkipTests": {
+      "value": "false",
+      "allowOverride": true
+    },
+    "PB_PackageVersionPropsUrl": {
+      "value": ""
+    },
+    "PACKAGEVERSIONPROPSURL": {
+      "value": "$(PB_PackageVersionPropsUrl)"
+    },
+    "PB_AssetRootUrl": {
+      "value": ""
     }
   },
   "demands": [
@@ -350,7 +422,7 @@
   ],
   "buildNumberFormat": "$(date:yyyyMMdd)$(rev:-rr)",
   "jobAuthorizationScope": "projectCollection",
-  "jobTimeoutInMinutes": 60,
+  "jobTimeoutInMinutes": 120,
   "jobCancelTimeoutInMinutes": 5,
   "repository": {
     "properties": {
@@ -373,6 +445,7 @@
   },
   "processParameters": {},
   "quality": "definition",
+  "drafts": [],
   "queue": {
     "id": 330,
     "name": "DotNetCore-Build",
@@ -392,7 +465,7 @@
     "description": "Visual Studio and DevDiv team project for git source code repositories.  Work items will be added for Adams, Dev14 work items are tracked in vstfdevdiv.  ",
     "url": "https://devdiv.visualstudio.com/DefaultCollection/_apis/projects/0bdbc590-a062-4c3f-b0f6-9383f67865ee",
     "state": "wellFormed",
-    "revision": 418098167,
+    "revision": 418098432,
     "visibility": "organization"
   }
 }

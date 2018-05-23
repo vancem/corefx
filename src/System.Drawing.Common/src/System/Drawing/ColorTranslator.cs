@@ -10,7 +10,7 @@ namespace System.Drawing
     /// <summary>
     /// Translates colors to and from GDI+ <see cref='Color'/> objects.
     /// </summary>
-    public sealed class ColorTranslator
+    public static class ColorTranslator
     {
         private const int Win32RedShift = 0;
         private const int Win32GreenShift = 8;
@@ -258,7 +258,14 @@ namespace System.Drawing
             // resort to type converter which will handle named colors
             if (c.IsEmpty)
             {
-                c = ColorConverterCommon.ConvertFromString(htmlColor, CultureInfo.CurrentCulture);
+                try
+                {
+                    c = ColorConverterCommon.ConvertFromString(htmlColor, CultureInfo.CurrentCulture);
+                }
+                catch(Exception ex)
+                {
+                    throw new ArgumentException(ex.Message, nameof(htmlColor), ex);
+                }
             }
 
             return c;

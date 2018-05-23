@@ -108,12 +108,14 @@ namespace System.IO
         public override int Read(byte[] buffer, int offset, int count) { throw null; }
         public override int Read(System.Span<byte> destination) { throw null; }
         public override System.Threading.Tasks.Task<int> ReadAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken) { throw null; }
+        public override System.Threading.Tasks.ValueTask<int> ReadAsync(Memory<byte> buffer, System.Threading.CancellationToken cancellationToken = default) { throw null; }
         public override int ReadByte() { throw null; }
         public override long Seek(long offset, System.IO.SeekOrigin loc) { throw null; }
         public override void SetLength(long value) { }
         public override void Write(byte[] buffer, int offset, int count) { }
         public override void Write(System.ReadOnlySpan<byte> source) { }
         public override System.Threading.Tasks.Task WriteAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken) { throw null; }
+        public override System.Threading.Tasks.ValueTask WriteAsync(System.ReadOnlyMemory<byte> buffer, System.Threading.CancellationToken cancellationToken = default) { throw null; }
         public override void WriteByte(byte value) { }
     }
 }
@@ -139,9 +141,9 @@ namespace System.Runtime.InteropServices
         public AutomationProxyAttribute(bool val) { }
         public bool Value { get { throw null; } }
     }     
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct ArrayWithOffset
     {
+        private object _dummy;
         public ArrayWithOffset(object array, int offset) { throw null; }
         public override bool Equals(object obj) { throw null; }
         public bool Equals(System.Runtime.InteropServices.ArrayWithOffset obj) { throw null; }
@@ -415,6 +417,7 @@ namespace System.Runtime.InteropServices
     }
     public struct HandleRef
     {
+        private object _dummy;
         public HandleRef(object wrapper, System.IntPtr handle) : this() { }
         public System.IntPtr Handle { get; }
         public object Wrapper { get; }
@@ -883,7 +886,6 @@ namespace System.Runtime.InteropServices
         public TypeLibVarFlags Value { get { throw null; } }
     }
     [AttributeUsage(AttributeTargets.Assembly, Inherited = false)]
-    [System.Runtime.InteropServices.ComVisible(true)]
     public sealed class TypeLibVersionAttribute : Attribute
     {
         public TypeLibVersionAttribute(int major, int minor) {}

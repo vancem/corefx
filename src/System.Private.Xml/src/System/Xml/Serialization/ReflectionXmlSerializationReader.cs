@@ -19,11 +19,7 @@ using System.Xml.Serialization;
 using System.Linq.Expressions;
 using System.Collections.Concurrent;
 
-#if XMLSERIALIZERGENERATOR
-namespace Microsoft.XmlSerializer.Generator
-#else
 namespace System.Xml.Serialization
-#endif
 {
     internal delegate void UnknownNodeAction(object o);
 
@@ -697,7 +693,7 @@ namespace System.Xml.Serialization
                 {
                     if (special.TypeDesc.Kind == TypeKind.Node)
                     {
-                        value = Document.CreateTextNode(ReadString());
+                        value = Document.CreateTextNode(Reader.ReadString());
                     }
                     else
                     {
@@ -710,11 +706,11 @@ namespace System.Xml.Serialization
                     {
                         if (text.Mapping.TypeDesc.CollapseWhitespace)
                         {
-                            value = CollapseWhitespace(ReadString());
+                            value = CollapseWhitespace(Reader.ReadString());
                         }
                         else
                         {
-                            value = ReadString();
+                            value = Reader.ReadString();
                         }
                     }
                     else
@@ -725,7 +721,7 @@ namespace System.Xml.Serialization
                         }
                         else
                         {
-                            value = WritePrimitive(text.Mapping, (state) => ((ReflectionXmlSerializationReader)state).ReadString(), this);
+                            value = WritePrimitive(text.Mapping, (state) => ((ReflectionXmlSerializationReader)state).Reader.ReadString(), this);
                         }
                     }
                 }
@@ -1836,7 +1832,7 @@ namespace System.Xml.Serialization
                         Func<object, string> functor = (state) =>
                         {
                             var reader = (ReflectionXmlSerializationReader)state;
-                            return reader.CollapseWhitespace(reader.ReadString());
+                            return reader.CollapseWhitespace(reader.Reader.ReadString());
                         };
                         o = WriteEnumMethod(enumMapping, functor, this);
                         ReadEndElement();

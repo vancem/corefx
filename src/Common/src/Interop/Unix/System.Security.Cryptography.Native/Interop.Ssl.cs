@@ -47,7 +47,11 @@ internal static partial class Interop
 
         [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_SslGetVersion")]
         private static extern IntPtr SslGetVersion(SafeSslHandle ssl);
-                
+
+        [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_SslSetTlsExtHostName")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool SslSetTlsExtHostName(SafeSslHandle ssl, string host);
+
         [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_SslGet0AlpnSelected")]
         internal static extern void SslGetAlpnSelected(SafeSslHandle ssl, out IntPtr protocol, out int len);
 
@@ -122,6 +126,7 @@ internal static partial class Interop
         internal static extern int SslGetFinished(SafeSslHandle ssl, IntPtr buf, int count);
 
         [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_SslSessionReused")]
+        [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool SslSessionReused(SafeSslHandle ssl);
 
         [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_SslAddExtraChainCert")]
@@ -155,6 +160,7 @@ internal static partial class Interop
                 Crypto.CheckValidOpenSslHandle(dupCertHandle);
                 if (!SslAddExtraChainCert(sslContext, dupCertHandle))
                 {
+                    Crypto.ErrClearError();
                     dupCertHandle.Dispose(); // we still own the safe handle; clean it up
                     return false;
                 }
@@ -195,9 +201,8 @@ namespace Microsoft.Win32.SafeHandles
         private SafeBioHandle _writeBio;
         private bool _isServer;
         private bool _handshakeCompleted = false;
-        private GCHandle _alpnHandle;
 
-        public GCHandle AlpnHandle { set => _alpnHandle = value; }
+        public GCHandle AlpnHandle;
 
         public bool IsServer
         {
@@ -280,9 +285,9 @@ namespace Microsoft.Win32.SafeHandles
                 _writeBio?.Dispose();
             }
 
-            if (_alpnHandle.IsAllocated)
+            if (AlpnHandle.IsAllocated)
             {
-                _alpnHandle.Free();
+                AlpnHandle.Free();
             }
 
             base.Dispose(disposing);
@@ -315,6 +320,12 @@ namespace Microsoft.Win32.SafeHandles
             {
                 // Do a bi-directional shutdown.
                 retVal = Interop.Ssl.SslShutdown(handle);
+            }
+
+            if (retVal < 0)
+            {
+                // Clean up the errors
+                Interop.Crypto.ErrClearError();
             }
         }
 

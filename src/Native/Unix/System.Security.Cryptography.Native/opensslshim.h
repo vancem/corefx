@@ -14,6 +14,7 @@
 #include <openssl/asn1.h>
 #include <openssl/bio.h>
 #include <openssl/bn.h>
+#include <openssl/crypto.h>
 #include <openssl/dsa.h>
 #include <openssl/ecdsa.h>
 #include <openssl/ec.h>
@@ -29,6 +30,7 @@
 #include <openssl/rsa.h>
 #include <openssl/sha.h>
 #include <openssl/ssl.h>
+#include <openssl/tls1.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
@@ -190,6 +192,11 @@ void SSL_get0_alpn_selected(const SSL* ssl, const unsigned char** protocol, unsi
     PER_FUNCTION_BLOCK(EVP_MD_CTX_create, true) \
     PER_FUNCTION_BLOCK(EVP_MD_CTX_destroy, true) \
     PER_FUNCTION_BLOCK(EVP_MD_size, true) \
+    PER_FUNCTION_BLOCK(EVP_PKEY_CTX_free, true) \
+    PER_FUNCTION_BLOCK(EVP_PKEY_CTX_new, true) \
+    PER_FUNCTION_BLOCK(EVP_PKEY_derive_set_peer, true) \
+    PER_FUNCTION_BLOCK(EVP_PKEY_derive_init, true) \
+    PER_FUNCTION_BLOCK(EVP_PKEY_derive, true) \
     PER_FUNCTION_BLOCK(EVP_PKEY_free, true) \
     PER_FUNCTION_BLOCK(EVP_PKEY_get1_DSA, true) \
     PER_FUNCTION_BLOCK(EVP_PKEY_get1_EC_KEY, true) \
@@ -227,6 +234,7 @@ void SSL_get0_alpn_selected(const SSL* ssl, const unsigned char** protocol, unsi
     PER_FUNCTION_BLOCK(OBJ_txt2nid, true) \
     PER_FUNCTION_BLOCK(OBJ_txt2obj, true) \
     PER_FUNCTION_BLOCK(OPENSSL_add_all_algorithms_conf, true) \
+    PER_FUNCTION_BLOCK(OPENSSL_cleanse, true) \
     PER_FUNCTION_BLOCK(PEM_read_bio_PKCS7, true) \
     PER_FUNCTION_BLOCK(PEM_read_bio_X509_AUX, true) \
     PER_FUNCTION_BLOCK(PEM_read_bio_X509_CRL, true) \
@@ -246,6 +254,8 @@ void SSL_get0_alpn_selected(const SSL* ssl, const unsigned char** protocol, unsi
     PER_FUNCTION_BLOCK(RSA_get_method, true) \
     PER_FUNCTION_BLOCK(RSA_new, true) \
     PER_FUNCTION_BLOCK(RSA_private_decrypt, true) \
+    PER_FUNCTION_BLOCK(RSA_private_encrypt, true) \
+    PER_FUNCTION_BLOCK(RSA_public_decrypt, true) \
     PER_FUNCTION_BLOCK(RSA_public_encrypt, true) \
     PER_FUNCTION_BLOCK(RSA_sign, true) \
     PER_FUNCTION_BLOCK(RSA_size, true) \
@@ -268,7 +278,6 @@ void SSL_get0_alpn_selected(const SSL* ssl, const unsigned char** protocol, unsi
     PER_FUNCTION_BLOCK(SSL_CTX_set_alpn_select_cb, false) \
     PER_FUNCTION_BLOCK(SSL_CTX_set_cert_verify_callback, true) \
     PER_FUNCTION_BLOCK(SSL_CTX_set_cipher_list, true) \
-    PER_FUNCTION_BLOCK(SSL_CTX_set_client_CA_list, true) \
     PER_FUNCTION_BLOCK(SSL_CTX_set_client_cert_cb, true) \
     PER_FUNCTION_BLOCK(SSL_CTX_set_quiet_shutdown, true) \
     PER_FUNCTION_BLOCK(SSL_CTX_set_verify, true) \
@@ -296,6 +305,7 @@ void SSL_get0_alpn_selected(const SSL* ssl, const unsigned char** protocol, unsi
     PER_FUNCTION_BLOCK(SSL_set_connect_state, true) \
     PER_FUNCTION_BLOCK(SSL_shutdown, true) \
     PER_FUNCTION_BLOCK(SSL_state, true) \
+    PER_FUNCTION_BLOCK(SSLeay_version, true) \
     PER_FUNCTION_BLOCK(SSLv23_method, true) \
     PER_FUNCTION_BLOCK(SSL_write, true) \
     PER_FUNCTION_BLOCK(TLSv1_1_method, true) \
@@ -323,7 +333,6 @@ void SSL_get0_alpn_selected(const SSL* ssl, const unsigned char** protocol, unsi
     PER_FUNCTION_BLOCK(X509_get_serialNumber, true) \
     PER_FUNCTION_BLOCK(X509_get_subject_name, true) \
     PER_FUNCTION_BLOCK(X509_issuer_name_hash, true) \
-    PER_FUNCTION_BLOCK(X509_NAME_dup, true) \
     PER_FUNCTION_BLOCK(X509_NAME_entry_count, true) \
     PER_FUNCTION_BLOCK(X509_NAME_ENTRY_get_data, true) \
     PER_FUNCTION_BLOCK(X509_NAME_ENTRY_get_object, true) \
@@ -483,6 +492,11 @@ FOR_ALL_OPENSSL_FUNCTIONS
 #define EVP_MD_CTX_create EVP_MD_CTX_create_ptr
 #define EVP_MD_CTX_destroy EVP_MD_CTX_destroy_ptr
 #define EVP_MD_size EVP_MD_size_ptr
+#define EVP_PKEY_CTX_free EVP_PKEY_CTX_free_ptr
+#define EVP_PKEY_CTX_new EVP_PKEY_CTX_new_ptr
+#define EVP_PKEY_derive_set_peer EVP_PKEY_derive_set_peer_ptr
+#define EVP_PKEY_derive_init EVP_PKEY_derive_init_ptr
+#define EVP_PKEY_derive EVP_PKEY_derive_ptr
 #define EVP_PKEY_free EVP_PKEY_free_ptr
 #define EVP_PKEY_get1_DSA EVP_PKEY_get1_DSA_ptr
 #define EVP_PKEY_get1_EC_KEY EVP_PKEY_get1_EC_KEY_ptr
@@ -520,6 +534,7 @@ FOR_ALL_OPENSSL_FUNCTIONS
 #define OBJ_txt2nid OBJ_txt2nid_ptr
 #define OBJ_txt2obj OBJ_txt2obj_ptr
 #define OPENSSL_add_all_algorithms_conf OPENSSL_add_all_algorithms_conf_ptr
+#define OPENSSL_cleanse OPENSSL_cleanse_ptr
 #define PEM_read_bio_PKCS7 PEM_read_bio_PKCS7_ptr
 #define PEM_read_bio_X509_AUX PEM_read_bio_X509_AUX_ptr
 #define PEM_read_bio_X509_CRL PEM_read_bio_X509_CRL_ptr
@@ -539,6 +554,8 @@ FOR_ALL_OPENSSL_FUNCTIONS
 #define RSA_get_method RSA_get_method_ptr
 #define RSA_new RSA_new_ptr
 #define RSA_private_decrypt RSA_private_decrypt_ptr
+#define RSA_private_encrypt RSA_private_encrypt_ptr
+#define RSA_public_decrypt RSA_public_decrypt_ptr
 #define RSA_public_encrypt RSA_public_encrypt_ptr
 #define RSA_sign RSA_sign_ptr
 #define RSA_size RSA_size_ptr
@@ -561,7 +578,6 @@ FOR_ALL_OPENSSL_FUNCTIONS
 #define SSL_CTX_set_alpn_select_cb SSL_CTX_set_alpn_select_cb_ptr
 #define SSL_CTX_set_cert_verify_callback SSL_CTX_set_cert_verify_callback_ptr
 #define SSL_CTX_set_cipher_list SSL_CTX_set_cipher_list_ptr
-#define SSL_CTX_set_client_CA_list SSL_CTX_set_client_CA_list_ptr
 #define SSL_CTX_set_client_cert_cb SSL_CTX_set_client_cert_cb_ptr
 #define SSL_CTX_set_quiet_shutdown SSL_CTX_set_quiet_shutdown_ptr
 #define SSL_CTX_set_verify SSL_CTX_set_verify_ptr
@@ -589,6 +605,7 @@ FOR_ALL_OPENSSL_FUNCTIONS
 #define SSL_set_connect_state SSL_set_connect_state_ptr
 #define SSL_shutdown SSL_shutdown_ptr
 #define SSL_state SSL_state_ptr
+#define SSLeay_version SSLeay_version_ptr
 #define SSLv23_method SSLv23_method_ptr
 #define SSL_write SSL_write_ptr
 #define TLSv1_1_method TLSv1_1_method_ptr
@@ -616,7 +633,6 @@ FOR_ALL_OPENSSL_FUNCTIONS
 #define X509_get_serialNumber X509_get_serialNumber_ptr
 #define X509_get_subject_name X509_get_subject_name_ptr
 #define X509_issuer_name_hash X509_issuer_name_hash_ptr
-#define X509_NAME_dup X509_NAME_dup_ptr
 #define X509_NAME_entry_count X509_NAME_entry_count_ptr
 #define X509_NAME_ENTRY_get_data X509_NAME_ENTRY_get_data_ptr
 #define X509_NAME_ENTRY_get_object X509_NAME_ENTRY_get_object_ptr

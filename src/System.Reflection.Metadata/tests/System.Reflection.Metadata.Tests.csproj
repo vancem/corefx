@@ -60,6 +60,7 @@
     <Compile Include="Metadata\PortablePdb\StandalonePortablePdbStreamTests.cs" />
     <Compile Include="Metadata\TagToTokenTests.cs" />
     <Compile Include="Metadata\PortablePdb\DocumentNameTests.cs" />
+    <Compile Include="Metadata\TypeSystem\TypeDefinitionTests.cs" />
     <Compile Include="PortableExecutable\DebugDirectoryBuilderTests.cs" />
     <Compile Include="PortableExecutable\PEHeaderBuilderTests.cs" />
     <Compile Include="PortableExecutable\PEMemoryBlockTests.cs" />
@@ -78,6 +79,7 @@
     <Compile Include="PortableExecutable\PEHeadersTests.cs" />
     <Compile Include="PortableExecutable\PEReaderTests.cs" />
     <Compile Include="PortableExecutable\SectionHeaderTests.cs" />
+    <Compile Include="Utilities\HashTests.cs" />
     <Compile Include="Utilities\StreamExtensionsTests.cs" />
     <Compile Include="Metadata\MetadataReaderProviderTests.cs" />
     <Compile Include="Resources\TestResources.cs" />

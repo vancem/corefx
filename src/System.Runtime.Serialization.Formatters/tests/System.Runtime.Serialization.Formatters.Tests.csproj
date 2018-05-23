@@ -4,6 +4,7 @@
   <PropertyGroup>
     <ProjectGuid>{13CE5E71-D373-4EA6-B3CB-166FF089A42A}</ProjectGuid>
     <SkipIncludeNewtonsoftJson>true</SkipIncludeNewtonsoftJson>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netfx-Debug|AnyCPU'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netfx-Release|AnyCPU'" />
@@ -22,25 +23,24 @@
     <Compile Include="SerializationInfoTests.cs" />
     <Compile Include="SerializationTypes.cs" />
     <Compile Include="SurrogateSelectorTests.cs" />
+    <Compile Include="TypeSerializableValue.cs" />
     <Compile Include="$(CommonTestPath)\System\NonRuntimeType.cs">
       <Link>Common\System\NonRuntimeType.cs</Link>
     </Compile>
     <Compile Include="$(CommonTestPath)\System\Runtime\Serialization\Formatters\BinaryFormatterHelpers.cs">
       <Link>Common\System\Runtime\Serialization\Formatters\BinaryFormatterHelpers.cs</Link>
     </Compile>
-  </ItemGroup>
-  <ItemGroup Condition="'$(TargetGroup)' == 'netfx'">
-    <!-- Work-around issue where we are bin-placing the netstandard ref for System.Security.Permissions for netfx. Issue #24517 -->
-    <TargetingPackExclusions Include="System.Security.Permissions" />
+    <Compile Include="$(CommonTestPath)\System\ThreadCultureChange.cs">
+      <Link>Common\System\ThreadCultureChange.cs</Link>
+    </Compile>  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="BinaryFormatterTests.rd.xml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="$(CommonTestPath)\System\Diagnostics\RemoteExecutorConsoleApp\RemoteExecutorConsoleApp.csproj">
       <Project>{69e46a6f-9966-45a5-8945-2559fe337827}</Project>
       <Name>RemoteExecutorConsoleApp</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="BinaryFormatterTests.rd.xml" />
   </ItemGroup>
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.targets))\dir.targets" />
 </Project>

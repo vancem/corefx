@@ -30,20 +30,10 @@ namespace System.Net.Sockets
             }
         }
 
+        public ThreadPoolBoundHandle GetThreadPoolBoundHandle() => !_released ? _iocpBoundHandle : null;
+
         // Binds the Socket Win32 Handle to the ThreadPool's CompletionPort.
         public ThreadPoolBoundHandle GetOrAllocateThreadPoolBoundHandle(bool trySkipCompletionPortOnSuccess)
-        {
-            // Check to see if the socket native _handle is already
-            // bound to the ThreadPool's completion port.
-            if (_released || _iocpBoundHandle == null)
-            {
-                GetOrAllocateThreadPoolBoundHandleSlow(trySkipCompletionPortOnSuccess);
-            }
-
-            return _iocpBoundHandle;
-        }
-
-        private void GetOrAllocateThreadPoolBoundHandleSlow(bool trySkipCompletionPortOnSuccess)
         {
             if (_released)
             {
@@ -51,14 +41,20 @@ namespace System.Net.Sockets
                 throw new ObjectDisposedException(typeof(Socket).FullName);
             }
 
+            if (_iocpBoundHandle != null)
+            {
+                return _iocpBoundHandle;
+            }
+
             lock (_iocpBindingLock)
             {
-                if (_iocpBoundHandle == null)
+                ThreadPoolBoundHandle boundHandle = _iocpBoundHandle;
+
+                if (boundHandle == null)
                 {
                     // Bind the socket native _handle to the ThreadPool.
                     if (NetEventSource.IsEnabled) NetEventSource.Info(this, "calling ThreadPool.BindHandle()");
 
-                    ThreadPoolBoundHandle boundHandle;
                     try
                     {
                         // The handle (this) may have been already released:
@@ -68,7 +64,15 @@ namespace System.Net.Sockets
                     }
                     catch (Exception exception) when (!ExceptionCheck.IsFatal(exception))
                     {
+                        bool closed = IsClosed;
                         CloseAsIs();
+                        if (closed)
+                        {
+                            // If the handle was closed just before the call to BindHandle,
+                            // we could end up getting an ArgumentException, which we should
+                            // instead propagate as an ObjectDisposedException.
+                            throw new ObjectDisposedException(typeof(Socket).FullName, exception);
+                        }
                         throw;
                     }
 
@@ -80,8 +84,10 @@ namespace System.Net.Sockets
                     }
 
                     // Don't set this until after we've configured the handle above (if we did)
-                    _iocpBoundHandle = boundHandle;
+                    Volatile.Write(ref _iocpBoundHandle, boundHandle);
                 }
+
+                return boundHandle;
             }
         }
 

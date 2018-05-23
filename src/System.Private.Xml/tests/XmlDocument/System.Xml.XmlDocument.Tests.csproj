@@ -6,10 +6,8 @@
     <ProjectGuid>{7EAFC2D8-48D2-4A56-A9C6-6BADF2053499}</ProjectGuid>
     <IncludePerformanceTests>true</IncludePerformanceTests>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netstandard-Debug|AnyCPU'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netstandard-Release|AnyCPU'" />
   <ItemGroup>
     <Compile Include="$(CommonTestPath)\System\ShouldNotBeInvokedException.cs">
       <Link>Common\System\ShouldNotBeInvokedException.cs</Link>
@@ -44,6 +42,7 @@
     <Compile Include="XmlDocumentTests\CreateXmlDeclarationTests.cs" />
     <Compile Include="XmlDocumentTests\GetElementsByTagNameTests.cs" />
     <Compile Include="XmlDocumentTests\ImportNodeTests.cs" />
+    <Compile Include="XmlDocumentTests\NameTableTests.cs" />
     <Compile Include="XmlDocumentTests\NodeChangedTests.cs" />
     <Compile Include="XmlDocumentTests\NodeChangingTests.cs" />
     <Compile Include="XmlDocumentTests\NodeInsertedTests.cs" />

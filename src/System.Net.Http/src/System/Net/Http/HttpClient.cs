@@ -112,13 +112,9 @@ namespace System.Net.Http
         public HttpClient(HttpMessageHandler handler, bool disposeHandler)
             : base(handler, disposeHandler)
         {
-            if (NetEventSource.IsEnabled) NetEventSource.Enter(this, handler);
-
             _timeout = s_defaultTimeout;
             _maxResponseContentBufferSize = HttpContent.MaxBufferSize;
             _pendingRequestsCts = new CancellationTokenSource();
-
-            if (NetEventSource.IsEnabled) NetEventSource.Exit(this);
         }
 
         #endregion Constructors
@@ -351,6 +347,30 @@ namespace System.Net.Http
             return SendAsync(request, cancellationToken);
         }
 
+        public Task<HttpResponseMessage> PatchAsync(string requestUri, HttpContent content)
+        {
+            return PatchAsync(CreateUri(requestUri), content);
+        }
+
+        public Task<HttpResponseMessage> PatchAsync(Uri requestUri, HttpContent content)
+        {
+            return PatchAsync(requestUri, content, CancellationToken.None);
+        }
+
+        public Task<HttpResponseMessage> PatchAsync(string requestUri, HttpContent content,
+            CancellationToken cancellationToken)
+        {
+            return PatchAsync(CreateUri(requestUri), content, cancellationToken);
+        }
+
+        public Task<HttpResponseMessage> PatchAsync(Uri requestUri, HttpContent content,
+            CancellationToken cancellationToken)
+        {
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Patch, requestUri);
+            request.Content = content;
+            return SendAsync(request, cancellationToken);
+        }
+
         public Task<HttpResponseMessage> DeleteAsync(string requestUri)
         {
             return DeleteAsync(CreateUri(requestUri));
@@ -428,8 +448,18 @@ namespace System.Net.Http
                 cts = _pendingRequestsCts;
             }
 
-            // Initiate the send
-            Task<HttpResponseMessage> sendTask = base.SendAsync(request, cts.Token);
+            // Initiate the send.
+            Task<HttpResponseMessage> sendTask;
+            try
+            {
+                sendTask = base.SendAsync(request, cts.Token);
+            }
+            catch
+            {
+                HandleFinishSendAsyncCleanup(cts, disposeCts);
+                throw;
+            }
+
             return completionOption == HttpCompletionOption.ResponseContentRead ?
                 FinishSendAsyncBuffered(sendTask, request, cts, disposeCts) :
                 FinishSendAsyncUnbuffered(sendTask, request, cts, disposeCts);
@@ -451,7 +481,7 @@ namespace System.Net.Http
                 // Buffer the response content if we've been asked to and we have a Content to buffer.
                 if (response.Content != null)
                 {
-                    await response.Content.LoadIntoBufferAsync(_maxResponseContentBufferSize).ConfigureAwait(false);
+                    await response.Content.LoadIntoBufferAsync(_maxResponseContentBufferSize, cts.Token).ConfigureAwait(false);
                 }
 
                 if (NetEventSource.IsEnabled) NetEventSource.ClientSendCompleted(this, response, request);

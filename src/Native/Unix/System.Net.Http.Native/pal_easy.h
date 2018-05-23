@@ -35,6 +35,7 @@ enum PAL_CURLoption : int32_t
     PAL_CURLOPT_PROXYTYPE = CurlOptionLongBase + 101,
     PAL_CURLOPT_HTTPAUTH = CurlOptionLongBase + 107,
     PAL_CURLOPT_TCP_NODELAY = CurlOptionLongBase + 121,
+    PAL_CURLOPT_TCP_KEEPALIVE = CurlOptionLongBase + 213,
     PAL_CURLOPT_CONNECTTIMEOUT_MS = CurlOptionLongBase + 156,
     PAL_CURLOPT_ADDRESS_SCOPE = CurlOptionLongBase + 171,
     PAL_CURLOPT_PROTOCOLS = CurlOptionLongBase + 181,
@@ -51,6 +52,10 @@ enum PAL_CURLoption : int32_t
     PAL_CURLOPT_COPYPOSTFIELDS = CurlOptionObjectPointBase + 165,
     PAL_CURLOPT_USERNAME = CurlOptionObjectPointBase + 173,
     PAL_CURLOPT_PASSWORD = CurlOptionObjectPointBase + 174,
+    PAL_CURLOPT_CAPATH = CurlOptionObjectPointBase + 97,
+    PAL_CURLOPT_PROXY_CAPATH = CurlOptionObjectPointBase + 247,
+    PAL_CURLOPT_CAINFO = CurlOptionObjectPointBase + 65,
+    PAL_CURLOPT_PROXY_CAINFO = CurlOptionObjectPointBase + 246,
 
     PAL_CURLOPT_INFILESIZE_LARGE = CurlOptionOffTBase + 115,
     PAL_CURLOPT_POSTFIELDSIZE_LARGE = CurlOptionOffTBase + 120,
@@ -89,12 +94,14 @@ enum PAL_CURL_HTTP_VERSION
     PAL_CURL_HTTP_VERSION_NONE = 0,
     PAL_CURL_HTTP_VERSION_1_0 = 1,
     PAL_CURL_HTTP_VERSION_1_1 = 2,
-    PAL_CURL_HTTP_VERSION_2_0 = 3
+    PAL_CURL_HTTP_VERSION_2TLS = 4
 };
 
 enum PAL_CURL_SSLVERSION
 {
     PAL_CURL_SSLVERSION_TLSv1 = 1,
+    PAL_CURL_SSLVERSION_SSLv2 = 2,
+    PAL_CURL_SSLVERSION_SSLv3 = 3,
     PAL_CURL_SSLVERSION_TLSv1_0 = 4,
     PAL_CURL_SSLVERSION_TLSv1_1 = 5,
     PAL_CURL_SSLVERSION_TLSv1_2 = 6,

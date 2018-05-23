@@ -55,16 +55,26 @@ namespace System.Diagnostics
             string passedArgs = pasteArguments ? PasteArguments.Paste(args, pasteFirstArgumentUsingArgV0Rules: false) : string.Join(" ", args);
             string testConsoleAppArgs = ExtraParameter + " " + metadataArgs + " " + passedArgs;
 
-            if (!File.Exists(TestConsoleApp))
-                throw new IOException("RemoteExecutorConsoleApp test app isn't present in the test runtime directory.");
+            if (!File.Exists(HostRunner))
+                throw new IOException($"{HostRunner} test app isn't present in the test runtime directory.");
 
-            psi.FileName = HostRunner;
-            psi.Arguments = testConsoleAppArgs;
+            if (options.RunAsSudo)
+            {
+                psi.FileName = "sudo";
+                psi.Arguments = HostRunner + " " + testConsoleAppArgs;
+            }
+            else
+            {
+                psi.FileName = HostRunner;
+                psi.Arguments = testConsoleAppArgs;
+            }
 
             // Return the handle to the process, which may or not be started
             return new RemoteInvokeHandle(options.Start ?
                 Process.Start(psi) :
-                new Process() { StartInfo = psi }, options);
+                new Process() { StartInfo = psi }, options,
+                a.FullName, t.FullName, method.Name
+                );
         }
     }
 }

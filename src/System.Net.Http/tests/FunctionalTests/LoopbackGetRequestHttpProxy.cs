@@ -32,24 +32,34 @@ namespace System.Net.Http.Functional.Tests
             return StartAsync(listener, requireAuth, expectCreds);
         }
 
-        private static async Task<ProxyResult> StartAsync(TcpListener listener, bool requireAuth, bool expectCreds)
+        public static async Task<ProxyResult> StartAsync(TcpListener listener, bool requireAuth, bool expectCreds)
         {
             ProxyResult result = new ProxyResult();
             var headers = new Dictionary<string, string>();
             Socket clientSocket = null;
-            Stream clientStream = null;
+            NetworkStream clientStream = null;
             StreamReader clientReader = null;
             string url = null;
+            string method = null;
+
             try
             {
                 // Get and parse the incoming request.
                 Func<Task> getAndReadRequest = async () => {
+                    if (clientSocket != null)
+                    {
+                        clientSocket.Shutdown(SocketShutdown.Send);
+                        clientSocket.Dispose();
+                    }
+
                     clientSocket = await listener.AcceptSocketAsync().ConfigureAwait(false);
                     clientStream = new NetworkStream(clientSocket, ownsSocket: false);
                     clientReader = new StreamReader(clientStream, Encoding.ASCII);
                     headers.Clear();
 
-                    url = clientReader.ReadLine().Split(' ')[1];
+                    var requestTokens = clientReader.ReadLine().Split(' ');
+                    method = requestTokens[0];
+                    url = requestTokens[1];
                     string line;
                     while (!string.IsNullOrEmpty(line = clientReader.ReadLine()))
                     {
@@ -68,9 +78,6 @@ namespace System.Net.Http.Functional.Tests
                         new ArraySegment<byte>(Encoding.ASCII.GetBytes("HTTP/1.1 407 Proxy Auth Required\r\nProxy-Authenticate: Basic\r\n\r\n")),
                         SocketFlags.None).ConfigureAwait(false);
 
-                    clientSocket.Shutdown(SocketShutdown.Send);
-                    clientSocket.Dispose();
-
                     if (expectCreds)
                     {
                         // Wait for a new connection that should have an auth header this time and parse it.
@@ -88,6 +95,44 @@ namespace System.Net.Http.Functional.Tests
                 if (headers.TryGetValue("Proxy-Authorization", out authValue))
                 {
                     result.AuthenticationHeaderValue = Encoding.UTF8.GetString(Convert.FromBase64String(authValue.Substring("Basic ".Length)));
+                }
+
+                if (method.Equals("CONNECT"))
+                {
+                    String[] tokens =  url.Split(':');
+                    Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    await serverSocket.ConnectAsync(tokens[0], Int32.Parse(tokens[1])).ConfigureAwait(false);
+                    NetworkStream serverStream = new NetworkStream(serverSocket);
+
+                    // Send response to client and relay traffic in both directions.
+                    await clientSocket.SendAsync(new ArraySegment<byte>(Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\n\r\n")),
+                                SocketFlags.None).ConfigureAwait(false);
+
+                    Task clientCopyTask = Task.Run(async delegate
+                    {
+                        byte[] buffer = new byte[8000];
+                        int bytesRead;
+                        while ((bytesRead = await clientStream.ReadAsync(buffer)) > 0)
+                        {
+                            await serverStream.WriteAsync(buffer, 0, bytesRead);
+                        }
+                       serverStream.Flush();
+                       serverSocket.Shutdown(SocketShutdown.Send);
+                    });
+                    Task serverCopyTask = Task.Run(async delegate
+                    {
+                        byte[] buffer = new byte[8000];
+                        int bytesRead;
+                        while ((bytesRead = await serverStream.ReadAsync(buffer)) > 0)
+                        {
+                            await clientStream.WriteAsync(buffer, 0, bytesRead);
+                        }
+                        clientStream.Flush();
+                        clientSocket.Shutdown(SocketShutdown.Send);
+                    });
+                    // Relay bidirectional data including close.
+                    await new[] { clientCopyTask, serverCopyTask }.WhenAllOrAnyFailed().ConfigureAwait(false);
+                    return result;
                 }
 
                 // Forward the request to the server.
@@ -127,6 +172,7 @@ namespace System.Net.Http.Functional.Tests
             }
             finally
             {
+                clientSocket.Shutdown(SocketShutdown.Send);
                 clientSocket.Dispose();
                 listener.Stop();
             }

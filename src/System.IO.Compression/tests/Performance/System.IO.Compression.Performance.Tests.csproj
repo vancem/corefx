@@ -4,26 +4,28 @@
   <PropertyGroup>
     <AssemblyName>System.IO.Compression.Performance.Tests</AssemblyName>
     <IncludePerformanceTests>true</IncludePerformanceTests>
-    <ProjectGuid>{1341F8C8-637A-49A1-BE0F-13867A634929}</ProjectGuid>
+    <ProjectGuid>{13C0F956-FB7B-4882-A411-39B8E22463D2}</ProjectGuid>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='netcoreapp-Debug|AnyCPU'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='netcoreapp-Release|AnyCPU'" />
   <ItemGroup>
-    <Compile Include="..\Utilities\StripHeaderAndFooter.cs" />
+    <Compile Include="CompressionStreamPerfTests.Deflate.cs" />
+    <Compile Include="CompressionStreamPerfTests.Gzip.cs" />
     <Compile Include="$(CommonTestPath)\System\IO\Compression\LocalMemoryStream.cs">
       <Link>Common\System\IO\Compression\LocalMemoryStream.cs</Link>
     </Compile>
     <Compile Include="$(CommonTestPath)\System\IO\Compression\StreamHelpers.cs">
       <Link>Common\System\IO\Compression\StreamHelpers.cs</Link>
     </Compile>
-    <Compile Include="Perf.DeflateStream.cs" />
-    <Compile Include="Perf.GZipStream.cs" />
-    <Compile Include="$(CommonTestPath)\System\PerfUtils.cs">
-      <Link>Common\System\PerfUtils.cs</Link>
+    <Compile Include="$(CommonTestPath)\System\IO\Compression\CompressionStreamTestBase.cs">
+      <Link>Common\System\IO\Compression\CompressionStreamTestBase.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonTestPath)\System\IO\Compression\CompressionStreamPerfTestBase.cs">
+      <Link>Common\System\IO\Compression\CompressionStreamPerfTestBase.cs</Link>
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <SupplementalTestData Include="$(PackagesDir)system.io.compression.testdata\1.0.5-prerelease\content\**\*.*">
+    <SupplementalTestData Include="$(PackagesDir)system.io.compression.testdata\1.0.6-prerelease\content\**\*.*">
       <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
     </SupplementalTestData>
   </ItemGroup>

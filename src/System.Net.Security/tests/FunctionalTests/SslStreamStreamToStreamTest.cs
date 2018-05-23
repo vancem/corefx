@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.IO;
 using System.Linq;
 using System.Net.Test.Common;
 using System.Security.Authentication;
@@ -20,10 +21,10 @@ namespace System.Net.Security.Tests
     {
         private readonly byte[] _sampleMsg = Encoding.UTF8.GetBytes("Sample Test Message");
 
-        protected abstract bool DoHandshake(SslStream clientSslStream, SslStream serverSslStream);
+        protected abstract Task DoHandshake(SslStream clientSslStream, SslStream serverSslStream);
 
         [Fact]
-        public void SslStream_StreamToStream_Authentication_Success()
+        public async Task SslStream_StreamToStream_Authentication_Success()
         {
             VirtualNetwork network = new VirtualNetwork();
 
@@ -33,12 +34,14 @@ namespace System.Net.Security.Tests
             using (var server = new SslStream(serverStream))
             using (X509Certificate2 certificate = Configuration.Certificates.GetServerCertificate())
             {
-                Assert.True(DoHandshake(client, server), "Handshake completed in the allotted time");
+                await DoHandshake(client, server);
+                Assert.True(client.IsAuthenticated);
+                Assert.True(server.IsAuthenticated);
             }
         }
 
         [Fact]
-        public void SslStream_StreamToStream_Authentication_IncorrectServerName_Fail()
+        public async Task SslStream_StreamToStream_Authentication_IncorrectServerName_Fail()
         {
             VirtualNetwork network = new VirtualNetwork();
 
@@ -48,21 +51,38 @@ namespace System.Net.Security.Tests
             using (var server = new SslStream(serverStream))
             using (var certificate = Configuration.Certificates.GetServerCertificate())
             {
-                Task[] auth = new Task[2];
-                auth[0] = client.AuthenticateAsClientAsync("incorrectServer");
-                auth[1] = server.AuthenticateAsServerAsync(certificate);
+                Task t1 = client.AuthenticateAsClientAsync("incorrectServer");
+                Task t2 = server.AuthenticateAsServerAsync(certificate);
 
-                Assert.Throws<AuthenticationException>(() =>
-                {
-                    auth[0].GetAwaiter().GetResult();
-                });
-
-                auth[1].GetAwaiter().GetResult();
+                await Assert.ThrowsAsync<AuthenticationException>(() => t1);
+                await t2;
             }
         }
 
         [Fact]
-        public void SslStream_StreamToStream_Successive_ClientWrite_Sync_Success()
+        public async Task SslStream_ServerLocalCertificateSelectionCallbackReturnsNull_Throw()
+        {
+            VirtualNetwork network = new VirtualNetwork();
+
+            var selectionCallback = new LocalCertificateSelectionCallback((object sender, string targetHost, X509CertificateCollection localCertificates, X509Certificate remoteCertificate, string[] issuers) =>
+            {
+                return null;
+            });
+
+            using (var clientStream = new VirtualNetworkStream(network, isServer: false))
+            using (var serverStream = new VirtualNetworkStream(network, isServer: true))
+            using (var client = new SslStream(clientStream, false, AllowAnyServerCertificate))
+            using (var server = new SslStream(serverStream, false, null, selectionCallback))
+            using (X509Certificate2 certificate = Configuration.Certificates.GetServerCertificate())
+            {
+                await Assert.ThrowsAsync<NotSupportedException>(async () =>
+                    await TestConfiguration.WhenAllOrAnyFailedWithTimeout(client.AuthenticateAsClientAsync(certificate.GetNameInfo(X509NameType.SimpleName, false)), server.AuthenticateAsServerAsync(certificate))
+                );
+            }
+        }
+
+        [Fact]
+        public async Task SslStream_StreamToStream_Successive_ClientWrite_Sync_Success()
         {
             byte[] recvBuf = new byte[_sampleMsg.Length];
             VirtualNetwork network = new VirtualNetwork();
@@ -72,10 +92,8 @@ namespace System.Net.Security.Tests
             using (var clientSslStream = new SslStream(clientStream, false, AllowAnyServerCertificate))
             using (var serverSslStream = new SslStream(serverStream))
             {
-                bool result = DoHandshake(clientSslStream, serverSslStream);
-
-                Assert.True(result, "Handshake completed.");
-
+                await DoHandshake(clientSslStream, serverSslStream);
+                
                 clientSslStream.Write(_sampleMsg);
 
                 int bytesRead = 0;
@@ -99,7 +117,7 @@ namespace System.Net.Security.Tests
         }
 
         [Fact]
-        public void SslStream_StreamToStream_Successive_ClientWrite_WithZeroBytes_Success()
+        public async Task SslStream_StreamToStream_Successive_ClientWrite_WithZeroBytes_Success()
         {
             byte[] recvBuf = new byte[_sampleMsg.Length];
             VirtualNetwork network = new VirtualNetwork();
@@ -109,12 +127,10 @@ namespace System.Net.Security.Tests
             using (var clientSslStream = new SslStream(clientStream, false, AllowAnyServerCertificate))
             using (var serverSslStream = new SslStream(serverStream))
             {
-                bool result = DoHandshake(clientSslStream, serverSslStream);
-
-                Assert.True(result, "Handshake completed.");
-
+                await DoHandshake(clientSslStream, serverSslStream);
+                
                 clientSslStream.Write(Array.Empty<byte>());
-                clientSslStream.WriteAsync(Array.Empty<byte>(), 0, 0).Wait();
+                await clientSslStream.WriteAsync(Array.Empty<byte>(), 0, 0);
                 clientSslStream.Write(_sampleMsg);
 
                 int bytesRead = 0;
@@ -126,7 +142,7 @@ namespace System.Net.Security.Tests
                 Assert.True(VerifyOutput(recvBuf, _sampleMsg), "verify first read data is as expected.");
 
                 clientSslStream.Write(_sampleMsg);
-                clientSslStream.WriteAsync(Array.Empty<byte>(), 0, 0).Wait();
+                await clientSslStream.WriteAsync(Array.Empty<byte>(), 0, 0);
                 clientSslStream.Write(Array.Empty<byte>());
 
                 bytesRead = 0;
@@ -141,7 +157,7 @@ namespace System.Net.Security.Tests
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void SslStream_StreamToStream_LargeWrites_Sync_Success(bool randomizedData)
+        public async Task SslStream_StreamToStream_LargeWrites_Sync_Success(bool randomizedData)
         {
             VirtualNetwork network = new VirtualNetwork();
 
@@ -150,7 +166,7 @@ namespace System.Net.Security.Tests
             using (var clientSslStream = new SslStream(clientStream, false, AllowAnyServerCertificate))
             using (var serverSslStream = new SslStream(serverStream))
             {
-                Assert.True(DoHandshake(clientSslStream, serverSslStream), "Handshake complete");
+                await DoHandshake(clientSslStream, serverSslStream);
 
                 byte[] largeMsg = new byte[4096 * 5]; // length longer than max read chunk size (16K + headers)
                 if (randomizedData)
@@ -197,10 +213,8 @@ namespace System.Net.Security.Tests
             using (var clientSslStream = new SslStream(clientStream, false, AllowAnyServerCertificate))
             using (var serverSslStream = new SslStream(serverStream))
             {
-                bool result = DoHandshake(clientSslStream, serverSslStream);
-
-                Assert.True(result, "Handshake completed.");
-
+                await DoHandshake(clientSslStream, serverSslStream);
+                                
                 await clientSslStream.WriteAsync(_sampleMsg, 0, _sampleMsg.Length)
                     .TimeoutAfter(TestConfiguration.PassingTestTimeoutMilliseconds);
 
@@ -228,7 +242,7 @@ namespace System.Net.Security.Tests
         }
 
         [Fact]
-        public void SslStream_StreamToStream_Write_ReadByte_Success()
+        public async Task SslStream_StreamToStream_Write_ReadByte_Success()
         {
             VirtualNetwork network = new VirtualNetwork();
 
@@ -237,9 +251,8 @@ namespace System.Net.Security.Tests
             using (var clientSslStream = new SslStream(clientStream, false, AllowAnyServerCertificate))
             using (var serverSslStream = new SslStream(serverStream))
             {
-                bool result = DoHandshake(clientSslStream, serverSslStream);
-                Assert.True(result, "Handshake completed.");
-
+                await DoHandshake(clientSslStream, serverSslStream);
+                
                 for (int i = 0; i < 3; i++)
                 {
                     clientSslStream.Write(_sampleMsg);
@@ -261,9 +274,8 @@ namespace System.Net.Security.Tests
             using (var clientSslStream = new SslStream(clientStream, false, AllowAnyServerCertificate))
             using (var serverSslStream = new SslStream(serverStream))
             {
-                bool result = DoHandshake(clientSslStream, serverSslStream);
-                Assert.True(result, "Handshake completed.");
-
+                await DoHandshake(clientSslStream, serverSslStream);
+                
                 for (int i = 0; i < 3; i++)
                 {
                     await clientSslStream.WriteAsync(_sampleMsg, 0, _sampleMsg.Length).ConfigureAwait(false);
@@ -285,9 +297,8 @@ namespace System.Net.Security.Tests
             using (var clientSslStream = new SslStream(clientStream, false, AllowAnyServerCertificate))
             using (var serverSslStream = new SslStream(serverStream))
             {
-                bool result = DoHandshake(clientSslStream, serverSslStream);
-                Assert.True(result, "Handshake completed.");
-
+                await DoHandshake(clientSslStream, serverSslStream);
+                
                 var serverBuffer = new byte[1];
                 var tcs = new TaskCompletionSource<object>();
                 serverStream.OnRead += (buffer, offset, count) =>
@@ -319,6 +330,55 @@ namespace System.Net.Security.Tests
         }
 
         [Fact]
+        public async Task SslStream_StreamToStream_Dispose_Throws()
+        {
+            VirtualNetwork network = new VirtualNetwork()
+            {
+                DisableConnectionBreaking = true
+            };
+
+            using (var clientStream = new VirtualNetworkStream(network, isServer: false))
+            using (var serverStream = new VirtualNetworkStream(network, isServer: true))
+            using (var clientSslStream = new SslStream(clientStream, false, AllowAnyServerCertificate))
+            {
+                var serverSslStream = new SslStream(serverStream);
+                await DoHandshake(clientSslStream, serverSslStream);
+
+                var serverBuffer = new byte[1];
+                Task serverReadTask = serverSslStream.ReadAsync(serverBuffer, 0, serverBuffer.Length);
+                await serverSslStream.WriteAsync(new byte[] { 1 }, 0, 1)
+                    .TimeoutAfter(TestConfiguration.PassingTestTimeoutMilliseconds);
+
+                // Shouldn't throw, the context is diposed now.
+                // Since the server read task is in progress, the read buffer is not returned to ArrayPool.
+                serverSslStream.Dispose();
+
+                // Read in client
+                var clientBuffer = new byte[1];
+                await clientSslStream.ReadAsync(clientBuffer, 0, clientBuffer.Length);
+                Assert.Equal(1, clientBuffer[0]);
+
+                await clientSslStream.WriteAsync(new byte[] { 2 }, 0, 1);
+
+                if (PlatformDetection.IsFullFramework)
+                {
+                    await Assert.ThrowsAsync<ObjectDisposedException>(() => serverReadTask);
+                }
+                else
+                {
+                    IOException serverException = await Assert.ThrowsAsync<IOException>(() => serverReadTask);
+                    Assert.IsType<ObjectDisposedException>(serverException.InnerException);
+                }
+
+                await Assert.ThrowsAsync<ObjectDisposedException>(() => serverSslStream.ReadAsync(serverBuffer, 0, serverBuffer.Length));
+
+                // Now, there is no pending read, so the internal buffer will be returned to ArrayPool.
+                serverSslStream.Dispose();
+                await Assert.ThrowsAsync<ObjectDisposedException>(() => serverSslStream.ReadAsync(serverBuffer, 0, serverBuffer.Length));
+            }
+        }
+
+        [Fact]
         public void SslStream_StreamToStream_Flush_Propagated()
         {
             VirtualNetwork network = new VirtualNetwork();
@@ -346,6 +406,50 @@ namespace System.Net.Security.Tests
                 Assert.False(task.IsCompleted);
                 stream.CompleteAsyncFlush();
                 Assert.True(task.IsCompleted);
+            }
+        }
+
+        [Fact]
+        public async Task SslStream_StreamToStream_EOFDuringFrameRead_ThrowsIOException()
+        {
+            var network = new VirtualNetwork();
+            using (var clientNetworkStream = new VirtualNetworkStream(network, isServer: false))
+            using (var serverNetworkStream = new VirtualNetworkStream(network, isServer: true))
+            {
+                int readMode = 0;
+                var serverWrappedNetworkStream = new DelegateStream(
+                    canWriteFunc: () => true,
+                    canReadFunc: () => true,
+                    writeFunc: (buffer, offset, count) => serverNetworkStream.Write(buffer, offset, count),
+                    readFunc: (buffer, offset, count) =>
+                    {
+                        // Do normal reads as requested until the read mode is set
+                        // to 1.  Then do a single read of only 10 bytes to read only
+                        // part of the message, and subsequently return EOF.
+                        if (readMode == 0)
+                        {
+                            return serverNetworkStream.Read(buffer, offset, count);
+                        }
+                        else if (readMode == 1)
+                        {
+                            readMode = 2;
+                            return serverNetworkStream.Read(buffer, offset, 10); // read at least header but less than full frame
+                        }
+                        else
+                        {
+                            return 0;
+                        }
+                    });
+
+
+                using (var clientSslStream = new SslStream(clientNetworkStream, false, AllowAnyServerCertificate))
+                using (var serverSslStream = new SslStream(serverWrappedNetworkStream))
+                {
+                    await DoHandshake(clientSslStream, serverSslStream);
+                    await clientSslStream.WriteAsync(new byte[20], 0, 20);
+                    readMode = 1;
+                    await Assert.ThrowsAsync<IOException>(() => serverSslStream.ReadAsync(new byte[1], 0, 1));
+                }
             }
         }
 
@@ -382,45 +486,39 @@ namespace System.Net.Security.Tests
 
     public sealed class SslStreamStreamToStreamTest_Async : SslStreamStreamToStreamTest
     {
-        protected override bool DoHandshake(SslStream clientSslStream, SslStream serverSslStream)
+        protected override async Task DoHandshake(SslStream clientSslStream, SslStream serverSslStream)
         {
             using (X509Certificate2 certificate = Configuration.Certificates.GetServerCertificate())
             {
                 Task t1 = clientSslStream.AuthenticateAsClientAsync(certificate.GetNameInfo(X509NameType.SimpleName, false));
                 Task t2 = serverSslStream.AuthenticateAsServerAsync(certificate);
-                return Task.WaitAll(new[] { t1, t2 }, TestConfiguration.PassingTestTimeoutMilliseconds);
+                await TestConfiguration.WhenAllOrAnyFailedWithTimeout(t1, t2);
             }
         }
     }
 
     public sealed class SslStreamStreamToStreamTest_BeginEnd : SslStreamStreamToStreamTest
     {
-        protected override bool DoHandshake(SslStream clientSslStream, SslStream serverSslStream)
+        protected override async Task DoHandshake(SslStream clientSslStream, SslStream serverSslStream)
         {
             using (X509Certificate2 certificate = Configuration.Certificates.GetServerCertificate())
             {
-                IAsyncResult a1 = clientSslStream.BeginAuthenticateAsClient(certificate.GetNameInfo(X509NameType.SimpleName, false), null, null);
-                IAsyncResult a2 = serverSslStream.BeginAuthenticateAsServer(certificate, null, null);
-                if (WaitHandle.WaitAll(new[] { a1.AsyncWaitHandle, a2.AsyncWaitHandle }, TestConfiguration.PassingTestTimeoutMilliseconds))
-                {
-                    clientSslStream.EndAuthenticateAsClient(a1);
-                    serverSslStream.EndAuthenticateAsServer(a2);
-                    return true;
-                }
-                return false;
+                Task t1 = Task.Factory.FromAsync(clientSslStream.BeginAuthenticateAsClient(certificate.GetNameInfo(X509NameType.SimpleName, false), null, null), clientSslStream.EndAuthenticateAsClient);
+                Task t2 = Task.Factory.FromAsync(serverSslStream.BeginAuthenticateAsServer(certificate, null, null), serverSslStream.EndAuthenticateAsServer);
+                await TestConfiguration.WhenAllOrAnyFailedWithTimeout(t1, t2);
             }
         }
     }
 
     public sealed class SslStreamStreamToStreamTest_Sync : SslStreamStreamToStreamTest
     {
-        protected override bool DoHandshake(SslStream clientSslStream, SslStream serverSslStream)
+        protected override async Task DoHandshake(SslStream clientSslStream, SslStream serverSslStream)
         {
             using (X509Certificate2 certificate = Configuration.Certificates.GetServerCertificate())
             {
                 Task t1 = Task.Run(() => clientSslStream.AuthenticateAsClient(certificate.GetNameInfo(X509NameType.SimpleName, false)));
                 Task t2 = Task.Run(() => serverSslStream.AuthenticateAsServer(certificate));
-                return Task.WaitAll(new[] { t1, t2 }, TestConfiguration.PassingTestTimeoutMilliseconds);
+                await TestConfiguration.WhenAllOrAnyFailedWithTimeout(t1, t2);
             }
         }
     }

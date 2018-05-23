@@ -4,6 +4,7 @@
 
 using System.Globalization;
 using System.Text;
+using System.Xml;
 
 namespace System.ServiceModel.Syndication
 {
@@ -11,50 +12,39 @@ namespace System.ServiceModel.Syndication
     {
         private const string Rfc3339DateTimeFormat = "yyyy-MM-ddTHH:mm:ssK";
 
-        public static Func<string, string, string, DateTimeOffset> CreateRss20DateTimeParser()
+        public static bool DefaultRss20DateTimeParser(XmlDateTimeData XmlDateTimeData, out DateTimeOffset dateTimeOffset)
         {
-            return (dateTimeString, localName, ns) =>
+            string dateTimeString = XmlDateTimeData.DateTimeString;
+
+            // First check if DateTimeOffset default parsing can parse the date
+            if (DateTimeOffset.TryParse(dateTimeString, out dateTimeOffset))
             {
-                DateTimeOffset dto;
+                return true;
+            }
 
-                // First check if DateTimeOffset default parsing can parse the date
-                if (DateTimeOffset.TryParse(dateTimeString, out dto))
-                {
-                    return dto;
-                }
+            // RSS specifies RFC822
+            if (Rfc822DateTimeParser(dateTimeString, out dateTimeOffset))
+            {
+                return true;
+            }
 
-                // RSS specifies RFC822
-                if (Rfc822DateTimeParser(dateTimeString, out dto))
-                {
-                    return dto;
-                }
+            // Event though RCS3339 is for Atom, someone might be using this for RSS
+            if (Rfc3339DateTimeParser(dateTimeString, out dateTimeOffset))
+            {
+                return true;
+            }
 
-                // Event though RCS3339 is for Atom, someone might be using this for RSS
-                if (Rfc3339DateTimeParser(dateTimeString, out dto))
-                {
-                    return dto;
-                }
-
-                // Unable to parse - using a default date;
-                return new DateTimeOffset();
-            };
+            return false;
         }
 
-        public static Func<string, string, string, DateTimeOffset> CreateAtom10DateTimeParser()
+        public static bool DefaultAtom10DateTimeParser(XmlDateTimeData XmlDateTimeData, out DateTimeOffset dateTimeOffset)
         {
-            return (dateTimeString, localName, ns) =>
-            {
-                if (Rfc3339DateTimeParser(dateTimeString, out DateTimeOffset dto))
-                {
-                    return dto;
-                }
-
-                throw new FormatException(SR.ErrorParsingDateTime);
-            };
+            return Rfc3339DateTimeParser(XmlDateTimeData.DateTimeString, out dateTimeOffset);
         }
 
         private static bool Rfc3339DateTimeParser(string dateTimeString, out DateTimeOffset dto)
         {
+            dto = default(DateTimeOffset);
             dateTimeString = dateTimeString.Trim();
             if (dateTimeString.Length < 20)
             {
@@ -73,11 +63,12 @@ namespace System.ServiceModel.Syndication
                 dateTimeString = dateTimeString.Substring(0, 19) + dateTimeString.Substring(i);
             }
 
-            return DateTimeOffset.TryParseExact(dateTimeString, Rfc3339DateTimeFormat,CultureInfo.InvariantCulture.DateTimeFormat,DateTimeStyles.None, out dto);
+            return DateTimeOffset.TryParseExact(dateTimeString, Rfc3339DateTimeFormat, CultureInfo.InvariantCulture.DateTimeFormat, DateTimeStyles.None, out dto);
         }
 
         private static bool Rfc822DateTimeParser(string dateTimeString, out DateTimeOffset dto)
         {
+            dto = default(DateTimeOffset);
             StringBuilder dateTimeStringBuilder = new StringBuilder(dateTimeString.Trim());
             if (dateTimeStringBuilder.Length < 18)
             {

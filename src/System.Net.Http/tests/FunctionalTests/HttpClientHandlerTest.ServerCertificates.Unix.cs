@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Net.Security;
 using System.Net.Test.Common;
 using System.Runtime.InteropServices;
@@ -14,7 +15,7 @@ using Xunit;
 
 namespace System.Net.Http.Functional.Tests
 {
-    public partial class HttpClientHandler_ServerCertificates_Test
+    public abstract partial class HttpClientHandler_ServerCertificates_Test
     {
         private static bool ShouldSuppressRevocationException
         {
@@ -40,7 +41,7 @@ namespace System.Net.Http.Functional.Tests
                 //     MustNotCheck,
                 // }
 
-                if (CurlSslVersionDescription() == "SecureTransport")
+                if (Interop.Http.GetSslVersionDescription() == "SecureTransport")
                 {
                     return true;
                 }
@@ -52,7 +53,7 @@ namespace System.Net.Http.Functional.Tests
         {
             get
             {
-                if (UseManagedHandler)
+                if (UseSocketsHttpHandler)
                 {
                     return true;
                 }
@@ -64,11 +65,36 @@ namespace System.Net.Http.Functional.Tests
 
                 // For other Unix-based systems it's true if (and only if) the openssl backend
                 // is used with libcurl.
-                return (CurlSslVersionDescription()?.StartsWith("OpenSSL") ?? false);
+                return (Interop.Http.GetSslVersionDescription()?.StartsWith(Interop.Http.OpenSsl10Description, StringComparison.OrdinalIgnoreCase) ?? false);
             }
         }
 
-        [DllImport("System.Net.Http.Native", EntryPoint = "HttpNative_GetSslVersionDescription")]
-        private static extern string CurlSslVersionDescription();
+        [Fact]
+        [PlatformSpecific(~TestPlatforms.OSX)] // Not implemented
+        public void HttpClientUsesSslCertEnvironmentVariables()
+        {
+            // We set SSL_CERT_DIR and SSL_CERT_FILE to empty locations.
+            // The HttpClient should fail to validate the server certificate.
+
+            var psi = new ProcessStartInfo();
+            string sslCertDir = GetTestFilePath();
+            Directory.CreateDirectory(sslCertDir);
+            psi.Environment.Add("SSL_CERT_DIR", sslCertDir);
+
+            string sslCertFile = GetTestFilePath();
+            File.WriteAllText(sslCertFile, "");
+            psi.Environment.Add("SSL_CERT_FILE", sslCertFile);
+
+            RemoteInvoke(async useSocketsHttpHandlerString =>
+            {
+                const string Url = "https://www.microsoft.com";
+
+                using (var client = CreateHttpClient(useSocketsHttpHandlerString))
+                {
+                    await Assert.ThrowsAsync<HttpRequestException>(() => client.GetAsync(Url));
+                }
+                return SuccessExitCode;
+            }, UseSocketsHttpHandler.ToString(), new RemoteInvokeOptions { StartInfo = psi }).Dispose();
+        }
     }
 }

@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -48,34 +52,45 @@ namespace System.ServiceModel.Syndication.Tests
                 _diff = value;
             }
         }
-        public bool Compare(string source, string target)
+        public bool Compare(string source, string target, out string diffNode)
         {
-            if (Diff.Compare(source, target))
+            diffNode = string.Empty;
+            StringBuilder stringBuilder = new StringBuilder();
+            if (_diff.Compare(source, target))
             {
                 return true;
             }
             else
             {
                 XmlDocument diffDoc = new XmlDocument();
-                diffDoc.LoadXml(Diff.ToXml());
+                diffDoc.LoadXml(_diff.ToXml());
                 XmlNodeList totalFailures = diffDoc.SelectNodes("/Root/Node/Diff[@DiffType]");
                 XmlNodeList attrFailures = diffDoc.SelectNodes("/Root/Node/Diff[@DiffType=6]|/Root/Node/Diff[@DiffType=5]|/Root/Node/Diff[@DiffType=1]");
 
                 if (attrFailures.Count == totalFailures.Count)
                 {
+                    //Check all different Nodes except allowable Nodes
                     bool allFailuresAllowed = true;
                     foreach (XmlNode node in attrFailures)
                     {
                         if (!IsAllowableFailure(node))
                         {
                             allFailuresAllowed = false;
+                            stringBuilder.AppendLine(node.InnerText);
                             break;
                         }
                     }
+                    diffNode = stringBuilder.ToString();
                     return allFailuresAllowed;
                 }
                 else
                 {
+                    //get all different Nodes
+                    foreach (XmlNode node in totalFailures)
+                    {
+                        stringBuilder.AppendLine(node.InnerText);
+                    }
+                    diffNode = stringBuilder.ToString();
                     return false;
                 }
             }

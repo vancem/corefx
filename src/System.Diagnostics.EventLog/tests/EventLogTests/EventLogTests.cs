@@ -34,9 +34,10 @@ namespace System.Diagnostics.Tests
                 {
                     eventLog.Source = source;
                     eventLog.Clear();
-                    Assert.Equal(0, eventLog.Entries.Count);
+                    Assert.Equal(0, Helpers.RetryOnWin7((() => eventLog.Entries.Count)));
                     Helpers.RetryOnWin7(() => eventLog.WriteEntry("Writing to event log."));
-                    Assert.Equal(1, eventLog.Entries.Count);
+                    Helpers.WaitForEventLog(eventLog, 1);
+                    Assert.Equal(1, Helpers.RetryOnWin7((() => eventLog.Entries.Count)));
                 }
             }
             finally
@@ -51,7 +52,7 @@ namespace System.Diagnostics.Tests
         {
             using (EventLog eventLog = new EventLog("Application"))
             {
-                Assert.InRange(eventLog.Entries.Count, 1, Int32.MaxValue);
+                Assert.InRange(Helpers.RetryOnWin7((() => eventLog.Entries.Count)), 1, Int32.MaxValue);
             }
         }
 
@@ -79,7 +80,9 @@ namespace System.Diagnostics.Tests
         {
             using (EventLog eventLog = new EventLog("Application"))
             {
-                Assert.Equal("Application", eventLog.LogDisplayName);
+                Assert.False(string.IsNullOrEmpty(eventLog.LogDisplayName));
+                if (CultureInfo.CurrentCulture.Name.Split('-')[0] == "en" )
+                    Assert.Equal("Application", eventLog.LogDisplayName);
             }
         }
 
@@ -108,7 +111,10 @@ namespace System.Diagnostics.Tests
             using (EventLog eventLog = new EventLog())
             {
                 eventLog.Log = "Application";
-                Assert.Equal("Application", eventLog.LogDisplayName);
+
+                Assert.False(string.IsNullOrEmpty(eventLog.LogDisplayName));
+                if (CultureInfo.CurrentCulture.Name.Split('-')[0] == "en" )
+                    Assert.Equal("Application", eventLog.LogDisplayName);
             }
         }
 
@@ -340,9 +346,7 @@ namespace System.Diagnostics.Tests
             using (EventLog eventlog = new EventLog("Security"))
             {
                 eventlog.Source = "Security";
-                EventLogEntry eventLogEntry;
-                eventLogEntry = Helpers.RetryOnWin7(() => eventlog.Entries[0]);
-                Assert.Contains("", eventLogEntry.Message);
+                Assert.Contains("", eventlog.Entries.LastOrDefault()?.Message ?? "");
             }
         }
     }

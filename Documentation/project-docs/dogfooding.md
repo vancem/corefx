@@ -1,39 +1,39 @@
-# How to get up and running on .NET Core 2.0
+# How to get up and running on .NET Core
 
 This document provides the steps necessary to consume a nightly build of
-.NET Core 2.0 runtime and SDK.
+.NET Core runtime and SDK.
 
 Please note that these steps are likely to change as we're simplifying
 this experience. Make sure to consult this document often.
 
 ## Install prerequisites
 
-1. Acquire the latest nightly .NET Core SDK 2.0 by downloading the zip or tarball listed in https://github.com/dotnet/cli/blob/master/README.md#installers-and-binaries (for example, https://dotnetcli.blob.core.windows.net/dotnet/Sdk/master/dotnet-sdk-latest-win-x64.zip ) into a new folder.
+1. Acquire the latest nightly .NET Core SDK by downloading the zip or tarball listed in https://github.com/dotnet/cli/blob/master/README.md#installers-and-binaries (for example, https://dotnetcli.blob.core.windows.net/dotnet/Sdk/master/dotnet-sdk-latest-win-x64.zip ) into a new folder.
 
 2. By default, the dotnet CLI will use the globally installed SDK if it matches the major/minor version you request and has a higher revision. To force it to use the locally installed SDK, you must set an environment variable `DOTNET_MULTILEVEL_LOOKUP=0` in your shell. You can use `dotnet --info` to verify what version of the Shared Framework it is using.
 
 3. Reminder: if you are using a local copy of the dotnet CLI, take care that when you type `dotnet` you do not inadvertently pick up a different copy that you may have in your path. On Windows, for example, if you use a Developer Command Prompt, a global copy may be in the path, so use the fully qualified path to your local `dotnet`. If you receive an error "The current .NET SDK does not support targeting .NET Core 2.1." then you may be executing an older `dotnet`.
 
-After setting up dotnet you can verify you are using the newer version by executing `dotnet --info` -- the version should be greater than 2.2.0-*  (dotnet CLI is currently numbered 2.2.0-* not 2.1.0-* ). Here is an example output at the time of writing:
+After setting up dotnet you can verify you are using the newer version by executing `dotnet --info` -- the version should be greater than `2.1.300-*`  (dotnet CLI for .NET Core 2.1 is currently numbered `2.1.300-*`). Here is an example output at the time of writing:
 ```
 >dotnet.exe --info
-.NET Command Line Tools (2.2.0-preview1-007460)
+.NET Command Line Tools (2.1.300-preview2-008171)
 
 Product Information:
- Version:            2.2.0-preview1-007460
- Commit SHA-1 hash:  173cc035e4
+ Version:            2.1.300-preview2-008171
+ Commit SHA-1 hash:  fbc76ea5f6
 
 Runtime Environment:
  OS Name:     Windows
  OS Version:  10.0.16299
  OS Platform: Windows
  RID:         win10-x64
- Base Path:   F:\dotnet\sdk\2.2.0-preview1-007460\
+ Base Path:   F:\dotnet\sdk\2.1.300-preview2-008171\
 
 Microsoft .NET Core Shared Framework Host
 
-  Version  : 2.1.0-preview1-25825-07
-  Build    : 4c165c13bd390adf66f9af30a088d634d3f37a9d
+  Version  : 2.1.0-preview2-26209-04
+  Build    : 5df6e9b7ab674a461b2a7f01ac87fb6e0ca06666
 ```
 
 4. Our nightly builds are uploaded to MyGet, not NuGet - so ensure the .NET Core MyGet feed is in your nuget configuration in case you need other packages from .NET Core that aren't included in the download. For example, on Windows you could edit `%userprofile%\appdata\roaming\nuget\nuget.config` or on Linux edit `~/.nuget/NuGet/NuGet.Config` to add this line:
@@ -68,7 +68,7 @@ Rinse and repeat!
 ## Advanced Scenario - Using a nightly build of Microsoft.NETCore.App
 
 When using the above instructions, your application will run against the same
-.NET Core 2.0 runtime that comes with the SDK. That works fine to get up and
+.NET Core runtime that comes with the SDK. That works fine to get up and
 running quickly. However, there are times when you need to use a nightly build
 of Microsoft.NETCore.App which hasn't made its way into the SDK yet. To enable
 this, there are two options you can take.
@@ -110,14 +110,14 @@ make it self-contained
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <RuntimeFrameworkVersion>2.1.0-preview1-25825-07</RuntimeFrameworkVersion> <!-- modify build in this line -->
-    <RuntimeIdentifier>win7-x64</RuntimeIdentifier> <!-- make self-contained -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier> <!-- make self-contained -->
   </PropertyGroup>
 ```
 
 ```
 $ dotnet restore
 $ dotnet publish
-$ bin\Debug\netcoreapp2.1\win7-x64\publish\App.exe
+$ bin\Debug\netcoreapp2.1\win-x64\publish\App.exe
 ```
 
 ## More Advanced Scenario - Using your local CoreFx build

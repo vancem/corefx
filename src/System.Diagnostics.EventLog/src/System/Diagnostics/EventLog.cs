@@ -127,7 +127,6 @@ namespace System.Diagnostics
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         [Browsable(false)]
-        [ComVisible(false)]
         public long MaximumKilobytes
         {
             get => _underlyingEventLog.MaximumKilobytes;
@@ -135,14 +134,12 @@ namespace System.Diagnostics
         }
 
         [Browsable(false)]
-        [ComVisible(false)]
         public OverflowAction OverflowAction
         {
             get => _underlyingEventLog.OverflowAction;
         }
 
         [Browsable(false)]
-        [ComVisible(false)]
         public int MinimumRetentionDays
         {
             get => _underlyingEventLog.MinimumRetentionDays;
@@ -377,7 +374,7 @@ namespace System.Diagnostics
         public static void Delete(string logName, string machineName)
         {
             if (!SyntaxCheck.CheckMachineName(machineName))
-                throw new ArgumentException(SR.InvalidParameterFormat, nameof(machineName));
+                throw new ArgumentException(SR.Format(SR.InvalidParameterFormat, nameof(machineName)), nameof(machineName));
             if (logName == null || logName.Length == 0)
                 throw new ArgumentException(SR.NoLogName);
             if (!ValidLogName(logName, false))
@@ -659,7 +656,7 @@ namespace System.Diagnostics
                 throw new ArgumentException(SR.Format(SR.InvalidParameter, nameof(machineName), machineName));
             }
 
-            string[] logNames = new string[0];
+            string[] logNames = null;
 
             RegistryKey eventkey = null;
             try
@@ -762,13 +759,11 @@ namespace System.Diagnostics
             }
         }
 
-        [ComVisible(false)]
         public void ModifyOverflowPolicy(OverflowAction action, int retentionDays)
         {
             _underlyingEventLog.ModifyOverflowPolicy(action, retentionDays);
         }
 
-        [ComVisible(false)]
         public void RegisterDisplayName(string resourceFile, long resourceId)
         {
             _underlyingEventLog.RegisterDisplayName(resourceFile, resourceId);
@@ -819,7 +814,7 @@ namespace System.Diagnostics
             }
 
             // If you pass in an empty array UnsafeTryFormatMessage will just pull out the message.
-            string formatString = UnsafeTryFormatMessage(hModule, messageNum, new string[0]);
+            string formatString = UnsafeTryFormatMessage(hModule, messageNum, Array.Empty<string>());
 
             if (formatString == null)
             {
@@ -1020,13 +1015,11 @@ namespace System.Diagnostics
             _underlyingEventLog.WriteEntry(message, type, eventID, category, rawData);
         }
 
-        [ComVisible(false)]
         public void WriteEvent(EventInstance instance, params Object[] values)
         {
             WriteEvent(instance, null, values);
         }
 
-        [ComVisible(false)]
         public void WriteEvent(EventInstance instance, byte[] data, params Object[] values)
         {
             _underlyingEventLog.WriteEvent(instance, data, values);

@@ -250,7 +250,6 @@ namespace System.Diagnostics
             }
         }
 
-        [ComVisible(false)]
         public long MaximumKilobytes
         {
             get
@@ -292,7 +291,6 @@ namespace System.Diagnostics
             }
         }
 
-        [ComVisible(false)]
         public OverflowAction OverflowAction
         {
             get
@@ -316,7 +314,6 @@ namespace System.Diagnostics
             }
         }
 
-        [ComVisible(false)]
         public int MinimumRetentionDays
         {
             get
@@ -680,7 +677,7 @@ namespace System.Diagnostics
                 return null;
 
             if (insertionStrings == null)
-                insertionStrings = new string[0];
+                insertionStrings = Array.Empty<string>();
 
             string[] listDll = dllNameList.Split(';');
 
@@ -1060,7 +1057,6 @@ namespace System.Diagnostics
             (0xFF00 & (buf[offset + 1] << 8)) | (0xFF & (buf[offset]));
         }
 
-        [ComVisible(false)]
         public void ModifyOverflowPolicy(OverflowAction action, int retentionDays)
         {
             string currentMachineName = this.machineName;
@@ -1142,7 +1138,6 @@ namespace System.Diagnostics
             writeHandle = handle;
         }
 
-        [ComVisible(false)]
         public void RegisterDisplayName(string resourceFile, long resourceId)
         {
             string currentMachineName = this.machineName;
@@ -1366,7 +1361,6 @@ namespace System.Diagnostics
             InternalWriteEvent((uint)eventID, (ushort)category, type, new string[] { message }, rawData, currentMachineName);
         }
 
-        [ComVisible(false)]
         public void WriteEvent(EventInstance instance, byte[] data, params Object[] values)
         {
             if (instance == null)
@@ -1404,7 +1398,7 @@ namespace System.Diagnostics
         {
             // check arguments
             if (strings == null)
-                strings = new string[0];
+                strings = Array.Empty<string>();
             if (strings.Length >= 256)
                 throw new ArgumentException(SR.TooManyReplacementStrings);
 
@@ -1419,7 +1413,7 @@ namespace System.Diagnostics
                     throw new ArgumentException(SR.LogEntryTooLong);
             }
             if (rawData == null)
-                rawData = new byte[0];
+                rawData = Array.Empty<byte>();
 
             if (Source.Length == 0)
                 throw new ArgumentException(SR.NeedSourceToWrite);

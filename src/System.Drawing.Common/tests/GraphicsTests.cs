@@ -326,7 +326,9 @@ namespace System.Drawing.Tests
         {
             using (var image = new Bitmap(10, 10, format))
             {
-                Assert.Throws<Exception>(() => Graphics.FromImage(image));
+                Exception exception = AssertExtensions.Throws<ArgumentException,Exception>(() => Graphics.FromImage(image));
+                if (exception is ArgumentException argumentException)
+                    Assert.Equal("image", argumentException.ParamName);
             }
         }
 
@@ -671,7 +673,6 @@ namespace System.Drawing.Tests
             }
         }
 
-        [ActiveIssue(20884, TestPlatforms.AnyUnix)]
         [ConditionalFact(Helpers.GdiplusIsAvailable)]
         public void Flush_Disposed_ThrowsArgumentException()
         {
@@ -2044,7 +2045,7 @@ namespace System.Drawing.Tests
             {
                 graphics.PageScale = 10;
                 graphics.Transform = transform;
-                
+
                 graphics.TransformPoints(destSpace, srcSpace, points);
                 Assert.Equal(expected, points);
             }

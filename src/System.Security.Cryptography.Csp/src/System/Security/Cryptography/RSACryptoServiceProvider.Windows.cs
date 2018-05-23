@@ -4,6 +4,7 @@
 
 using System.Diagnostics;
 using System.IO;
+using Internal.Cryptography;
 using Internal.NativeCrypto;
 using static Internal.NativeCrypto.CapiHelper;
 
@@ -61,7 +62,7 @@ namespace System.Security.Cryptography
 
             _keySize = useDefaultKeySize ? 1024 : keySize;
 
-            // If this is not a random container we generate, create it eagerly 
+            // If this is not a random container we generate, create it eagerly
             // in the constructor so we can report any errors now.
             if (!_randomKeyContainer)
             {
@@ -203,7 +204,7 @@ namespace System.Security.Cryptography
         }
 
         /// <summary>
-        /// get set Persisted key in CSP 
+        /// get set Persisted key in CSP
         /// </summary>
         public bool PersistKeyInCsp
         {
@@ -265,10 +266,10 @@ namespace System.Security.Cryptography
             // Save the KeySize value to a local because it has non-trivial cost.
             int keySize = KeySize;
 
-            // size check -- must be at most the modulus size
-            if (rgb.Length > (keySize / 8))
+            // size check -- must be exactly the modulus size
+            if (rgb.Length != (keySize / 8))
             {
-                throw new CryptographicException(SR.Format(SR.Cryptography_Padding_DecDataTooBig, Convert.ToString(keySize / 8)));
+                throw new CryptographicException(SR.Cryptography_RSA_DecryptWrongSize);
             }
 
             byte[] decryptedKey;
@@ -282,7 +283,7 @@ namespace System.Security.Cryptography
         public override byte[] DecryptValue(byte[] rgb) => base.DecryptValue(rgb);
 
         /// <summary>
-        /// Dispose the key handles 
+        /// Dispose the key handles
         /// </summary>
         protected override void Dispose(bool disposing)
         {
@@ -316,6 +317,19 @@ namespace System.Security.Cryptography
                 throw new ArgumentNullException(nameof(rgb));
             }
 
+            if (fOAEP)
+            {
+                int rsaSize = (KeySize + 7) / 8;
+                const int OaepSha1Overhead = 20 + 20 + 2;
+
+                // Normalize the Windows 7 and Windows 8.1+ exception
+                if (rsaSize - OaepSha1Overhead < rgb.Length)
+                {
+                    const int NTE_BAD_LENGTH = unchecked((int)0x80090004);
+                    throw NTE_BAD_LENGTH.ToCryptographicException();
+                }
+            }
+
             byte[] encryptedKey = null;
             CapiHelper.EncryptKey(SafeKeyHandle, rgb, rgb.Length, fOAEP, ref encryptedKey);
             return encryptedKey;
@@ -324,7 +338,7 @@ namespace System.Security.Cryptography
         /// <summary>
         /// This method is not supported. Use Encrypt(byte[], RSAEncryptionPadding) instead.
         /// </summary>
-        public override byte[] EncryptValue(byte[] rgb) => base.EncryptValue(rgb); 
+        public override byte[] EncryptValue(byte[] rgb) => base.EncryptValue(rgb);
 
         /// <summary>
         ///Exports a blob containing the key information associated with an RSACryptoServiceProvider object.
@@ -536,16 +550,6 @@ namespace System.Security.Cryptography
                 return false;
             }
             return true;
-        }
-
-        /// <summary>
-        /// Since P is required, we will assume its presence is synonymous to a private key.
-        /// </summary>
-        /// <param name="rsaParams"></param>
-        /// <returns></returns>
-        private static bool IsPublic(RSAParameters rsaParams)
-        {
-            return (rsaParams.P == null);
         }
 
         protected override byte[] HashData(byte[] data, int offset, int count, HashAlgorithmName hashAlgorithm)

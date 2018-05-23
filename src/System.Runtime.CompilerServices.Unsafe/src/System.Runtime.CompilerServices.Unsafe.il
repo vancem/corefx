@@ -37,7 +37,7 @@
     01 00 00 00 00
   ) // false
   .hash algorithm 0x00008004
-  .ver 4:0:4:0
+  .ver 4:0:5:0
 }
 .module System.Runtime.CompilerServices.Unsafe.dll
 // MVID: {1E97D84A-565B-49C5-B60A-F31A1A4ACE13}
@@ -418,6 +418,26 @@
         ceq
         ret 
   } // end of method Unsafe::AreSame
+
+  .method public hidebysig static bool IsAddressGreaterThan<T>(!!T& left, !!T& right) cil managed aggressiveinlining
+  {
+        .custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = ( 01 00 00 00 )
+        .maxstack 2
+        ldarg.0
+        ldarg.1
+        cgt.un
+        ret 
+  } // end of method Unsafe::IsAddressGreaterThan
+
+  .method public hidebysig static bool IsAddressLessThan<T>(!!T& left, !!T& right) cil managed aggressiveinlining
+  {
+        .custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = ( 01 00 00 00 )
+        .maxstack 2
+        ldarg.0
+        ldarg.1
+        clt.un
+        ret 
+  } // end of method Unsafe::IsAddressLessThan
 
 } // end of class System.Runtime.CompilerServices.Unsafe
 

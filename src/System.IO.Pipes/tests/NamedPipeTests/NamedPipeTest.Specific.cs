@@ -91,7 +91,7 @@ namespace System.IO.Pipes.Tests
                 while (clients.Count > 0)
                 {
                     Task<Task> firstClient = Task.WhenAny(clients);
-                    await WhenAllOrAnyFailed(ServerWaitReadAndWriteAsync(), firstClient);
+                    await new Task[] { ServerWaitReadAndWriteAsync(), firstClient }.WhenAllOrAnyFailed();
                     clients.Remove(firstClient.Result);
                 }
 
@@ -173,11 +173,11 @@ namespace System.IO.Pipes.Tests
 
                 Task[] serverWaits = (from server in servers select server.WaitForConnectionAsync()).ToArray();
                 Task[] clientWaits = (from client in clients select client.ConnectAsync()).ToArray();
-                await WhenAllOrAnyFailed(serverWaits.Concat(clientWaits).ToArray());
+                await serverWaits.Concat(clientWaits).ToArray().WhenAllOrAnyFailed();
 
                 Task[] serverSends = (from server in servers select server.WriteAsync(new byte[1], 0, 1)).ToArray();
                 Task<int>[] clientReceives = (from client in clients select client.ReadAsync(new byte[1], 0, 1)).ToArray();
-                await WhenAllOrAnyFailed(serverSends.Concat(clientReceives).ToArray());
+                await serverSends.Concat(clientReceives).ToArray().WhenAllOrAnyFailed();
             }
             finally
             {
@@ -191,33 +191,6 @@ namespace System.IO.Pipes.Tests
                     servers[i]?.Dispose();
                 }
             }
-        }
-
-        private static Task WhenAllOrAnyFailed(params Task[] tasks)
-        {
-            int remaining = tasks.Length;
-            var tcs = new TaskCompletionSource<bool>();
-            foreach (Task t in tasks)
-            {
-                t.ContinueWith(a =>
-                {
-                    if (a.IsFaulted)
-                    {
-                        tcs.TrySetException(a.Exception.InnerExceptions);
-                        Interlocked.Decrement(ref remaining);
-                    }
-                    else if (a.IsCanceled)
-                    {
-                        tcs.TrySetCanceled();
-                        Interlocked.Decrement(ref remaining);
-                    }
-                    else if (Interlocked.Decrement(ref remaining) == 0)
-                    {
-                        tcs.TrySetResult(true);
-                    }
-                }, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
-            }
-            return tcs.Task;
         }
 
         [Theory]
@@ -605,5 +578,83 @@ namespace System.IO.Pipes.Tests
             }
         }
 
+        [Fact]
+        public void ClientConnect_Throws_Timeout_When_Pipe_Not_Found()
+        {
+            string pipeName = GetUniquePipeName();
+            using (NamedPipeClientStream client = new NamedPipeClientStream(pipeName))
+            {
+                Assert.Throws<TimeoutException>(() => client.Connect(91));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetCancellationTokens))]
+        public async void ClientConnectAsync_Throws_Timeout_When_Pipe_Not_Found(CancellationToken cancellationToken)
+        {
+            string pipeName = GetUniquePipeName();
+            using (NamedPipeClientStream client = new NamedPipeClientStream(pipeName))
+            {
+                Task waitingClient = client.ConnectAsync(92, cancellationToken);
+                await Assert.ThrowsAsync<TimeoutException>(() => { return waitingClient; });
+            }
+        }
+
+        [Fact]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "https://github.com/dotnet/corefx/pull/25877 yet to be ported to netfx")]
+        [PlatformSpecific(TestPlatforms.Windows)] // Unix ignores MaxNumberOfServerInstances and second client also connects.
+        public void ClientConnect_Throws_Timeout_When_Pipe_Busy()
+        {
+            string pipeName = GetUniquePipeName();
+
+            using (NamedPipeServerStream server = new NamedPipeServerStream(pipeName))
+            using (NamedPipeClientStream firstClient = new NamedPipeClientStream(pipeName))
+            using (NamedPipeClientStream secondClient = new NamedPipeClientStream(pipeName))
+            {
+                const int timeout = 10_000;
+                Task[] clientAndServerTasks = new[]
+                    {
+                        firstClient.ConnectAsync(timeout),
+                        Task.Run(() => server.WaitForConnection())
+                    };
+
+                Assert.True(Task.WaitAll(clientAndServerTasks, timeout));
+
+                Assert.Throws<TimeoutException>(() => secondClient.Connect(93));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetCancellationTokens))]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "https://github.com/dotnet/corefx/pull/25877 yet to be ported to netfx")]
+        [PlatformSpecific(TestPlatforms.Windows)] // Unix ignores MaxNumberOfServerInstances and second client also connects.
+        public async void ClientConnectAsync_With_Cancellation_Throws_Timeout_When_Pipe_Busy(CancellationToken cancellationToken)
+        {
+            string pipeName = GetUniquePipeName();
+
+            using (NamedPipeServerStream server = new NamedPipeServerStream(pipeName))
+            using (NamedPipeClientStream firstClient = new NamedPipeClientStream(pipeName))
+            using (NamedPipeClientStream secondClient = new NamedPipeClientStream(pipeName))
+            {
+                const int timeout = 10_000;
+                Task[] clientAndServerTasks = new[]
+                    {
+                        firstClient.ConnectAsync(timeout),
+                        Task.Run(() => server.WaitForConnection())
+                    };
+
+                Assert.True(Task.WaitAll(clientAndServerTasks, timeout));
+
+                Task waitingClient = secondClient.ConnectAsync(94, cancellationToken);
+                await Assert.ThrowsAsync<TimeoutException>(() => { return waitingClient; });
+            }
+        }
+
+        public static IEnumerable<object[]> GetCancellationTokens =>
+            new []
+            {
+                new object[] { CancellationToken.None },
+                new object[] { new CancellationTokenSource().Token },
+            };
     }
 }

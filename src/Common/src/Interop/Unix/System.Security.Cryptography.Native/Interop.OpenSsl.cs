@@ -6,6 +6,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Net.Http;
 using System.Net.Security;
@@ -23,9 +24,9 @@ internal static partial class Interop
     {
         private static readonly Ssl.SslCtxSetVerifyCallback s_verifyClientCertificate = VerifyClientCertificate;
         private unsafe static readonly Ssl.SslCtxSetAlpnCallback s_alpnServerCallback = AlpnServerSelectCallback;
+        private static readonly IdnMapping s_idnMapping = new IdnMapping();
 
         #region internal methods
-
         internal static SafeChannelBindingHandle QueryChannelBinding(SafeSslHandle context, ChannelBindingKind bindingType)
         {
             Debug.Assert(
@@ -78,6 +79,7 @@ internal static partial class Interop
 
                 if (!Ssl.SetEncryptionPolicy(innerContext, policy))
                 {
+                    Crypto.ErrClearError();
                     throw new PlatformNotSupportedException(SR.Format(SR.net_ssl_encryptionpolicy_notsupported, policy));
                 }
 
@@ -93,9 +95,6 @@ internal static partial class Interop
                 if (sslAuthenticationOptions.IsServer && sslAuthenticationOptions.RemoteCertRequired)
                 {
                     Ssl.SslCtxSetVerify(innerContext, s_verifyClientCertificate);
-
-                    //update the client CA list 
-                    UpdateCAListFromRootStore(innerContext);
                 }
 
                 GCHandle alpnHandle = default;
@@ -123,6 +122,18 @@ internal static partial class Interop
                     {
                         context.Dispose();
                         throw CreateSslException(SR.net_allocate_ssl_context_failed);
+                    }
+
+                    if (!sslAuthenticationOptions.IsServer)
+                    {
+                        // The IdnMapping converts unicode input into the IDNA punycode sequence.
+                        string punyCode = s_idnMapping.GetAscii(sslAuthenticationOptions.TargetHost);
+
+                        // Similar to windows behavior, set SNI on openssl by default for client context, ignore errors.
+                        if (!Ssl.SslSetTlsExtHostName(context, punyCode))
+                        {
+                            Crypto.ErrClearError();
+                        }
                     }
 
                     if (hasCertificateAndKey)
@@ -167,13 +178,17 @@ internal static partial class Interop
         {
             sendBuf = null;
             sendCount = 0;
+            
             if ((recvBuf != null) && (recvCount > 0))
             {
-                BioWrite(context.InputBio, recvBuf, recvOffset, recvCount);
+                if (BioWrite(context.InputBio, recvBuf, recvOffset, recvCount) <= 0)
+                {
+                    // Make sure we clear out the error that is stored in the queue
+                    throw Crypto.CreateOpenSslCryptographicException();
+                }
             }
 
             int retVal = Ssl.SslDoHandshake(context);
-
             if (retVal != 1)
             {
                 Exception innerError;
@@ -186,7 +201,6 @@ internal static partial class Interop
             }
 
             sendCount = Crypto.BioCtrlPending(context.OutputBio);
-
             if (sendCount > 0)
             {
                 sendBuf = new byte[sendCount];
@@ -199,6 +213,8 @@ internal static partial class Interop
                 {
                     if (sendCount <= 0)
                     {
+                        // Make sure we clear out the error that is stored in the queue
+                        Crypto.ErrClearError();
                         sendBuf = null;
                         sendCount = 0;
                     }
@@ -215,12 +231,16 @@ internal static partial class Interop
 
         internal static int Encrypt(SafeSslHandle context, ReadOnlyMemory<byte> input, ref byte[] output, out Ssl.SslErrorCode errorCode)
         {
+#if DEBUG
+            ulong assertNoError = Crypto.ErrPeekError();
+            Debug.Assert(assertNoError == 0, "OpenSsl error queue is not empty, run: 'openssl errstr " + assertNoError.ToString("X") + "' for original error.");
+#endif
             errorCode = Ssl.SslErrorCode.SSL_ERROR_NONE;
 
             int retVal;
             unsafe
             {
-                using (MemoryHandle handle = input.Retain(pin: true))
+                using (MemoryHandle handle = input.Pin())
                 {
                     retVal = Ssl.SslWrite(context, (byte*)handle.Pointer, input.Length);
                 }
@@ -252,6 +272,11 @@ internal static partial class Interop
                 }
 
                 retVal = BioRead(context.OutputBio, output, capacityNeeded);
+                if (retVal <= 0)
+                {
+                    // Make sure we clear out the error that is stored in the queue
+                    Crypto.ErrClearError();
+                }
             }
 
             return retVal;
@@ -259,6 +284,10 @@ internal static partial class Interop
 
         internal static int Decrypt(SafeSslHandle context, byte[] outBuffer, int offset, int count, out Ssl.SslErrorCode errorCode)
         {
+#if DEBUG
+            ulong assertNoError = Crypto.ErrPeekError();
+            Debug.Assert(assertNoError == 0, "OpenSsl error queue is not empty, run: 'openssl errstr " + assertNoError.ToString("X") + "' for original error.");
+#endif
             errorCode = Ssl.SslErrorCode.SSL_ERROR_NONE;
 
             int retVal = BioWrite(context.InputBio, outBuffer, offset, count);
@@ -367,7 +396,7 @@ internal static partial class Interop
                         Span<byte> clientProto = clientList.Slice(1, length);
                         if (clientProto.SequenceEqual(protocolList[i].Protocol.Span))
                         {
-                            outp = (byte*)Unsafe.AsPointer(ref clientProto.DangerousGetPinnableReference());
+                            fixed (byte* p = &MemoryMarshal.GetReference(clientProto)) outp = p;
                             outlen = length;
                             return Ssl.SSL_TLSEXT_ERR_OK;
                         }
@@ -378,63 +407,18 @@ internal static partial class Interop
             }
             catch
             {
+                // No common application protocol was negotiated, set the target on the alpnHandle to null.
+                // It is ok to clear the handle value here, this results in handshake failure, so the SslStream object is disposed.
+                protocolHandle.Target = null;
+
                 return Ssl.SSL_TLSEXT_ERR_NOACK;
             }
 
+            // No common application protocol was negotiated, set the target on the alpnHandle to null.
+            // It is ok to clear the handle value here, this results in handshake failure, so the SslStream object is disposed.
+            protocolHandle.Target = null;
+
             return Ssl.SSL_TLSEXT_ERR_NOACK;
-        }
-
-        private static void UpdateCAListFromRootStore(SafeSslContextHandle context)
-        {
-            using (SafeX509NameStackHandle nameStack = Crypto.NewX509NameStack())
-            {
-                //maintaining the HashSet of Certificate's issuer name to keep track of duplicates 
-                HashSet<string> issuerNameHashSet = new HashSet<string>();
-
-                //Enumerate Certificates from LocalMachine and CurrentUser root store 
-                AddX509Names(nameStack, StoreLocation.LocalMachine, issuerNameHashSet);
-                AddX509Names(nameStack, StoreLocation.CurrentUser, issuerNameHashSet);
-
-                Ssl.SslCtxSetClientCAList(context, nameStack);
-
-                // The handle ownership has been transferred into the CTX.
-                nameStack.SetHandleAsInvalid();
-            }
-
-        }
-
-        private static void AddX509Names(SafeX509NameStackHandle nameStack, StoreLocation storeLocation, HashSet<string> issuerNameHashSet)
-        {
-            using (var store = new X509Store(StoreName.Root, storeLocation))
-            {
-                store.Open(OpenFlags.ReadOnly);
-
-                foreach (var certificate in store.Certificates)
-                {
-                    //Check if issuer name is already present
-                    //Avoiding duplicate names
-                    if (!issuerNameHashSet.Add(certificate.Issuer))
-                    {
-                        continue;
-                    }
-
-                    using (SafeX509Handle certHandle = Crypto.X509UpRef(certificate.Handle))
-                    {
-                        using (SafeX509NameHandle nameHandle = Crypto.DuplicateX509Name(Crypto.X509GetIssuerName(certHandle)))
-                        {
-                            if (Crypto.PushX509NameStackField(nameStack, nameHandle))
-                            {
-                                // The handle ownership has been transferred into the STACK_OF(X509_NAME).
-                                nameHandle.SetHandleAsInvalid();
-                            }
-                            else
-                            {
-                                throw new CryptographicException(SR.net_ssl_x509Name_push_failed_error);
-                            }
-                        }
-                    }
-                }
-            }
         }
 
         private static int BioRead(SafeBioHandle bio, byte[] buffer, int count)
@@ -491,7 +475,7 @@ internal static partial class Interop
                     break;
 
                 case Ssl.SslErrorCode.SSL_ERROR_SSL:
-                    // OpenSSL failure occurred.  The error queue contains more details.
+                    // OpenSSL failure occurred.  The error queue contains more details, when building the exception the queue will be cleared.
                     innerError = Interop.Crypto.CreateOpenSslCryptographicException();
                     break;
 
@@ -533,7 +517,9 @@ internal static partial class Interop
 
         internal static SslException CreateSslException(string message)
         {
-            ulong errorVal = Crypto.ErrGetError();
+            // Capture last error to be consistent with CreateOpenSslCryptographicException
+            ulong errorVal = Crypto.ErrPeekLastError();
+            Crypto.ErrClearError();
             string msg = SR.Format(message, Marshal.PtrToStringAnsi(Crypto.ErrReasonErrorString(errorVal)));
             return new SslException(msg, (int)errorVal);
         }

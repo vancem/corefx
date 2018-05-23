@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace System.Buffers.Binary
 {
@@ -12,9 +13,9 @@ namespace System.Buffers.Binary
         /// Reads an Int16 out of a read-only span of bytes as big endian.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static short ReadInt16BigEndian(ReadOnlySpan<byte> buffer)
+        public static short ReadInt16BigEndian(ReadOnlySpan<byte> source)
         {
-            short result = ReadMachineEndian<short>(buffer);
+            short result = MemoryMarshal.Read<short>(source);
             if (BitConverter.IsLittleEndian)
             {
                 result = ReverseEndianness(result);
@@ -26,9 +27,9 @@ namespace System.Buffers.Binary
         /// Reads an Int32 out of a read-only span of bytes as big endian.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int ReadInt32BigEndian(ReadOnlySpan<byte> buffer)
+        public static int ReadInt32BigEndian(ReadOnlySpan<byte> source)
         {
-            int result = ReadMachineEndian<int>(buffer);
+            int result = MemoryMarshal.Read<int>(source);
             if (BitConverter.IsLittleEndian)
             {
                 result = ReverseEndianness(result);
@@ -40,9 +41,9 @@ namespace System.Buffers.Binary
         /// Reads an Int64 out of a read-only span of bytes as big endian.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static long ReadInt64BigEndian(ReadOnlySpan<byte> buffer)
+        public static long ReadInt64BigEndian(ReadOnlySpan<byte> source)
         {
-            long result = ReadMachineEndian<long>(buffer);
+            long result = MemoryMarshal.Read<long>(source);
             if (BitConverter.IsLittleEndian)
             {
                 result = ReverseEndianness(result);
@@ -53,10 +54,11 @@ namespace System.Buffers.Binary
         /// <summary>
         /// Reads a UInt16 out of a read-only span of bytes as big endian.
         /// </summary>
+        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ushort ReadUInt16BigEndian(ReadOnlySpan<byte> buffer)
+        public static ushort ReadUInt16BigEndian(ReadOnlySpan<byte> source)
         {
-            ushort result = ReadMachineEndian<ushort>(buffer);
+            ushort result = MemoryMarshal.Read<ushort>(source);
             if (BitConverter.IsLittleEndian)
             {
                 result = ReverseEndianness(result);
@@ -67,10 +69,11 @@ namespace System.Buffers.Binary
         /// <summary>
         /// Reads a UInt32 out of a read-only span of bytes as big endian.
         /// </summary>
+        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint ReadUInt32BigEndian(ReadOnlySpan<byte> buffer)
+        public static uint ReadUInt32BigEndian(ReadOnlySpan<byte> source)
         {
-            uint result = ReadMachineEndian<uint>(buffer);
+            uint result = MemoryMarshal.Read<uint>(source);
             if (BitConverter.IsLittleEndian)
             {
                 result = ReverseEndianness(result);
@@ -81,10 +84,11 @@ namespace System.Buffers.Binary
         /// <summary>
         /// Reads a UInt64 out of a read-only span of bytes as big endian.
         /// </summary>
+        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ulong ReadUInt64BigEndian(ReadOnlySpan<byte> buffer)
+        public static ulong ReadUInt64BigEndian(ReadOnlySpan<byte> source)
         {
-            ulong result = ReadMachineEndian<ulong>(buffer);
+            ulong result = MemoryMarshal.Read<ulong>(source);
             if (BitConverter.IsLittleEndian)
             {
                 result = ReverseEndianness(result);
@@ -97,9 +101,9 @@ namespace System.Buffers.Binary
         /// <returns>If the span is too small to contain an Int16, return false.</returns>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryReadInt16BigEndian(ReadOnlySpan<byte> buffer, out short value)
+        public static bool TryReadInt16BigEndian(ReadOnlySpan<byte> source, out short value)
         {
-            bool success = TryReadMachineEndian(buffer, out value);
+            bool success = MemoryMarshal.TryRead(source, out value);
             if (BitConverter.IsLittleEndian)
             {
                 value = ReverseEndianness(value);
@@ -112,9 +116,9 @@ namespace System.Buffers.Binary
         /// <returns>If the span is too small to contain an Int32, return false.</returns>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryReadInt32BigEndian(ReadOnlySpan<byte> buffer, out int value)
+        public static bool TryReadInt32BigEndian(ReadOnlySpan<byte> source, out int value)
         {
-            bool success = TryReadMachineEndian(buffer, out value);
+            bool success = MemoryMarshal.TryRead(source, out value);
             if (BitConverter.IsLittleEndian)
             {
                 value = ReverseEndianness(value);
@@ -127,9 +131,9 @@ namespace System.Buffers.Binary
         /// <returns>If the span is too small to contain an Int64, return false.</returns>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryReadInt64BigEndian(ReadOnlySpan<byte> buffer, out long value)
+        public static bool TryReadInt64BigEndian(ReadOnlySpan<byte> source, out long value)
         {
-            bool success = TryReadMachineEndian(buffer, out value);
+            bool success = MemoryMarshal.TryRead(source, out value);
             if (BitConverter.IsLittleEndian)
             {
                 value = ReverseEndianness(value);
@@ -141,10 +145,11 @@ namespace System.Buffers.Binary
         /// Reads a UInt16 out of a read-only span of bytes as big endian.
         /// <returns>If the span is too small to contain a UInt16, return false.</returns>
         /// </summary>
+        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryReadUInt16BigEndian(ReadOnlySpan<byte> buffer, out ushort value)
+        public static bool TryReadUInt16BigEndian(ReadOnlySpan<byte> source, out ushort value)
         {
-            bool success = TryReadMachineEndian(buffer, out value);
+            bool success = MemoryMarshal.TryRead(source, out value);
             if (BitConverter.IsLittleEndian)
             {
                 value = ReverseEndianness(value);
@@ -156,10 +161,11 @@ namespace System.Buffers.Binary
         /// Reads a UInt32 out of a read-only span of bytes as big endian.
         /// <returns>If the span is too small to contain a UInt32, return false.</returns>
         /// </summary>
+        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryReadUInt32BigEndian(ReadOnlySpan<byte> buffer, out uint value)
+        public static bool TryReadUInt32BigEndian(ReadOnlySpan<byte> source, out uint value)
         {
-            bool success = TryReadMachineEndian(buffer, out value);
+            bool success = MemoryMarshal.TryRead(source, out value);
             if (BitConverter.IsLittleEndian)
             {
                 value = ReverseEndianness(value);
@@ -171,10 +177,11 @@ namespace System.Buffers.Binary
         /// Reads a UInt64 out of a read-only span of bytes as big endian.
         /// <returns>If the span is too small to contain a UInt64, return false.</returns>
         /// </summary>
+        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryReadUInt64BigEndian(ReadOnlySpan<byte> buffer, out ulong value)
+        public static bool TryReadUInt64BigEndian(ReadOnlySpan<byte> source, out ulong value)
         {
-            bool success = TryReadMachineEndian(buffer, out value);
+            bool success = MemoryMarshal.TryRead(source, out value);
             if (BitConverter.IsLittleEndian)
             {
                 value = ReverseEndianness(value);

@@ -28,22 +28,38 @@ extern "C" Error SystemNative_CreateNetworkChangeListenerSocket(int32_t* retSock
     if (sock == -1)
     {
         *retSocket = -1;
-        return SystemNative_ConvertErrorPlatformToPal(errno);
+        return static_cast<Error>(SystemNative_ConvertErrorPlatformToPal(errno));
     }
     if (bind(sock, reinterpret_cast<sockaddr*>(&sa), sizeof(sa)) != 0)
     {
         *retSocket = -1;
-        return SystemNative_ConvertErrorPlatformToPal(errno);
+        return static_cast<Error>(SystemNative_ConvertErrorPlatformToPal(errno));
     }
 
     *retSocket = sock;
-    return PAL_SUCCESS;
+    return Error_SUCCESS;
 }
 
 extern "C" Error SystemNative_CloseNetworkChangeListenerSocket(int32_t socket)
 {
     int err = close(socket);
-    return err == 0 || CheckInterrupted(err) ? PAL_SUCCESS : SystemNative_ConvertErrorPlatformToPal(errno);
+    return err == 0 || CheckInterrupted(err) ? Error_SUCCESS : static_cast<Error>(SystemNative_ConvertErrorPlatformToPal(errno));
+}
+
+static NetworkChangeKind ReadNewLinkMessage(nlmsghdr* hdr)
+{
+    assert(hdr != nullptr);
+    ifinfomsg* ifimsg;
+    ifimsg = reinterpret_cast<ifinfomsg*>(NLMSG_DATA(hdr));
+    if (ifimsg->ifi_family == AF_INET)
+    {
+        if ((ifimsg->ifi_flags & IFF_UP) != 0)
+        {
+            return NetworkChangeKind::LinkAdded;
+        }
+    }
+
+    return NetworkChangeKind::None;
 }
 
 extern "C" void SystemNative_ReadEvents(int32_t sock, NetworkChangeEvent onNetworkChange)
@@ -95,20 +111,4 @@ extern "C" void SystemNative_ReadEvents(int32_t sock, NetworkChangeEvent onNetwo
                 break;
         }
     }
-}
-
-NetworkChangeKind ReadNewLinkMessage(nlmsghdr* hdr)
-{
-    assert(hdr != nullptr);
-    ifinfomsg* ifimsg;
-    ifimsg = reinterpret_cast<ifinfomsg*>(NLMSG_DATA(hdr));
-    if (ifimsg->ifi_family == AF_INET)
-    {
-        if ((ifimsg->ifi_flags & IFF_UP) != 0)
-        {
-            return NetworkChangeKind::LinkAdded;
-        }
-    }
-
-    return NetworkChangeKind::None;
 }

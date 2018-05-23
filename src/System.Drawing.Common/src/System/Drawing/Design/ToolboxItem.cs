@@ -1,11 +1,7 @@
-//------------------------------------------------------------------------------
-// <copyright file="ToolboxItem.cs" company="Microsoft">
-//     Copyright (c) Microsoft Corporation.  All rights reserved.
-// </copyright>                                                                
-//------------------------------------------------------------------------------
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
-/*
- */
 namespace System.Drawing.Design {
     using System.Configuration.Assemblies;
     using System.Runtime.InteropServices;
@@ -33,8 +29,6 @@ namespace System.Drawing.Design {
     ///    <para> Provides a base implementation of a toolbox item.</para>
     /// </devdoc>
     [Serializable]
-    [System.Security.Permissions.PermissionSetAttribute(System.Security.Permissions.SecurityAction.InheritanceDemand, Name="FullTrust")]
-    [System.Security.Permissions.PermissionSetAttribute(System.Security.Permissions.SecurityAction.LinkDemand, Name="FullTrust")]
     public class ToolboxItem : ISerializable {
     
         private static TraceSwitch ToolboxItemPersist = new TraceSwitch("ToolboxPersisting", "ToolboxItem: write data");

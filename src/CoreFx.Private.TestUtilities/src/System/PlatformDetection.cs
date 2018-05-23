@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace System
@@ -18,7 +19,7 @@ namespace System
         // do it in a way that failures don't cascade.
         //
 
-        public static bool HasWindowsShell => IsNotWindowsServerCore && IsNotWindowsNanoServer && IsNotWindowsIoTCore;
+        public static bool HasWindowsShell => IsWindows && IsNotWindowsServerCore && IsNotWindowsNanoServer && IsNotWindowsIoTCore;
         public static bool IsUap => IsInAppContainer || IsNetNative;
         public static bool IsFullFramework => RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase);
         public static bool IsNetNative => RuntimeInformation.FrameworkDescription.StartsWith(".NET Native", StringComparison.OrdinalIgnoreCase);
@@ -39,7 +40,9 @@ namespace System
         public static bool IsNotWinRTSupported => !IsWinRTSupported;
         public static bool IsNotMacOsHighSierraOrHigher => !IsMacOsHighSierraOrHigher;
 
-        // Officially, .Net Native only supports processes running in an AppContainer. However, the majority of tests still work fine 
+        public static bool IsDomainJoinedMachine => !Environment.MachineName.Equals(Environment.UserDomainName, StringComparison.OrdinalIgnoreCase);
+
+        // Officially, .Net Native only supports processes running in an AppContainer. However, the majority of tests still work fine
         // in a normal Win32 process and we often do so as running in an AppContainer imposes a substantial tax in debuggability
         // and investigatability. This predicate is used in ConditionalFacts to disable the specific tests that really need to be
         // running in AppContainer when running on .NetNative.
@@ -70,6 +73,24 @@ namespace System
 
             return false;
         }
+
+        private static Lazy<bool> s_largeArrayIsNotSupported = new Lazy<bool>(IsLargeArrayNotSupported);
+
+        [MethodImpl(MethodImplOptions.NoOptimization)]
+        private static bool IsLargeArrayNotSupported()
+        {
+            try
+            {
+                var tmp = new byte[int.MaxValue];
+                return tmp == null;
+            }
+            catch (OutOfMemoryException)
+            {
+                return true;
+            }
+        }
+
+        public static bool IsNotIntMaxValueArrayIndexSupported => s_largeArrayIsNotSupported.Value;
 
         public static bool IsNonZeroLowerBoundArraySupported
         {
@@ -102,33 +123,5 @@ namespace System
         // System.Security.Cryptography.Xml.XmlDsigXsltTransform.GetOutput() relies on XslCompiledTransform which relies
         // heavily on Reflection.Emit
         public static bool IsXmlDsigXsltTransformSupported => !PlatformDetection.IsUap;
-
-        public static Range[] FrameworkRanges => new Range[]{
-          new Range(new Version(4, 7, 2500, 0), null, new Version(4, 7, 1)),
-          new Range(new Version(4, 6, 2000, 0), new Version(4, 7, 2090, 0), new Version(4, 7, 0)),
-          new Range(new Version(4, 6, 1500, 0), new Version(4, 6, 1999, 0), new Version(4, 6, 2)),
-          new Range(new Version(4, 6, 1000, 0), new Version(4, 6, 1499, 0), new Version(4, 6, 1)),
-          new Range(new Version(4, 6, 55, 0), new Version(4, 6, 999, 0), new Version(4, 6, 0)),
-          new Range(new Version(4, 0, 30319, 0), new Version(4, 0, 52313, 36313), new Version(4, 5, 2))
-        };
-
-        public class Range
-        {
-            public Version Start { get; private set; }
-            public Version Finish { get; private set; }
-            public Version FrameworkVersion { get; private set; }
-
-            public Range(Version start, Version finish, Version frameworkVersion)
-            {
-                Start = start;
-                Finish = finish;
-                FrameworkVersion = frameworkVersion;
-            }
-
-            public bool IsInRange(Version version)
-            {
-                return version >= Start && (Finish == null || version <= Finish);
-            }
-        }
     }
 }

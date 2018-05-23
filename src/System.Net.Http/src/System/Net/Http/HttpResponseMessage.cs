@@ -36,6 +36,8 @@ namespace System.Net.Http
             }
         }
 
+        internal void SetVersionWithoutValidation(Version value) => _version = value;
+
         public HttpContent Content
         {
             get { return _content; }
@@ -74,6 +76,8 @@ namespace System.Net.Http
             }
         }
 
+        internal void SetStatusCodeWithoutValidation(HttpStatusCode value) => _statusCode = value;
+
         public string ReasonPhrase
         {
             get
@@ -96,6 +100,8 @@ namespace System.Net.Http
                 _reasonPhrase = value; // It's OK to have a 'null' reason phrase.
             }
         }
+
+        internal void SetReasonPhraseWithoutValidation(string value) => _reasonPhrase = value;
 
         public HttpResponseHeaders Headers
         {
@@ -149,18 +155,13 @@ namespace System.Net.Http
         {
             if (!IsSuccessStatusCode)
             {
-                // Disposing the content should help users: If users call EnsureSuccessStatusCode(), an exception is
-                // thrown if the response status code is != 2xx. I.e. the behavior is similar to a failed request (e.g.
-                // connection failure). Users don't expect to dispose the content in this case: If an exception is 
-                // thrown, the object is responsible fore cleaning up its state.
-                if (_content != null)
-                {
-                    _content.Dispose();
-                }
-
-                throw new HttpRequestException(string.Format(System.Globalization.CultureInfo.InvariantCulture, SR.net_http_message_not_success_statuscode, (int)_statusCode,
+                throw new HttpRequestException(string.Format(
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    SR.net_http_message_not_success_statuscode,
+                    (int)_statusCode,
                     ReasonPhrase));
             }
+
             return this;
         }
 

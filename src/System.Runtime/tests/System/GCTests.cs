@@ -69,8 +69,8 @@ namespace System.Tests
         [InlineData(GCCollectionMode.Optimized + 1)]
         public static void Collection_InvalidCollectionMode_ThrowsArgumentOutOfRangeException(GCCollectionMode mode)
         {
-            AssertExtensions.Throws<ArgumentOutOfRangeException>("mode", "Enum value was out of legal range.", () => GC.Collect(2, mode));
-            AssertExtensions.Throws<ArgumentOutOfRangeException>("mode", "Enum value was out of legal range.", () => GC.Collect(2, mode, false)); 
+            AssertExtensions.Throws<ArgumentOutOfRangeException>("mode", null, () => GC.Collect(2, mode));
+            AssertExtensions.Throws<ArgumentOutOfRangeException>("mode", null, () => GC.Collect(2, mode, false)); 
         }
 
         [Fact]
@@ -721,7 +721,7 @@ namespace System.Tests
             options.TimeOut = TimeoutMilliseconds;
             RemoteInvoke(sizeString =>
             {
-                Assert.Throws<ArgumentOutOfRangeException>("totalSize", () => GC.TryStartNoGCRegion(long.Parse(sizeString)));
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("totalSize", () => GC.TryStartNoGCRegion(long.Parse(sizeString)));
                 return SuccessExitCode;
             }, size.ToString(), options).Dispose();
         }
@@ -738,7 +738,7 @@ namespace System.Tests
             options.TimeOut = TimeoutMilliseconds;
             RemoteInvoke(sizeString =>
             {
-                Assert.Throws<ArgumentOutOfRangeException>("lohSize", () => GC.TryStartNoGCRegion(1024, long.Parse(sizeString)));
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("lohSize", () => GC.TryStartNoGCRegion(1024, long.Parse(sizeString)));
                 return SuccessExitCode;
             }, size.ToString(), options).Dispose();
         }

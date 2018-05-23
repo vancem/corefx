@@ -87,13 +87,44 @@ namespace System.Tests
             Assert.Equal(expected, double.IsSubnormal(d));
         }
 
-        [Theory]
-        [MemberData(nameof(Parse_Valid_TestData))]
-        public static void Parse_Span_Valid(string value, NumberStyles style, IFormatProvider provider, double expected)
+        public static IEnumerable<object[]> Parse_ValidWithOffsetCount_TestData()
         {
-            Assert.Equal(expected, double.Parse(value.AsReadOnlySpan(), style, provider));
+            foreach (object[] inputs in Parse_Valid_TestData())
+            {
+                yield return new object[] { inputs[0], 0, ((string)inputs[0]).Length, inputs[1], inputs[2], inputs[3] };
+            }
 
-            Assert.True(double.TryParse(value.AsReadOnlySpan(), out double result, style, provider));
+            const NumberStyles DefaultStyle = NumberStyles.Float | NumberStyles.AllowThousands;
+            yield return new object[] { "-123", 0, 3, DefaultStyle, null, (double)-12 };
+            yield return new object[] { "-123", 1, 3, DefaultStyle, null, (double)123 };
+            yield return new object[] { "1E23", 0, 3, DefaultStyle, null, 1E2 };
+            yield return new object[] { "(123)", 1, 3, NumberStyles.AllowParentheses, new NumberFormatInfo() { NumberDecimalSeparator = "." }, 123 };
+            yield return new object[] { "-Infinity", 1, 8, NumberStyles.Any, NumberFormatInfo.InvariantInfo, double.PositiveInfinity };
+        }
+
+        [Theory]
+        [MemberData(nameof(Parse_ValidWithOffsetCount_TestData))]
+        public static void Parse_Span_Valid(string value, int offset, int count, NumberStyles style, IFormatProvider provider, double expected)
+        {
+            bool isDefaultProvider = provider == null || provider == NumberFormatInfo.CurrentInfo;
+            double result;
+            if ((style & ~(NumberStyles.Float | NumberStyles.AllowThousands)) == 0 && style != NumberStyles.None)
+            {
+                // Use Parse(string) or Parse(string, IFormatProvider)
+                if (isDefaultProvider)
+                {
+                    Assert.True(double.TryParse(value.AsSpan(offset, count), out result));
+                    Assert.Equal(expected, result);
+
+                    Assert.Equal(expected, double.Parse(value.AsSpan(offset, count)));
+                }
+
+                Assert.Equal(expected, double.Parse(value.AsSpan(offset, count), provider: provider));
+            }
+
+            Assert.Equal(expected, double.Parse(value.AsSpan(offset, count), style, provider));
+
+            Assert.True(double.TryParse(value.AsSpan(offset, count), style, provider, out result));
             Assert.Equal(expected, result);
         }
 
@@ -103,11 +134,60 @@ namespace System.Tests
         {
             if (value != null)
             {
-                Assert.Throws(exceptionType, () => double.Parse(value.AsReadOnlySpan(), style, provider));
+                Assert.Throws(exceptionType, () => double.Parse(value.AsSpan(), style, provider));
 
-                Assert.False(double.TryParse(value.AsReadOnlySpan(), out double result, style, provider));
+                Assert.False(double.TryParse(value.AsSpan(), style, provider, out double result));
                 Assert.Equal(0, result);
             }
+        }
+
+        [Fact]
+        public static void TryFormat()
+        {
+            RemoteInvoke(() =>
+            {
+                CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+
+                foreach (var testdata in ToString_TestData())
+                {
+                    double localI = (double)testdata[0];
+                    string localFormat = (string)testdata[1];
+                    IFormatProvider localProvider = (IFormatProvider)testdata[2];
+                    string localExpected = (string)testdata[3];
+
+                    try
+                    {
+                        char[] actual;
+                        int charsWritten;
+
+                        // Just right
+                        actual = new char[localExpected.Length];
+                        Assert.True(localI.TryFormat(actual.AsSpan(), out charsWritten, localFormat, localProvider));
+                        Assert.Equal(localExpected.Length, charsWritten);
+                        Assert.Equal(localExpected, new string(actual));
+
+                        // Longer than needed
+                        actual = new char[localExpected.Length + 1];
+                        Assert.True(localI.TryFormat(actual.AsSpan(), out charsWritten, localFormat, localProvider));
+                        Assert.Equal(localExpected.Length, charsWritten);
+                        Assert.Equal(localExpected, new string(actual, 0, charsWritten));
+
+                        // Too short
+                        if (localExpected.Length > 0)
+                        {
+                            actual = new char[localExpected.Length - 1];
+                            Assert.False(localI.TryFormat(actual.AsSpan(), out charsWritten, localFormat, localProvider));
+                            Assert.Equal(0, charsWritten);
+                        }
+                    }
+                    catch (Exception exc)
+                    {
+                        throw new Exception($"Failed on `{localI}`, `{localFormat}`, `{localProvider}`, `{localExpected}`. {exc}");
+                    }
+                }
+
+                return SuccessExitCode;
+            }).Dispose();
         }
     }
 }

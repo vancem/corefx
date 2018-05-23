@@ -45,9 +45,9 @@ namespace System.Net.Sockets
         TranslateHandle = (long)3355443213,
         UnicastInterface = (long)2550136838,
     }
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct IPPacketInformation
     {
+        private object _dummy;
         public System.Net.IPAddress Address { get { throw null; } }
         public int Interface { get { throw null; } }
         public override bool Equals(object comparand) { throw null; }
@@ -111,12 +111,14 @@ namespace System.Net.Sockets
         public override void EndWrite(IAsyncResult asyncResult) { }
         public override void Flush() { }
         public override System.Threading.Tasks.Task FlushAsync(System.Threading.CancellationToken cancellationToken) { throw null; }
+        public override int ReadByte() { throw null; }
         public override int Read(byte[] buffer, int offset, int size) { throw null; }
         public override System.Threading.Tasks.Task<int> ReadAsync(byte[] buffer, int offset, int size, System.Threading.CancellationToken cancellationToken) { throw null; }
         public override long Seek(long offset, System.IO.SeekOrigin origin) { throw null; }
         public override void SetLength(long value) { }
         public override void Write(byte[] buffer, int offset, int size) { }
         public override System.Threading.Tasks.Task WriteAsync(byte[] buffer, int offset, int size, System.Threading.CancellationToken cancellationToken) { throw null; }
+        public override void WriteByte(byte value) { }
     }
     public enum ProtocolFamily
     {
@@ -389,10 +391,10 @@ namespace System.Net.Sockets
         Peek = 2,
         Truncated = 256,
     }
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
-    public struct SocketInformation
+    public partial struct SocketInformation
     {
-        public SocketInformationOptions Options { get { throw null; } set { } }
+        private object _dummy;
+        public System.Net.Sockets.SocketInformationOptions Options { get { throw null; } set { } }
         public byte[] ProtocolInformation { get { throw null; } set { } }
     }
     [Flags]
@@ -638,9 +640,9 @@ namespace System.Net.Sockets
         public System.Threading.Tasks.Task<int> SendAsync(byte[] datagram, int bytes, string hostname, int port) { throw null; }
         public void AllowNatTraversal(bool allowed) { throw null; }
     }
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct UdpReceiveResult : System.IEquatable<System.Net.Sockets.UdpReceiveResult>
     {
+        private object _dummy;
         public UdpReceiveResult(byte[] buffer, System.Net.IPEndPoint remoteEndPoint) { throw null; }
         public byte[] Buffer { get { throw null; } }
         public System.Net.IPEndPoint RemoteEndPoint { get { throw null; } }

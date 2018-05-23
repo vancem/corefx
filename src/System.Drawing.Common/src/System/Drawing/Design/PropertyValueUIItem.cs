@@ -1,8 +1,6 @@
-//------------------------------------------------------------------------------
-// <copyright file="PropertyValueUIItem.cs" company="Microsoft">
-//     Copyright (c) Microsoft Corporation.  All rights reserved.
-// </copyright>                                                                
-//------------------------------------------------------------------------------
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 /*
  */
@@ -20,8 +18,6 @@ namespace System.Drawing.Design {
     ///       handler, tool tip, and the glyph icon to be displayed on the property
     ///       browser.</para>
     /// </devdoc>
-    [System.Security.Permissions.PermissionSetAttribute(System.Security.Permissions.SecurityAction.InheritanceDemand, Name="FullTrust")]
-    [System.Security.Permissions.PermissionSetAttribute(System.Security.Permissions.SecurityAction.LinkDemand, Name="FullTrust")]
     public class PropertyValueUIItem {
     
       /// <include file='doc\PropertyValueUIItem.uex' path='docs/doc[@for="PropertyValueUIItem.itemImage"]/*' />
