@@ -148,6 +148,8 @@ inline void SafeStringCopy(char* destination, int32_t destinationSize, const cha
     }
 }
 
+#else // __cplusplus
+#define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
 #endif // __cplusplus
 
 /**
@@ -182,6 +184,13 @@ inline static int ToFileDescriptor(intptr_t fd)
 */
 template <typename TInt>
 static inline bool CheckInterrupted(TInt result)
+{
+    return result < 0 && errno == EINTR;
+}
+
+#else
+
+static inline bool CheckInterrupted(int32_t result)
 {
     return result < 0 && errno == EINTR;
 }
