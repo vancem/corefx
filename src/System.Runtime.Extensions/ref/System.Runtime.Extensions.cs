@@ -1558,6 +1558,7 @@ namespace System.IO
         public virtual void Write(string format, object arg0, object arg1) { }
         public virtual void Write(string format, object arg0, object arg1, object arg2) { }
         public virtual void Write(string format, params object[] arg) { }
+        public virtual void Write(System.Text.StringBuilder value) { }
         [System.CLSCompliantAttribute(false)]
         public virtual void Write(uint value) { }
         [System.CLSCompliantAttribute(false)]
@@ -1568,6 +1569,7 @@ namespace System.IO
         public virtual System.Threading.Tasks.Task WriteAsync(char[] buffer, int index, int count) { throw null; }
         public virtual System.Threading.Tasks.Task WriteAsync(System.ReadOnlyMemory<char> buffer, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
         public virtual System.Threading.Tasks.Task WriteAsync(string value) { throw null; }
+        public virtual System.Threading.Tasks.Task WriteAsync(System.Text.StringBuilder value, System.Threading.CancellationToken cancellationToken = default) { throw null;  }
         public virtual void WriteLine() { }
         public virtual void WriteLine(bool value) { }
         public virtual void WriteLine(char value) { }
@@ -1584,6 +1586,7 @@ namespace System.IO
         public virtual void WriteLine(string format, object arg0, object arg1) { }
         public virtual void WriteLine(string format, object arg0, object arg1, object arg2) { }
         public virtual void WriteLine(string format, params object[] arg) { }
+        public virtual void WriteLine(System.Text.StringBuilder value) { }
         [System.CLSCompliantAttribute(false)]
         public virtual void WriteLine(uint value) { }
         [System.CLSCompliantAttribute(false)]
@@ -1595,6 +1598,7 @@ namespace System.IO
         public virtual System.Threading.Tasks.Task WriteLineAsync(char[] buffer, int index, int count) { throw null; }
         public virtual System.Threading.Tasks.Task WriteLineAsync(System.ReadOnlyMemory<char> buffer, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
         public virtual System.Threading.Tasks.Task WriteLineAsync(string value) { throw null; }
+        public virtual System.Threading.Tasks.Task WriteLineAsync(System.Text.StringBuilder value, System.Threading.CancellationToken cancellationToken = default) { throw null; }
     }
 }
 namespace System.Net
