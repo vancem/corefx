@@ -52,15 +52,13 @@ namespace Internal.Cryptography.Pal
             get { return _cert; }
         }
 
-        public string Issuer
-        {
-            get { return IssuerName.Name; }
-        }
+        public string Issuer => IssuerName.Name;
 
-        public string Subject
-        {
-            get { return SubjectName.Name; }
-        }
+        public string Subject => SubjectName.Name;
+
+        public string LegacyIssuer => IssuerName.Decode(X500DistinguishedNameFlags.None);
+
+        public string LegacySubject => SubjectName.Decode(X500DistinguishedNameFlags.None);
 
         public byte[] Thumbprint
         {
@@ -102,12 +100,7 @@ namespace Internal.Cryptography.Pal
             {
                 using (SafeSharedAsn1IntegerHandle serialNumber = Interop.Crypto.X509GetSerialNumber(_cert))
                 {
-                    byte[] serial = Interop.Crypto.GetAsn1IntegerBytes(serialNumber);
-
-                    // Windows returns this in BigInteger Little-Endian,
-                    // OpenSSL returns this in BigInteger Big-Endian.
-                    Array.Reverse(serial);
-                    return serial;
+                    return Interop.Crypto.GetAsn1IntegerBytes(serialNumber);
                 }
             }
         }
@@ -508,6 +501,14 @@ namespace Internal.Cryptography.Pal
             }
 
             throw new CryptographicException();
+        }
+
+        public byte[] Export(X509ContentType contentType, SafePasswordHandle password)
+        {
+            using (IExportPal storePal = StorePal.FromCertificate(this))
+            {
+                return storePal.Export (contentType, password);
+            }
         }
     }
 }

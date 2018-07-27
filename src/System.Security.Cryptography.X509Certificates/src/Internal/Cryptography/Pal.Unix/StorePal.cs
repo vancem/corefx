@@ -129,7 +129,7 @@ namespace Internal.Cryptography.Pal
             throw openSslException;
         }
 
-        public static IExportPal FromCertificate(ICertificatePal cert)
+        public static IExportPal FromCertificate(ICertificatePalCore cert)
         {
             return new ExportProvider(cert);
         }
@@ -254,7 +254,12 @@ namespace Internal.Cryptography.Pal
             {
                 using (SafeBioHandle fileBio = Interop.Crypto.BioNewFile(file.FullName, "rb"))
                 {
-                    Interop.Crypto.CheckValidOpenSslHandle(fileBio);
+                    // The handle may be invalid, for example when we don't have read permission for the file.
+                    if (fileBio.IsInvalid)
+                    {
+                        Interop.Crypto.ErrClearError();
+                        continue;
+                    }
 
                     ICertificatePal pal;
 

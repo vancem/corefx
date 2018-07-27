@@ -17,13 +17,8 @@ using X509IssuerSerial = System.Security.Cryptography.Xml.X509IssuerSerial;
 
 namespace Internal.Cryptography
 {
-    internal static class Helpers
+    internal static partial class Helpers
     {
-        public static byte[] CloneByteArray(this byte[] a)
-        {
-            return (byte[])(a.Clone());
-        }
-
 #if !netcoreapp
         // Compatibility API.
         internal static void AppendData(this IncrementalHash hasher, ReadOnlySpan<byte> data)
@@ -373,6 +368,12 @@ namespace Internal.Cryptography
                     attributeObject = Upgrade<Pkcs9MessageDigest>(attributeObject);
                     break;
 
+#if netcoreapp
+                case Oids.LocalKeyId:
+                    attributeObject = Upgrade<Pkcs9LocalKeyId>(attributeObject);
+                    break;
+#endif
+
                 default:
                     break;
             }
@@ -426,15 +427,6 @@ namespace Internal.Cryptography
             }
         }
 
-        internal static void DigestWriter(IncrementalHash hasher, AsnWriter writer)
-        {
-#if netcoreapp
-            hasher.AppendData(writer.EncodeAsSpan());
-#else
-            hasher.AppendData(writer.Encode());
-#endif
-        }
-
         internal static byte[] OneShot(this ICryptoTransform transform, byte[] data)
         {
             return OneShot(transform, data, 0, data.Length);
@@ -462,6 +454,31 @@ namespace Internal.Cryptography
         {
             var parsedCertificate = AsnSerializer.Deserialize<Certificate>(certificate.RawData, AsnEncodingRules.DER);
             return parsedCertificate.TbsCertificate.SubjectPublicKeyInfo;
+        }
+
+        public static ReadOnlyMemory<byte> DecodeOctetString(ReadOnlyMemory<byte> encodedOctetString)
+        {
+            AsnReader reader = new AsnReader(encodedOctetString, AsnEncodingRules.BER);
+
+            if (reader.PeekEncodedValue().Length != encodedOctetString.Length)
+            {
+                throw new CryptographicException(SR.Cryptography_Der_Invalid_Encoding);
+            }
+
+            if (reader.TryGetPrimitiveOctetStringBytes(out ReadOnlyMemory<byte> primitiveContents))
+            {
+                return primitiveContents;
+            }
+
+            byte[] tooBig = new byte[encodedOctetString.Length];
+
+            if (reader.TryCopyOctetStringBytes(tooBig, out int bytesWritten))
+            {
+                return tooBig.AsMemory(0, bytesWritten);
+            }
+
+            Debug.Fail("TryCopyOctetStringBytes failed with an over-allocated array");
+            throw new CryptographicException();
         }
 
         [StructLayout(LayoutKind.Sequential)]

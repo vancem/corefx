@@ -14,7 +14,7 @@ namespace System.Net.Http.Functional.Tests
 {
     using Configuration = System.Net.Test.Common.Configuration;
 
-    [ActiveIssue(29802, TargetFrameworkMonikers.Uap)]
+    [SkipOnTargetFramework(TargetFrameworkMonikers.Uap, "UAP connection management behavior is different due to WinRT")]
     public abstract class HttpClientHandler_MaxConnectionsPerServer_Test : HttpClientTestBase
     {
         [Fact]
@@ -30,6 +30,7 @@ namespace System.Net.Http.Functional.Tests
         [Theory]
         [InlineData(0)]
         [InlineData(-1)]
+        [ActiveIssue(28882, TargetFrameworkMonikers.NetFramework)]
         public void Set_InvalidValues_Throws(int invalidValue)
         {
             using (HttpClientHandler handler = CreateHttpClientHandler())
