@@ -470,10 +470,13 @@ namespace System.Tests
 
         [Theory]
         [InlineData( double.NegativeInfinity, double.NaN,          0.0)]
+        [InlineData(-3.1415926535897932,      double.NaN,          0.0)]                                //                              value: -(pi)
+        [InlineData(-2.7182818284590452,      double.NaN,          0.0)]                                //                              value: -(e)
+        [InlineData(-1.4142135623730950,      double.NaN,          0.0)]                                //                              value: -(sqrt(2))
         [InlineData(-1.0,                     3.1415926535897932,  CrossPlatformMachineEpsilon * 10)]   // expected:  (pi)
         [InlineData(-0.91173391478696510,     2.7182818284590452,  CrossPlatformMachineEpsilon * 10)]   // expected:  (e)
         [InlineData(-0.66820151019031295,     2.3025850929940457,  CrossPlatformMachineEpsilon * 10)]   // expected:  (ln(10))
-        [InlineData( 0.0,                     1.5707963267948966,  CrossPlatformMachineEpsilon * 10)]   // expected:  (pi / 2)
+        [InlineData(-0.0,                     1.5707963267948966,  CrossPlatformMachineEpsilon * 10)]   // expected:  (pi / 2)
         [InlineData( double.NaN,              double.NaN,          0.0)]
         [InlineData( 0.0,                     1.5707963267948966,  CrossPlatformMachineEpsilon * 10)]   // expected:  (pi / 2)
         [InlineData( 0.12775121753523991,     1.4426950408889634,  CrossPlatformMachineEpsilon * 10)]   // expected:  (log2(e))
@@ -487,6 +490,9 @@ namespace System.Tests
         [InlineData( 0.90716712923909839,     0.43429448190325183, CrossPlatformMachineEpsilon)]        // expected:  (log10(e))
         [InlineData( 0.94976571538163866,     0.31830988618379067, CrossPlatformMachineEpsilon)]        // expected:  (1 / pi)
         [InlineData( 1.0,                     0.0,                 0.0 )]
+        [InlineData( 1.4142135623730950,      double.NaN,          0.0)]                                //                              value:  (sqrt(2))
+        [InlineData( 2.7182818284590452,      double.NaN,          0.0)]                                //                              value:  (e)
+        [InlineData( 3.1415926535897932,      double.NaN,          0.0)]                                //                              value:  (pi)
         [InlineData( double.PositiveInfinity, double.NaN,          0.0 )]
         public static void Acos(double value, double expectedResult, double allowedVariance)
         {
@@ -495,6 +501,9 @@ namespace System.Tests
 
         [Theory]
         [InlineData( double.NegativeInfinity,  double.NaN,          0.0)]
+        [InlineData(-3.1415926535897932,       double.NaN,          0.0)]                               //                              value: -(pi)
+        [InlineData(-2.7182818284590452,       double.NaN,          0.0)]                               //                              value: -(e)
+        [InlineData(-1.4142135623730950,       double.NaN,          0.0)]                               //                              value: -(sqrt(2))
         [InlineData(-1.0,                     -1.5707963267948966,  CrossPlatformMachineEpsilon * 10)]  // expected: -(pi / 2)
         [InlineData(-0.99180624439366372,     -1.4426950408889634,  CrossPlatformMachineEpsilon * 10)]  // expected: -(log2(e))
         [InlineData(-0.98776594599273553,     -1.4142135623730950,  CrossPlatformMachineEpsilon * 10)]  // expected: -(sqrt(2))
@@ -524,6 +533,9 @@ namespace System.Tests
         [InlineData( 0.98776594599273553,      1.4142135623730950,  CrossPlatformMachineEpsilon * 10)]  // expected:  (sqrt(2))
         [InlineData( 0.99180624439366372,      1.4426950408889634,  CrossPlatformMachineEpsilon * 10)]  // expected:  (log2(e))
         [InlineData( 1.0,                      1.5707963267948966,  CrossPlatformMachineEpsilon * 10)]  // expected:  (pi / 2)
+        [InlineData( 1.4142135623730950,       double.NaN,          0.0)]                               //                              value:  (sqrt(2))
+        [InlineData( 2.7182818284590452,       double.NaN,          0.0)]                               //                              value:  (e)
+        [InlineData( 3.1415926535897932,       double.NaN,          0.0)]                               //                              value:  (pi)
         [InlineData( double.PositiveInfinity,  double.NaN,          0.0)]
         public static void Asin(double value, double expectedResult, double allowedVariance)
         {
@@ -710,12 +722,6 @@ namespace System.Tests
         [InlineData(-1.4142135623730950,     -1.0,                     0.0)]    // value: -(sqrt(2))
         [InlineData(-1.1283791670955126,     -1.0,                     0.0)]    // value: -(2 / sqrt(pi))
         [InlineData(-1.0,                    -1.0,                     0.0)]
-        [InlineData(-0.78539816339744831,    -0.0,                     0.0, Skip = "https://github.com/dotnet/coreclr/issues/10287")]    // value: -(pi / 4)
-        [InlineData(-0.70710678118654752,    -0.0,                     0.0, Skip = "https://github.com/dotnet/coreclr/issues/10287")]    // value: -(1 / sqrt(2))
-        [InlineData(-0.69314718055994531,    -0.0,                     0.0, Skip = "https://github.com/dotnet/coreclr/issues/10287")]    // value: -(ln(2))
-        [InlineData(-0.63661977236758134,    -0.0,                     0.0, Skip = "https://github.com/dotnet/coreclr/issues/10287")]    // value: -(2 / pi)
-        [InlineData(-0.43429448190325183,    -0.0,                     0.0, Skip = "https://github.com/dotnet/coreclr/issues/10287")]    // value: -(log10(e))
-        [InlineData(-0.31830988618379067,    -0.0,                     0.0, Skip = "https://github.com/dotnet/coreclr/issues/10287")]    // value: -(1 / pi)
         [InlineData(-0.0,                    -0.0,                     0.0)]
         [InlineData( double.NaN,              double.NaN,              0.0)]
         [InlineData( 0.0,                     0.0,                     0.0)]
@@ -735,6 +741,19 @@ namespace System.Tests
         [InlineData( 3.1415926535897932,      4.0,                     0.0)]    // value:  (pi)
         [InlineData(double.PositiveInfinity, double.PositiveInfinity,  0.0)]
         public static void Ceiling_Double(double value, double expectedResult, double allowedVariance)
+        {
+            AssertEqual(expectedResult, Math.Ceiling(value), allowedVariance);
+        }
+
+        [Theory]
+        [InlineData(-0.78539816339744831,    -0.0,                     0.0)]    // value: -(pi / 4)
+        [InlineData(-0.70710678118654752,    -0.0,                     0.0)]    // value: -(1 / sqrt(2))
+        [InlineData(-0.69314718055994531,    -0.0,                     0.0)]    // value: -(ln(2))
+        [InlineData(-0.63661977236758134,    -0.0,                     0.0)]    // value: -(2 / pi)
+        [InlineData(-0.43429448190325183,    -0.0,                     0.0)]    // value: -(log10(e))
+        [InlineData(-0.31830988618379067,    -0.0,                     0.0)]    // value: -(1 / pi)
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
+        public static void Ceiling_Double_IEEE(double value, double expectedResult, double allowedVariance)
         {
             AssertEqual(expectedResult, Math.Ceiling(value), allowedVariance);
         }
@@ -880,7 +899,6 @@ namespace System.Tests
         [InlineData(-0.63661977236758134,    -1.0,                     0.0)]    // value: -(2 / pi)
         [InlineData(-0.43429448190325183,    -1.0,                     0.0)]    // value: -(log10(e))
         [InlineData(-0.31830988618379067,    -1.0,                     0.0)]    // value: -(1 / pi)
-        [InlineData(-0.0,                    -0.0,                     0.0, Skip = "https://github.com/dotnet/coreclr/issues/10288")]
         [InlineData( double.NaN,              double.NaN,              0.0)]
         [InlineData( 0.0,                     0.0,                     0.0)]
         [InlineData( 0.31830988618379067,     0.0,                     0.0)]    // value:  (1 / pi)
@@ -903,6 +921,14 @@ namespace System.Tests
             AssertEqual(expectedResult, Math.Floor(value), allowedVariance);
         }
 
+        [Theory]
+        [InlineData(-0.0,                    -0.0,                     0.0)]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
+        public static void Floor_Double_IEEE(double value, double expectedResult, double allowedVariance)
+        {
+            AssertEqual(expectedResult, Math.Floor(value), allowedVariance);
+        }
+
         [Fact]
         public static void IEEERemainder()
         {
@@ -920,6 +946,12 @@ namespace System.Tests
 
         [Theory]
         [InlineData( double.NegativeInfinity,  double.NaN,              0.0)]
+        [InlineData(-3.1415926535897932,       double.NaN,              0.0)]                               //                              value: -(pi)
+        [InlineData(-2.7182818284590452,       double.NaN,              0.0)]                               //                              value: -(e)
+        [InlineData(-1.4142135623730950,       double.NaN,              0.0)]                               //                              value: -(sqrt(2))
+        [InlineData(-1.0,                      double.NaN,              0.0)]
+        [InlineData(-0.69314718055994531,      double.NaN,              0.0)]                               //                              value: -(ln(2))
+        [InlineData(-0.43429448190325183,      double.NaN,              0.0)]                               //                              value: -(log10(e))
         [InlineData(-0.0,                      double.NegativeInfinity, 0.0)]
         [InlineData( double.NaN,               double.NaN,              0.0)]
         [InlineData( 0.0,                      double.NegativeInfinity, 0.0)]
@@ -972,6 +1004,12 @@ namespace System.Tests
 
         [Theory]
         [InlineData( double.NegativeInfinity,  double.NaN,              0.0)]
+        [InlineData(-3.1415926535897932,       double.NaN,              0.0)]                               //                              value: -(pi)
+        [InlineData(-2.7182818284590452,       double.NaN,              0.0)]                               //                              value: -(e)
+        [InlineData(-1.4142135623730950,       double.NaN,              0.0)]                               //                              value: -(sqrt(2))
+        [InlineData(-1.0,                      double.NaN,              0.0)]
+        [InlineData(-0.69314718055994531,      double.NaN,              0.0)]                               //                              value: -(ln(2))
+        [InlineData(-0.43429448190325183,      double.NaN,              0.0)]                               //                              value: -(log10(e))
         [InlineData(-0.0,                      double.NegativeInfinity, 0.0)]
         [InlineData( double.NaN,               double.NaN,              0.0)]
         [InlineData( 0.0,                      double.NegativeInfinity, 0.0)]
@@ -1025,13 +1063,28 @@ namespace System.Tests
         }
 
         [Fact]
-        public static void Max_Double()
+        [SkipOnTargetFramework(~TargetFrameworkMonikers.NetFramework)]
+        public static void Max_Double_NetFramework()
         {
             Assert.Equal(3.0, Math.Max(3.0, -2.0));
             Assert.Equal(double.MaxValue, Math.Max(double.MinValue, double.MaxValue));
             Assert.Equal(double.PositiveInfinity, Math.Max(double.NegativeInfinity, double.PositiveInfinity));
             Assert.Equal(double.NaN, Math.Max(double.PositiveInfinity, double.NaN));
             Assert.Equal(double.NaN, Math.Max(double.NaN, double.NaN));
+        }
+
+        [Theory]
+        [InlineData(double.NegativeInfinity, double.PositiveInfinity, double.PositiveInfinity)]
+        [InlineData(double.MinValue, double.MaxValue, double.MaxValue)]
+        [InlineData(double.NaN, double.NaN, double.NaN)]
+        [InlineData(-0.0, 0.0, 0.0)]
+        [InlineData(2.0, -3.0, 2.0)]
+        [InlineData(3.0, -2.0, 3.0)]
+        [InlineData(double.PositiveInfinity, double.NaN, double.PositiveInfinity)]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
+        public static void Max_Double_NotNetFramework(double x, double y, double expectedResult)
+        {
+            AssertEqual(expectedResult, Math.Max(x, y), 0.0);
         }
 
         [Fact]
@@ -1063,13 +1116,28 @@ namespace System.Tests
         }
 
         [Fact]
-        public static void Max_Single()
+        [SkipOnTargetFramework(~TargetFrameworkMonikers.NetFramework)]
+        public static void Max_Single_NetFramework()
         {
             Assert.Equal(3.0f, Math.Max(3.0f, -2.0f));
             Assert.Equal(float.MaxValue, Math.Max(float.MinValue, float.MaxValue));
             Assert.Equal(float.PositiveInfinity, Math.Max(float.NegativeInfinity, float.PositiveInfinity));
             Assert.Equal(float.NaN, Math.Max(float.PositiveInfinity, float.NaN));
             Assert.Equal(float.NaN, Math.Max(float.NaN, float.NaN));
+        }
+
+        [Theory]
+        [InlineData(float.NegativeInfinity, float.PositiveInfinity, float.PositiveInfinity)]
+        [InlineData(float.MinValue, float.MaxValue, float.MaxValue)]
+        [InlineData(float.NaN, float.NaN, float.NaN)]
+        [InlineData(-0.0f, 0.0f, 0.0f)]
+        [InlineData(2.0f, -3.0f, 2.0f)]
+        [InlineData(3.0f, -2.0f, 3.0f)]
+        [InlineData(float.PositiveInfinity, float.NaN, float.PositiveInfinity)]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
+        public static void Max_Single_NotNetFramework(float x, float y, float expectedResult)
+        {
+            AssertEqual(expectedResult, Math.Max(x, y), 0.0f);
         }
 
         [Fact]
@@ -1108,13 +1176,28 @@ namespace System.Tests
         }
 
         [Fact]
-        public static void Min_Double()
+        [SkipOnTargetFramework(~TargetFrameworkMonikers.NetFramework)]
+        public static void Min_Double_NetFramework()
         {
             Assert.Equal(-2.0, Math.Min(3.0, -2.0));
             Assert.Equal(double.MinValue, Math.Min(double.MinValue, double.MaxValue));
             Assert.Equal(double.NegativeInfinity, Math.Min(double.NegativeInfinity, double.PositiveInfinity));
             Assert.Equal(double.NaN, Math.Min(double.NegativeInfinity, double.NaN));
             Assert.Equal(double.NaN, Math.Min(double.NaN, double.NaN));
+        }
+
+        [Theory]
+        [InlineData(double.NegativeInfinity, double.PositiveInfinity, double.NegativeInfinity)]
+        [InlineData(double.MinValue, double.MaxValue, double.MinValue)]
+        [InlineData(double.NaN, double.NaN, double.NaN)]
+        [InlineData(-0.0, 0.0, -0.0)]
+        [InlineData(2.0, -3.0, -3.0)]
+        [InlineData(3.0, -2.0, -2.0)]
+        [InlineData(double.PositiveInfinity, double.NaN, double.PositiveInfinity)]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
+        public static void Min_Double_NotNetFramework(double x, double y, double expectedResult)
+        {
+            AssertEqual(expectedResult, Math.Min(x, y), 0.0);
         }
 
         [Fact]
@@ -1146,13 +1229,28 @@ namespace System.Tests
         }
 
         [Fact]
-        public static void Min_Single()
+        [SkipOnTargetFramework(~TargetFrameworkMonikers.NetFramework)]
+        public static void Min_Single_NetFramework()
         {
             Assert.Equal(-2.0f, Math.Min(3.0f, -2.0f));
             Assert.Equal(float.MinValue, Math.Min(float.MinValue, float.MaxValue));
             Assert.Equal(float.NegativeInfinity, Math.Min(float.NegativeInfinity, float.PositiveInfinity));
             Assert.Equal(float.NaN, Math.Min(float.NegativeInfinity, float.NaN));
             Assert.Equal(float.NaN, Math.Min(float.NaN, float.NaN));
+        }
+
+        [Theory]
+        [InlineData(float.NegativeInfinity, float.PositiveInfinity, float.NegativeInfinity)]
+        [InlineData(float.MinValue, float.MaxValue, float.MinValue)]
+        [InlineData(float.NaN, float.NaN, float.NaN)]
+        [InlineData(-0.0f, 0.0f, -0.0f)]
+        [InlineData(2.0f, -3.0f, -3.0f)]
+        [InlineData(3.0f, -2.0f, -2.0f)]
+        [InlineData(float.PositiveInfinity, float.NaN, float.PositiveInfinity)]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
+        public static void Min_Single_NotNetFramework(float x, float y, float expectedResult)
+        {
+            AssertEqual(expectedResult, Math.Min(x, y), 0.0f);
         }
 
         [Fact]

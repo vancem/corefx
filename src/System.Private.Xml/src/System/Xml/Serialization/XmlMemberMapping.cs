@@ -6,18 +6,10 @@ using System.Reflection;
 using System;
 
 
-#if XMLSERIALIZERGENERATOR
-namespace Microsoft.XmlSerializer.Generator
-#else
 namespace System.Xml.Serialization
-#endif
 {
     /// <internalonly/>
-#if XMLSERIALIZERGENERATOR
-    internal class XmlMemberMapping
-#else
     public class XmlMemberMapping
-#endif
     {
         private MemberMapping _mapping;
 
@@ -78,7 +70,7 @@ namespace System.Xml.Serialization
         /// </devdoc>
         public string TypeName
         {
-            get { return Accessor.Mapping != null ? Accessor.Mapping.TypeName : String.Empty; }
+            get { return Accessor.Mapping != null ? Accessor.Mapping.TypeName : string.Empty; }
         }
 
         /// <devdoc>

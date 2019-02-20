@@ -125,13 +125,13 @@ namespace System.IO
             _sb.Append(buffer, index, count);
         }
 
-        public override void Write(ReadOnlySpan<char> source)
+        public override void Write(ReadOnlySpan<char> buffer)
         {
             if (GetType() != typeof(StringWriter))
             {
-                // This overload was added affter the Write(char[], ...) overload, and so in case
+                // This overload was added after the Write(char[], ...) overload, and so in case
                 // a derived type may have overridden it, we need to delegate to it, which the base does.
-                base.Write(source);
+                base.Write(buffer);
                 return;
             }
 
@@ -140,7 +140,7 @@ namespace System.IO
                 throw new ObjectDisposedException(null, SR.ObjectDisposed_WriterClosed);
             }
 
-            _sb.Append(source);
+            _sb.Append(buffer);
         }
 
         // Writes a string to the underlying string buffer. If the given string is
@@ -159,13 +159,13 @@ namespace System.IO
             }
         }
 
-        public override void WriteLine(ReadOnlySpan<char> source)
+        public override void Write(StringBuilder value)
         {
             if (GetType() != typeof(StringWriter))
             {
-                // This overload was added affter the WriteLine(char[], ...) overload, and so in case
+                // This overload was added after the Write(char[], ...) overload, and so in case
                 // a derived type may have overridden it, we need to delegate to it, which the base does.
-                base.WriteLine(source);
+                base.Write(value);
                 return;
             }
 
@@ -174,12 +174,49 @@ namespace System.IO
                 throw new ObjectDisposedException(null, SR.ObjectDisposed_WriterClosed);
             }
 
-            _sb.Append(source);
+            _sb.Append(value);
+        }
+
+        public override void WriteLine(ReadOnlySpan<char> buffer)
+        {
+            if (GetType() != typeof(StringWriter))
+            {
+                // This overload was added after the WriteLine(char[], ...) overload, and so in case
+                // a derived type may have overridden it, we need to delegate to it, which the base does.
+                base.WriteLine(buffer);
+                return;
+            }
+
+            if (!_isOpen)
+            {
+                throw new ObjectDisposedException(null, SR.ObjectDisposed_WriterClosed);
+            }
+
+            _sb.Append(buffer);
+            WriteLine();
+        }
+
+        public override void WriteLine(StringBuilder value)
+        {
+            if (GetType() != typeof(StringWriter))
+            {
+                // This overload was added after the WriteLine(char[], ...) overload, and so in case
+                // a derived type may have overridden it, we need to delegate to it, which the base does.
+                base.WriteLine(value);
+                return;
+            }
+
+            if (!_isOpen)
+            {
+                throw new ObjectDisposedException(null, SR.ObjectDisposed_WriterClosed);
+            }
+
+            _sb.Append(value);
             WriteLine();
         }
 
         #region Task based Async APIs
-
+        
         public override Task WriteAsync(char value)
         {
             Write(value);
@@ -198,17 +235,40 @@ namespace System.IO
             return Task.CompletedTask;
         }
 
-        public override Task WriteAsync(ReadOnlyMemory<char> source, CancellationToken cancellationToken = default)
+        public override Task WriteAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = default)
         {
             if (cancellationToken.IsCancellationRequested)
             {
                 return Task.FromCanceled(cancellationToken);
             }
 
-            Write(source.Span);
+            Write(buffer.Span);
             return Task.CompletedTask;
         }
 
+        public override Task WriteAsync(StringBuilder value, CancellationToken cancellationToken = default)
+        {            
+            if (GetType() != typeof(StringWriter))
+            {
+                // This overload was added after the WriteAsync(char[], ...) overload, and so in case
+                // a derived type may have overridden it, we need to delegate to it, which the base does.
+                return base.WriteAsync(value, cancellationToken);
+            }
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return Task.FromCanceled(cancellationToken);
+            }
+
+            if (!_isOpen)
+            {
+                throw new ObjectDisposedException(null, SR.ObjectDisposed_WriterClosed);
+            }
+            
+            _sb.Append(value);
+            return Task.CompletedTask;
+        }
+        
         public override Task WriteLineAsync(char value)
         {
             WriteLine(value);
@@ -221,20 +281,44 @@ namespace System.IO
             return Task.CompletedTask;
         }
 
+        public override Task WriteLineAsync(StringBuilder value, CancellationToken cancellationToken = default)
+        {
+            if (GetType() != typeof(StringWriter))
+            {
+                // This overload was added after the WriteLineAsync(char[], ...) overload, and so in case
+                // a derived type may have overridden it, we need to delegate to it, which the base does.
+                return base.WriteLineAsync(value, cancellationToken);                
+            }
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return Task.FromCanceled(cancellationToken);
+            }
+
+            if (!_isOpen)
+            {
+                throw new ObjectDisposedException(null, SR.ObjectDisposed_WriterClosed);
+            }
+
+            _sb.Append(value);
+            WriteLine();
+            return Task.CompletedTask;
+        }
+
         public override Task WriteLineAsync(char[] buffer, int index, int count)
         {
             WriteLine(buffer, index, count);
             return Task.CompletedTask;
         }
 
-        public override Task WriteLineAsync(ReadOnlyMemory<char> source, CancellationToken cancellationToken = default)
+        public override Task WriteLineAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = default)
         {
             if (cancellationToken.IsCancellationRequested)
             {
                 return Task.FromCanceled(cancellationToken);
             }
 
-            WriteLine(source.Span);
+            WriteLine(buffer.Span);
             return Task.CompletedTask;
         }
 

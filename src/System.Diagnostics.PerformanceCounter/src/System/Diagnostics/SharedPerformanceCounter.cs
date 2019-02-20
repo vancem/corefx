@@ -8,7 +8,6 @@ using System.Threading;
 using System.Collections;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Security.Permissions;
 using Microsoft.Win32;
 using Microsoft.Win32.SafeHandles;
 
@@ -533,7 +532,6 @@ namespace System.Diagnostics
             // but of course that's only a probabilisitic statement.
 
             // Must be able to assign to the out param.
-            RuntimeHelpers.PrepareConstrainedRegions();
             try
             {
             }
@@ -637,15 +635,13 @@ namespace System.Diagnostics
                         data.FileMappingName = DefaultFileMappingName;
                         data.MutexName = _categoryName;
 
-                        RegistryPermission registryPermission = new RegistryPermission(PermissionState.Unrestricted);
-                        registryPermission.Assert();
                         RegistryKey categoryKey = null;
                         try
                         {
                             categoryKey = Registry.LocalMachine.OpenSubKey(PerformanceCounterLib.ServicePath + "\\" + _categoryName + "\\Performance");
 
                             // first read the options
-                            Object optionsObject = categoryKey.GetValue("CategoryOptions");
+                            object optionsObject = categoryKey.GetValue("CategoryOptions");
                             if (optionsObject != null)
                             {
                                 int options = (int)optionsObject;
@@ -692,7 +688,7 @@ namespace System.Diagnostics
                                     {
                                         if (counterNamesBytes[i] == 0 && counterNamesBytes[i + 1] == 0 && start != i)
                                         {
-                                            string counter = new String((sbyte*)counterNamesPtr, start, i - start, Encoding.Unicode);
+                                            string counter = new string((sbyte*)counterNamesPtr, start, i - start, Encoding.Unicode);
                                             names.Add(counter.ToLowerInvariant());
                                             start = i + 2;
                                         }
@@ -717,7 +713,6 @@ namespace System.Diagnostics
                         {
                             if (categoryKey != null)
                                 categoryKey.Close();
-                            RegistryPermission.RevertAssert();
                         }
                     }
                 }
@@ -760,10 +755,9 @@ namespace System.Diagnostics
             Mutex mutex = null;
             CounterEntry* counterPointer = null;
             InstanceEntry* instancePointer = null;
-            RuntimeHelpers.PrepareConstrainedRegions();
             try
             {
-                SharedUtils.EnterMutexWithoutGlobal(_categoryData.MutexName, ref mutex);
+                NetFrameworkUtils.EnterMutexWithoutGlobal(_categoryData.MutexName, ref mutex);
                 CategoryEntry* categoryPointer;
                 bool counterFound = false;
                 while (!FindCategory(&categoryPointer))
@@ -1068,10 +1062,9 @@ namespace System.Diagnostics
                             if (activateUnusedInstances)
                             {
                                 Mutex mutex = null;
-                                RuntimeHelpers.PrepareConstrainedRegions();
                                 try
                                 {
-                                    SharedUtils.EnterMutexWithoutGlobal(_categoryData.MutexName, ref mutex);
+                                    NetFrameworkUtils.EnterMutexWithoutGlobal(_categoryData.MutexName, ref mutex);
                                     ClearCounterValues(currentInstancePointer);
                                     if (lifetimeEntry != null)
                                         PopulateLifetimeEntry(lifetimeEntry, lifetime);
@@ -1211,10 +1204,9 @@ namespace System.Diagnostics
                 return;
 
             Mutex mutex = null;
-            RuntimeHelpers.PrepareConstrainedRegions();
             try
             {
-                SharedUtils.EnterMutexWithoutGlobal(_categoryData.MutexName, ref mutex);
+                NetFrameworkUtils.EnterMutexWithoutGlobal(_categoryData.MutexName, ref mutex);
                 VerifyCategory(currentCategoryPointer);
             }
             finally
@@ -1409,10 +1401,9 @@ namespace System.Diagnostics
             InstanceEntry* instancePointer = (InstanceEntry*)(ResolveOffset(categoryPointer->FirstInstanceOffset, s_instanceEntrySize));
 
             Mutex mutex = null;
-            RuntimeHelpers.PrepareConstrainedRegions();
             try
             {
-                SharedUtils.EnterMutexWithoutGlobal(_categoryData.MutexName, ref mutex);
+                NetFrameworkUtils.EnterMutexWithoutGlobal(_categoryData.MutexName, ref mutex);
                 for (; ; )
                 {
                     RemoveOneInstance(instancePointer, true);
@@ -1451,10 +1442,9 @@ namespace System.Diagnostics
             bool temp;
 
             Mutex mutex = null;
-            RuntimeHelpers.PrepareConstrainedRegions();
             try
             {
-                SharedUtils.EnterMutexWithoutGlobal(_categoryData.MutexName, ref mutex);
+                NetFrameworkUtils.EnterMutexWithoutGlobal(_categoryData.MutexName, ref mutex);
 
                 if (_thisInstanceOffset != -1)
                 {
@@ -1516,7 +1506,6 @@ namespace System.Diagnostics
         {
             bool sectionEntered = false;
 
-            RuntimeHelpers.PrepareConstrainedRegions();
             try
             {
                 if (!_categoryData.UseUniqueSharedMemory)
@@ -1630,7 +1619,7 @@ namespace System.Diagnostics
 
         private static unsafe bool IsMisaligned(CounterEntry* counterEntry)
         {
-            return (((Int64)counterEntry & 0x7) != 0);
+            return (((long)counterEntry & 0x7) != 0);
         }
 
         private long ResolveOffset(int offset, int sizeToRead)
@@ -1853,7 +1842,7 @@ namespace System.Diagnostics
         {
             public int LifetimeType;
             public int ProcessId;
-            public Int64 StartupTime;
+            public long StartupTime;
         }
 
         private class CategoryData

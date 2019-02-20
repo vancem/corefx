@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using Microsoft.Win32.SafeHandles;
 using Xunit;
 
 namespace System.Threading.Tests
@@ -159,6 +160,28 @@ namespace System.Threading.Tests
             Assert.Throws<ObjectDisposedException>(() => testWaitHandle.WaitOne(0));
         }
 
+        [Fact]
+        public static void SafeWaitHandleViaExtension()
+        {
+            ManualResetEvent eventWaitHandle = new ManualResetEvent(false);
+            SafeWaitHandle eventSafeWaitHandle = eventWaitHandle.GetSafeWaitHandle();
+            TestWaitHandle testWaitHandle = new TestWaitHandle();
+            testWaitHandle.SetSafeWaitHandle(eventSafeWaitHandle);
+            Assert.False(testWaitHandle.WaitOne(0));
+            eventWaitHandle.Set();
+            Assert.True(testWaitHandle.WaitOne(0));
+            testWaitHandle.SetSafeWaitHandle(null);
+            Assert.Throws<ObjectDisposedException>(() => testWaitHandle.WaitOne(0));
+        }
+
+        [Fact]
+        public static void SetSafeWaitHandleOnNull() =>
+            AssertExtensions.Throws<ArgumentNullException>("waitHandle", () => default(WaitHandle).SetSafeWaitHandle(null));
+
+        [Fact]
+        public static void GetSafeWaitHandleOnNull() =>
+            AssertExtensions.Throws<ArgumentNullException>("waitHandle", () => default(WaitHandle).GetSafeWaitHandle());
+
         private static void Unsignal(WaitHandle wh)
         {
             var eventWh = wh as ManualResetEvent;
@@ -228,7 +251,6 @@ namespace System.Threading.Tests
 
         [Theory]
         [MemberData(nameof(SignalAndWait_MemberData))]
-        [PlatformSpecific(TestPlatforms.Windows)] // other platforms don't support SignalAndWait
         private static void SignalAndWait(
             WaitHandle toSignal,
             AutoResetEvent toWaitOn,
@@ -273,7 +295,6 @@ namespace System.Threading.Tests
         }
 
         [Fact]
-        [PlatformSpecific(TestPlatforms.Windows)] // other platforms don't support SignalAndWait
         public static void SignalAndWait_InvalidArgs()
         {
             var toSignal = new ManualResetEvent(false);
@@ -295,17 +316,6 @@ namespace System.Threading.Tests
             Assert.False(toSignal.WaitOne(0));
             Assert.Throws<ObjectDisposedException>(() => WaitHandle.SignalAndWait(toSignal, invalidWh));
             Assert.False(toSignal.WaitOne(0));
-        }
-
-        [Fact]
-        [PlatformSpecific(TestPlatforms.AnyUnix)]  // Unix doesn't support SignalAndWait
-        public static void SignalAndWait_PlatformNotSupported()
-        {
-            var toSignal = new ManualResetEvent(false);
-            var toWaitOn = new ManualResetEvent(true);
-            Assert.Throws<PlatformNotSupportedException>(() => WaitHandle.SignalAndWait(toSignal, toWaitOn));
-            Assert.Throws<PlatformNotSupportedException>(() => WaitHandle.SignalAndWait(toSignal, toWaitOn, 0, false));
-            Assert.Throws<PlatformNotSupportedException>(() => WaitHandle.SignalAndWait(toSignal, toWaitOn, TimeSpan.Zero, false));
         }
 
         [Fact]

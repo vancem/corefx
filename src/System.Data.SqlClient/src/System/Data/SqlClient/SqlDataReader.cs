@@ -268,7 +268,7 @@ namespace System.Data.SqlClient
                 {
                     _SqlMetaData colMetaData = metaData[index];
 
-                    if (!colMetaData.isHidden)
+                    if (!colMetaData.IsHidden)
                     {
                         SqlCollation collation = colMetaData.collation;
 
@@ -278,13 +278,17 @@ namespace System.Data.SqlClient
 
                         if (SqlDbType.Xml == colMetaData.type)
                         {
-                            typeSpecificNamePart1 = colMetaData.xmlSchemaCollectionDatabase;
-                            typeSpecificNamePart2 = colMetaData.xmlSchemaCollectionOwningSchema;
-                            typeSpecificNamePart3 = colMetaData.xmlSchemaCollectionName;
+                            typeSpecificNamePart1 = colMetaData.xmlSchemaCollection?.Database;
+                            typeSpecificNamePart2 = colMetaData.xmlSchemaCollection?.OwningSchema;
+                            typeSpecificNamePart3 = colMetaData.xmlSchemaCollection?.Name;
                         }
                         else if (SqlDbType.Udt == colMetaData.type)
                         {
-                            throw ADP.DbTypeNotSupported(SqlDbType.Udt.ToString());
+                            Connection.CheckGetExtendedUDTInfo(colMetaData, true); // Ensure that colMetaData.udtType is set
+
+                            typeSpecificNamePart1 = colMetaData.udt?.DatabaseName;
+                            typeSpecificNamePart2 = colMetaData.udt?.SchemaName;
+                            typeSpecificNamePart3 = colMetaData.udt?.TypeName;
                         }
 
                         int length = colMetaData.length;
@@ -306,6 +310,7 @@ namespace System.Data.SqlClient
                                 colMetaData.scale,
                                 (null != collation) ? collation.LCID : _defaultLCID,
                                 (null != collation) ? collation.SqlCompareOptions : SqlCompareOptions.None,
+                                colMetaData.udt?.Type,
                                 false, // isMultiValued
                                 null, // fieldmetadata
                                 null, // extended properties
@@ -313,18 +318,19 @@ namespace System.Data.SqlClient
                                 typeSpecificNamePart1,
                                 typeSpecificNamePart2,
                                 typeSpecificNamePart3,
-                                colMetaData.isNullable,
+                                colMetaData.IsNullable,
                                 colMetaData.serverName,
                                 colMetaData.catalogName,
                                 colMetaData.schemaName,
                                 colMetaData.tableName,
                                 colMetaData.baseColumn,
-                                colMetaData.isKey,
-                                colMetaData.isIdentity,
-                                0 == colMetaData.updatability,
-                                colMetaData.isExpression,
-                                colMetaData.isDifferentName,
-                                colMetaData.isHidden);
+                                colMetaData.IsKey,
+                                colMetaData.IsIdentity,
+                                colMetaData.IsReadOnly,
+                                colMetaData.IsExpression,
+                                colMetaData.IsDifferentName,
+                                colMetaData.IsHidden
+                            );
                     }
                 }
             }
@@ -427,45 +433,45 @@ namespace System.Data.SqlClient
             schemaTable.Locale = CultureInfo.InvariantCulture;
             schemaTable.MinimumCapacity = md.Length;
 
-            DataColumn columnName = new DataColumn(SchemaTableColumn.ColumnName, typeof(System.String));
-            DataColumn ordinal = new DataColumn(SchemaTableColumn.ColumnOrdinal, typeof(System.Int32));
-            DataColumn size = new DataColumn(SchemaTableColumn.ColumnSize, typeof(System.Int32));
-            DataColumn precision = new DataColumn(SchemaTableColumn.NumericPrecision, typeof(System.Int16));
-            DataColumn scale = new DataColumn(SchemaTableColumn.NumericScale, typeof(System.Int16));
+            DataColumn columnName = new DataColumn(SchemaTableColumn.ColumnName, typeof(string));
+            DataColumn ordinal = new DataColumn(SchemaTableColumn.ColumnOrdinal, typeof(int));
+            DataColumn size = new DataColumn(SchemaTableColumn.ColumnSize, typeof(int));
+            DataColumn precision = new DataColumn(SchemaTableColumn.NumericPrecision, typeof(short));
+            DataColumn scale = new DataColumn(SchemaTableColumn.NumericScale, typeof(short));
 
             DataColumn dataType = new DataColumn(SchemaTableColumn.DataType, typeof(System.Type));
             DataColumn providerSpecificDataType = new DataColumn(SchemaTableOptionalColumn.ProviderSpecificDataType, typeof(System.Type));
-            DataColumn nonVersionedProviderType = new DataColumn(SchemaTableColumn.NonVersionedProviderType, typeof(System.Int32));
-            DataColumn providerType = new DataColumn(SchemaTableColumn.ProviderType, typeof(System.Int32));
+            DataColumn nonVersionedProviderType = new DataColumn(SchemaTableColumn.NonVersionedProviderType, typeof(int));
+            DataColumn providerType = new DataColumn(SchemaTableColumn.ProviderType, typeof(int));
 
-            DataColumn isLong = new DataColumn(SchemaTableColumn.IsLong, typeof(System.Boolean));
-            DataColumn allowDBNull = new DataColumn(SchemaTableColumn.AllowDBNull, typeof(System.Boolean));
-            DataColumn isReadOnly = new DataColumn(SchemaTableOptionalColumn.IsReadOnly, typeof(System.Boolean));
-            DataColumn isRowVersion = new DataColumn(SchemaTableOptionalColumn.IsRowVersion, typeof(System.Boolean));
+            DataColumn isLong = new DataColumn(SchemaTableColumn.IsLong, typeof(bool));
+            DataColumn allowDBNull = new DataColumn(SchemaTableColumn.AllowDBNull, typeof(bool));
+            DataColumn isReadOnly = new DataColumn(SchemaTableOptionalColumn.IsReadOnly, typeof(bool));
+            DataColumn isRowVersion = new DataColumn(SchemaTableOptionalColumn.IsRowVersion, typeof(bool));
 
-            DataColumn isUnique = new DataColumn(SchemaTableColumn.IsUnique, typeof(System.Boolean));
-            DataColumn isKey = new DataColumn(SchemaTableColumn.IsKey, typeof(System.Boolean));
-            DataColumn isAutoIncrement = new DataColumn(SchemaTableOptionalColumn.IsAutoIncrement, typeof(System.Boolean));
-            DataColumn isHidden = new DataColumn(SchemaTableOptionalColumn.IsHidden, typeof(System.Boolean));
+            DataColumn isUnique = new DataColumn(SchemaTableColumn.IsUnique, typeof(bool));
+            DataColumn isKey = new DataColumn(SchemaTableColumn.IsKey, typeof(bool));
+            DataColumn isAutoIncrement = new DataColumn(SchemaTableOptionalColumn.IsAutoIncrement, typeof(bool));
+            DataColumn isHidden = new DataColumn(SchemaTableOptionalColumn.IsHidden, typeof(bool));
 
-            DataColumn baseCatalogName = new DataColumn(SchemaTableOptionalColumn.BaseCatalogName, typeof(System.String));
-            DataColumn baseSchemaName = new DataColumn(SchemaTableColumn.BaseSchemaName, typeof(System.String));
-            DataColumn baseTableName = new DataColumn(SchemaTableColumn.BaseTableName, typeof(System.String));
-            DataColumn baseColumnName = new DataColumn(SchemaTableColumn.BaseColumnName, typeof(System.String));
+            DataColumn baseCatalogName = new DataColumn(SchemaTableOptionalColumn.BaseCatalogName, typeof(string));
+            DataColumn baseSchemaName = new DataColumn(SchemaTableColumn.BaseSchemaName, typeof(string));
+            DataColumn baseTableName = new DataColumn(SchemaTableColumn.BaseTableName, typeof(string));
+            DataColumn baseColumnName = new DataColumn(SchemaTableColumn.BaseColumnName, typeof(string));
 
             // unique to SqlClient
-            DataColumn baseServerName = new DataColumn(SchemaTableOptionalColumn.BaseServerName, typeof(System.String));
-            DataColumn isAliased = new DataColumn(SchemaTableColumn.IsAliased, typeof(System.Boolean));
-            DataColumn isExpression = new DataColumn(SchemaTableColumn.IsExpression, typeof(System.Boolean));
-            DataColumn isIdentity = new DataColumn("IsIdentity", typeof(System.Boolean));
-            DataColumn dataTypeName = new DataColumn("DataTypeName", typeof(System.String));
-            DataColumn udtAssemblyQualifiedName = new DataColumn("UdtAssemblyQualifiedName", typeof(System.String));
+            DataColumn baseServerName = new DataColumn(SchemaTableOptionalColumn.BaseServerName, typeof(string));
+            DataColumn isAliased = new DataColumn(SchemaTableColumn.IsAliased, typeof(bool));
+            DataColumn isExpression = new DataColumn(SchemaTableColumn.IsExpression, typeof(bool));
+            DataColumn isIdentity = new DataColumn("IsIdentity", typeof(bool));
+            DataColumn dataTypeName = new DataColumn("DataTypeName", typeof(string));
+            DataColumn udtAssemblyQualifiedName = new DataColumn("UdtAssemblyQualifiedName", typeof(string));
             // Xml metadata specific
-            DataColumn xmlSchemaCollectionDatabase = new DataColumn("XmlSchemaCollectionDatabase", typeof(System.String));
-            DataColumn xmlSchemaCollectionOwningSchema = new DataColumn("XmlSchemaCollectionOwningSchema", typeof(System.String));
-            DataColumn xmlSchemaCollectionName = new DataColumn("XmlSchemaCollectionName", typeof(System.String));
+            DataColumn xmlSchemaCollectionDatabase = new DataColumn("XmlSchemaCollectionDatabase", typeof(string));
+            DataColumn xmlSchemaCollectionOwningSchema = new DataColumn("XmlSchemaCollectionOwningSchema", typeof(string));
+            DataColumn xmlSchemaCollectionName = new DataColumn("XmlSchemaCollectionName", typeof(string));
             // SparseColumnSet
-            DataColumn isColumnSet = new DataColumn("IsColumnSet", typeof(System.Boolean));
+            DataColumn isColumnSet = new DataColumn("IsColumnSet", typeof(bool));
 
             ordinal.DefaultValue = 0;
             isLong.DefaultValue = false;
@@ -568,14 +574,14 @@ namespace System.Data.SqlClient
                     if (col.type == SqlDbType.Udt)
                     { // Additional metadata for UDTs.
                         Debug.Assert(Connection.IsKatmaiOrNewer, "Invalid Column type received from the server");
-                        schemaRow[udtAssemblyQualifiedName] = col.udtAssemblyQualifiedName;
+                        schemaRow[udtAssemblyQualifiedName] = col.udt?.AssemblyQualifiedName;
                     }
                     else if (col.type == SqlDbType.Xml)
                     { // Additional metadata for Xml.
                         Debug.Assert(Connection.IsKatmaiOrNewer, "Invalid DataType (Xml) for the column");
-                        schemaRow[xmlSchemaCollectionDatabase] = col.xmlSchemaCollectionDatabase;
-                        schemaRow[xmlSchemaCollectionOwningSchema] = col.xmlSchemaCollectionOwningSchema;
-                        schemaRow[xmlSchemaCollectionName] = col.xmlSchemaCollectionName;
+                        schemaRow[xmlSchemaCollectionDatabase] = col.xmlSchemaCollection?.Database;
+                        schemaRow[xmlSchemaCollectionOwningSchema] = col.xmlSchemaCollection?.OwningSchema;
+                        schemaRow[xmlSchemaCollectionName] = col.xmlSchemaCollection?.Name;
                     }
                 }
                 else
@@ -608,19 +614,19 @@ namespace System.Data.SqlClient
                     schemaRow[scale] = col.metaType.Scale;
                 }
 
-                schemaRow[allowDBNull] = col.isNullable;
+                schemaRow[allowDBNull] = col.IsNullable;
 
                 // If no ColInfo token received, do not set value, leave as null.
                 if (_browseModeInfoConsumed)
                 {
-                    schemaRow[isAliased] = col.isDifferentName;
-                    schemaRow[isKey] = col.isKey;
-                    schemaRow[isHidden] = col.isHidden;
-                    schemaRow[isExpression] = col.isExpression;
+                    schemaRow[isAliased] = col.IsDifferentName;
+                    schemaRow[isKey] = col.IsKey;
+                    schemaRow[isHidden] = col.IsHidden;
+                    schemaRow[isExpression] = col.IsExpression;
                 }
 
-                schemaRow[isIdentity] = col.isIdentity;
-                schemaRow[isAutoIncrement] = col.isIdentity;
+                schemaRow[isIdentity] = col.IsIdentity;
+                schemaRow[isAutoIncrement] = col.IsIdentity;
 
                 schemaRow[isLong] = col.metaType.IsLong;
 
@@ -636,8 +642,8 @@ namespace System.Data.SqlClient
                     schemaRow[isRowVersion] = false;
                 }
 
-                schemaRow[isReadOnly] = (0 == col.updatability);
-                schemaRow[isColumnSet] = col.isColumnSet;
+                schemaRow[isReadOnly] = col.IsReadOnly;
+                schemaRow[isColumnSet] = col.IsColumnSet;
 
                 if (!string.IsNullOrEmpty(col.serverName))
                 {
@@ -880,7 +886,7 @@ namespace System.Data.SqlClient
                         // if user called read but didn't fetch any values, skip the row
                         // same applies after NextResult on ALTROW because NextResult starts rowconsumption in that case ...
 
-                        Debug.Assert(SniContext.Snix_Read == stateObj.SniContext, String.Format((IFormatProvider)null, "The SniContext should be Snix_Read but it actually is {0}", stateObj.SniContext));
+                        Debug.Assert(SniContext.Snix_Read == stateObj.SniContext, string.Format((IFormatProvider)null, "The SniContext should be Snix_Read but it actually is {0}", stateObj.SniContext));
 
                         if (_altRowStatus == ALTROWSTATUS.AltRow)
                         {
@@ -1090,7 +1096,7 @@ namespace System.Data.SqlClient
                 {
                     indexMap[i] = _metaData.visibleColumns;
 
-                    if (!(_metaData[i].isHidden))
+                    if (!(_metaData[i].IsHidden))
                     {
                         _metaData.visibleColumns++;
                     }
@@ -1143,7 +1149,7 @@ namespace System.Data.SqlClient
 
                 if (metaData.type == SqlDbType.Udt)
                 {
-                    dataTypeName = metaData.udtDatabaseName + "." + metaData.udtSchemaName + "." + metaData.udtTypeName;
+                    dataTypeName = metaData.udt?.DatabaseName + "." + metaData.udt?.SchemaName + "." + metaData.udt?.TypeName;
                 }
                 else
                 { // For all other types, including Xml - use data in MetaType.
@@ -1213,10 +1219,10 @@ namespace System.Data.SqlClient
             else if (_typeSystem != SqlConnectionString.TypeSystem.SQLServer2000)
             {
                 // TypeSystem.SQLServer2005 and above
-
                 if (metaData.type == SqlDbType.Udt)
                 {
-                    fieldType = MetaType.MetaMaxVarBinary.ClassType;
+                    Connection.CheckGetExtendedUDTInfo(metaData, false);
+                    fieldType = metaData.udt?.Type;
                 }
                 else
                 { // For all other types, including Xml - use data in MetaType.
@@ -1226,7 +1232,6 @@ namespace System.Data.SqlClient
             else
             {
                 // TypeSystem.SQLServer2000
-
                 fieldType = GetVersionedMetaType(metaData.metaType).ClassType; // Com+ type.
             }
 
@@ -1294,20 +1299,19 @@ namespace System.Data.SqlClient
             else if (_typeSystem != SqlConnectionString.TypeSystem.SQLServer2000)
             {
                 // TypeSystem.SQLServer2005 and above
-
                 if (metaData.type == SqlDbType.Udt)
                 {
-                    providerSpecificFieldType = MetaType.MetaMaxVarBinary.SqlType;
+                    Connection.CheckGetExtendedUDTInfo(metaData, false);
+                    providerSpecificFieldType = metaData.udt?.Type;
                 }
                 else
-                { // For all other types, including Xml - use data in MetaType.
+                {
                     providerSpecificFieldType = metaData.metaType.SqlType; // SqlType type.
                 }
             }
             else
             {
                 // TypeSystem.SQLServer2000
-
                 providerSpecificFieldType = GetVersionedMetaType(metaData.metaType).SqlType; // SqlType type.
             }
 
@@ -1374,7 +1378,7 @@ namespace System.Data.SqlClient
 
         virtual public XmlReader GetXmlReader(int i)
         {
-            // NOTE: sql_variant can not contain a XML data type: http://msdn.microsoft.com/en-us/library/ms173829.aspx
+            // NOTE: sql_variant can not contain a XML data type: https://docs.microsoft.com/en-us/sql/t-sql/data-types/sql-variant-transact-sql
             // If this ever changes, the following code should be changed to be like GetStream\GetTextReader
             CheckDataIsReady(columnIndex: i);
 
@@ -1618,7 +1622,7 @@ namespace System.Data.SqlClient
             if (dataIndex < 0)
                 throw ADP.NegativeParameter(nameof(dataIndex));
 
-            if (dataIndex > Int32.MaxValue)
+            if (dataIndex > int.MaxValue)
             {
                 throw ADP.InvalidSourceBufferIndex(cbytes, dataIndex, nameof(dataIndex));
             }
@@ -1779,7 +1783,7 @@ namespace System.Data.SqlClient
                 {
                     // Read data (not exceeding the total amount of data available)
                     int bytesToRead = (int)Math.Min((long)length, _sharedState._columnDataBytesRemaining);
-                    bool result = _stateObj.TryReadByteArray(buffer, index, bytesToRead, out bytesRead);
+                    bool result = _stateObj.TryReadByteArray(buffer.AsSpan(index), bytesToRead, out bytesRead);
                     _columnDataBytesRead += bytesRead;
                     _sharedState._columnDataBytesRemaining -= bytesRead;
                     return result;
@@ -1928,7 +1932,7 @@ namespace System.Data.SqlClient
 
                 // note that since we are caching in an array, and arrays aren't 64 bit ready yet,
                 // we need can cast to int if the dataIndex is in range
-                if (dataIndex > Int32.MaxValue)
+                if (dataIndex > int.MaxValue)
                 {
                     throw ADP.InvalidSourceBufferIndex(cchars, dataIndex, nameof(dataIndex));
                 }
@@ -2123,7 +2127,7 @@ namespace System.Data.SqlClient
             return dt;
         }
 
-        override public Decimal GetDecimal(int i)
+        override public decimal GetDecimal(int i)
         {
             ReadColumn(i);
             return _data[i].Decimal;
@@ -2147,19 +2151,19 @@ namespace System.Data.SqlClient
             return _data[i].SqlGuid.Value;
         }
 
-        override public Int16 GetInt16(int i)
+        override public short GetInt16(int i)
         {
             ReadColumn(i);
             return _data[i].Int16;
         }
 
-        override public Int32 GetInt32(int i)
+        override public int GetInt32(int i)
         {
             ReadColumn(i);
             return _data[i].Int32;
         }
 
-        override public Int64 GetInt64(int i)
+        override public long GetInt64(int i)
         {
             ReadColumn(i);
             return _data[i].Int64;
@@ -2353,14 +2357,15 @@ namespace System.Data.SqlClient
 
                 if (metaData.type == SqlDbType.Udt)
                 {
-                    var connection = _connection;
+                    SqlConnection connection = _connection;
                     if (connection != null)
                     {
-                        throw ADP.DbTypeNotSupported(SqlDbType.Udt.ToString());
+                        connection.CheckGetExtendedUDTInfo(metaData, true);
+                        return connection.GetUdtValue(data.Value, metaData, false);
                     }
                     else
                     {
-                        throw ADP.DataReaderClosed();
+                        throw ADP.DataReaderClosed(nameof(GetSqlValueFromSqlBufferInternal));
                     }
                 }
                 else
@@ -2543,14 +2548,15 @@ namespace System.Data.SqlClient
                 }
                 else
                 {
-                    var connection = _connection;
+                    SqlConnection connection = _connection;
                     if (connection != null)
                     {
-                        throw ADP.DbTypeNotSupported(SqlDbType.Udt.ToString());
+                        connection.CheckGetExtendedUDTInfo(metaData, true);
+                        return connection.GetUdtValue(data.Value, metaData, true);
                     }
                     else
                     {
-                        throw ADP.DataReaderClosed();
+                        throw ADP.DataReaderClosed(nameof(GetValueFromSqlBufferInternal));
                     }
                 }
             }
@@ -2583,10 +2589,10 @@ namespace System.Data.SqlClient
                 // If its a SQL Type or Nullable UDT
                 object rawValue = GetSqlValueFromSqlBufferInternal(data, metaData);
 
-                // Special case: User wants SqlString, but we have a SqlXml
-                // SqlXml can not be typecast into a SqlString, but we need to support SqlString on XML Types - so do a manual conversion
                 if (typeofT == s_typeofSqlString)
                 {
+                    // Special case: User wants SqlString, but we have a SqlXml
+                    // SqlXml can not be typecast into a SqlString, but we need to support SqlString on XML Types - so do a manual conversion
                     SqlXml xmlValue = rawValue as SqlXml;
                     if (xmlValue != null)
                     {
@@ -2605,22 +2611,58 @@ namespace System.Data.SqlClient
             }
             else
             {
-                // Otherwise Its a CLR or non-Nullable UDT
-                try
+                if (typeof(XmlReader) == typeofT)
                 {
-                    return (T)GetValueFromSqlBufferInternal(data, metaData);
-                }
-                catch (InvalidCastException)
-                {
-                    if (data.IsNull)
+                    if (metaData.metaType.SqlDbType != SqlDbType.Xml)
                     {
-                        // If the value was actually null, then we should throw a SqlNullValue instead
-                        throw SQL.SqlNullValue();
+                        throw SQL.XmlReaderNotSupportOnColumnType(metaData.column);
                     }
                     else
                     {
-                        // Legitimate InvalidCast, rethrow
-                        throw;
+                        object clrValue = null;
+                        if (!data.IsNull)
+                        {
+                            clrValue = GetValueFromSqlBufferInternal(data, metaData);
+                        }
+                        if (clrValue is null) // covers IsNull and when there is data which is present but is a clr null somehow
+                        {
+                            return (T)(object)SqlTypeWorkarounds.SqlXmlCreateSqlXmlReader(
+                                new MemoryStream(Array.Empty<byte>(), writable: false),
+                                closeInput: true
+                            );
+                        }
+                        else if (clrValue.GetType() == typeof(string))
+                        {
+                            return (T)(object)SqlTypeWorkarounds.SqlXmlCreateSqlXmlReader(
+                                new StringReader(clrValue as string), 
+                                closeInput: true
+                            );
+                        }
+                        else
+                        {
+                            // try the type cast to throw the invalid cast exception and inform the user what types they're trying to use and that why it is wrong
+                            return (T)clrValue;
+                        }
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        return (T)GetValueFromSqlBufferInternal(data, metaData);
+                    }
+                    catch (InvalidCastException)
+                    {
+                        if (data.IsNull)
+                        {
+                            // If the value was actually null, then we should throw a SqlNullValue instead
+                            throw SQL.SqlNullValue();
+                        }
+                        else
+                        {
+                            // Legitimate InvalidCast, rethrow
+                            throw;
+                        }
                     }
                 }
             }
@@ -3534,7 +3576,7 @@ namespace System.Data.SqlClient
                     if (_stateObj._longlen != 0)
                     {
                         ulong ignored;
-                        if (!_stateObj.Parser.TrySkipPlpValue(UInt64.MaxValue, _stateObj, out ignored))
+                        if (!_stateObj.Parser.TrySkipPlpValue(ulong.MaxValue, _stateObj, out ignored))
                         {
                             return false;
                         }
@@ -4874,11 +4916,6 @@ namespace System.Data.SqlClient
             _stateObj.ResetSnapshot();
             _stateObj._asyncReadWithoutSnapshot = true;
         }
-        private Exception UdtNotSupportedException()
-        {
-            Debug.Assert(false, "TdsParser should have thrown on UDT");
-            return SQL.UnsupportedFeatureAndToken(_parser.Connection, SqlDbType.Udt.ToString());
-        }
 
         public ReadOnlyCollection<DbColumn> GetColumnSchema()
         {
@@ -4932,10 +4969,10 @@ namespace System.Data.SqlClient
 
                 if (_browseModeInfoConsumed)
                 {
-                    dbColumn.SqlIsAliased = col.isDifferentName;
-                    dbColumn.SqlIsKey = col.isKey;
-                    dbColumn.SqlIsHidden = col.isHidden;
-                    dbColumn.SqlIsExpression = col.isExpression;
+                    dbColumn.SqlIsAliased = col.IsDifferentName;
+                    dbColumn.SqlIsKey = col.IsKey;
+                    dbColumn.SqlIsHidden = col.IsHidden;
+                    dbColumn.SqlIsExpression = col.IsExpression;
                 }
 
                 dbColumn.SqlDataType = GetFieldTypeInternal(col);

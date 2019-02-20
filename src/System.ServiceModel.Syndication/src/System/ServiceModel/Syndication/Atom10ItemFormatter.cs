@@ -2,37 +2,25 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-
-/*
- * Some diagnostic lines have been commented
- * 
- * */
+using System.Xml;
+using System.Xml.Serialization;
+using System.Diagnostics.CodeAnalysis;
+using System.Xml.Schema;
 
 namespace System.ServiceModel.Syndication
 {
-    using System;
-    using System.Diagnostics.CodeAnalysis;
-    using System.Runtime.CompilerServices;
-    using System.Threading.Tasks;
-    using System.Xml;
-    using System.Xml.Schema;
-    using System.Xml.Serialization;
-
     [XmlRoot(ElementName = Atom10Constants.EntryTag, Namespace = Atom10Constants.Atom10Namespace)]
-    public class Atom10ItemFormatter : SyndicationItemFormatter
+    public class Atom10ItemFormatter : SyndicationItemFormatter, IXmlSerializable
     {
-        private Atom10FeedFormatter _feedSerializer;
-        private Type _itemType;
-        private bool _preserveAttributeExtensions;
-        private bool _preserveElementExtensions;
+        private readonly Atom10FeedFormatter _feedSerializer = new Atom10FeedFormatter();
+        private bool _preserveAttributeExtensions = true;
+        private bool _preserveElementExtensions = true;
 
-        public Atom10ItemFormatter()
-            : this(typeof(SyndicationItem))
+        public Atom10ItemFormatter() : this(typeof(SyndicationItem))
         {
         }
 
-        public Atom10ItemFormatter(Type itemTypeToCreate)
-            : base()
+        public Atom10ItemFormatter(Type itemTypeToCreate) : base()
         {
             if (itemTypeToCreate == null)
             {
@@ -40,27 +28,20 @@ namespace System.ServiceModel.Syndication
             }
             if (!typeof(SyndicationItem).IsAssignableFrom(itemTypeToCreate))
             {
-                throw new ArgumentException(string.Format(SR.InvalidObjectTypePassed, nameof(itemTypeToCreate), nameof(SyndicationItem)));
+                throw new ArgumentException(SR.Format(SR.InvalidObjectTypePassed, nameof(itemTypeToCreate), nameof(SyndicationItem)), nameof(itemTypeToCreate));
             }
-            _feedSerializer = new Atom10FeedFormatter();
-            _feedSerializer.PreserveAttributeExtensions = _preserveAttributeExtensions = true;
-            _feedSerializer.PreserveElementExtensions = _preserveElementExtensions = true;
-            _itemType = itemTypeToCreate;
+
+            ItemType = itemTypeToCreate;
         }
 
-        public Atom10ItemFormatter(SyndicationItem itemToWrite)
-            : base(itemToWrite)
+        public Atom10ItemFormatter(SyndicationItem itemToWrite) : base(itemToWrite)
         {
-            // No need to check that the parameter passed is valid - it is checked by the c'tor of the base class
-            _feedSerializer = new Atom10FeedFormatter();
-            _feedSerializer.PreserveAttributeExtensions = _preserveAttributeExtensions = true;
-            _feedSerializer.PreserveElementExtensions = _preserveElementExtensions = true;
-            _itemType = itemToWrite.GetType();
+            ItemType = itemToWrite.GetType();
         }
 
         public bool PreserveAttributeExtensions
         {
-            get { return _preserveAttributeExtensions; }
+            get => _preserveAttributeExtensions;
             set
             {
                 _preserveAttributeExtensions = value;
@@ -70,7 +51,7 @@ namespace System.ServiceModel.Syndication
 
         public bool PreserveElementExtensions
         {
-            get { return _preserveElementExtensions; }
+            get => _preserveElementExtensions;
             set
             {
                 _preserveElementExtensions = value;
@@ -78,18 +59,9 @@ namespace System.ServiceModel.Syndication
             }
         }
 
-        public override string Version
-        {
-            get { return SyndicationVersions.Atom10; }
-        }
+        public override string Version => SyndicationVersions.Atom10;
 
-        protected Type ItemType
-        {
-            get
-            {
-                return _itemType;
-            }
-        }
+        protected Type ItemType { get; }
 
         public override bool CanRead(XmlReader reader)
         {
@@ -97,72 +69,88 @@ namespace System.ServiceModel.Syndication
             {
                 throw new ArgumentNullException(nameof(reader));
             }
+
             return reader.IsStartElement(Atom10Constants.EntryTag, Atom10Constants.Atom10Namespace);
         }
 
-        public override Task ReadFromAsync(XmlReader reader)
+        [SuppressMessage("Microsoft.Design", "CA1033:InterfaceMethodsShouldBeCallableByChildTypes", Justification = "The IXmlSerializable implementation is only for exposing under WCF DataContractSerializer. The funcionality is exposed to derived class through the ReadFrom\\WriteTo methods")]
+        XmlSchema IXmlSerializable.GetSchema() => null;
+
+        [SuppressMessage("Microsoft.Design", "CA1033:InterfaceMethodsShouldBeCallableByChildTypes", Justification = "The IXmlSerializable implementation is only for exposing under WCF DataContractSerializer. The funcionality is exposed to derived class through the ReadFrom\\WriteTo methods")]
+        void IXmlSerializable.ReadXml(XmlReader reader)
         {
-            if (!CanRead(reader))
+            if (reader == null)
             {
-                throw new XmlException(string.Format(SR.UnknownItemXml, reader.LocalName, reader.NamespaceURI));
+                throw new ArgumentNullException(nameof(reader));
             }
 
-            return ReadItemAsync(reader);
+            ReadItem(reader);
         }
 
-        public override async Task WriteToAsync(XmlWriter writer)
+        [SuppressMessage("Microsoft.Design", "CA1033:InterfaceMethodsShouldBeCallableByChildTypes", Justification = "The IXmlSerializable implementation is only for exposing under WCF DataContractSerializer. The funcionality is exposed to derived class through the ReadFrom\\WriteTo methods")]
+        void IXmlSerializable.WriteXml(XmlWriter writer)
         {
             if (writer == null)
             {
                 throw new ArgumentNullException(nameof(writer));
             }
 
-            writer = XmlWriterWrapper.CreateFromWriter(writer);
-
-            await writer.WriteStartElementAsync(Atom10Constants.EntryTag, Atom10Constants.Atom10Namespace);
-            await WriteItemAsync(writer);
-            await writer.WriteEndElementAsync();
+            WriteItem(writer);
         }
 
-        protected override SyndicationItem CreateItemInstance()
+        public override void ReadFrom(XmlReader reader)
         {
-            return SyndicationItemFormatter.CreateItemInstance(_itemType);
+            if (!CanRead(reader))
+            {
+                throw new XmlException(SR.Format(SR.UnknownItemXml, reader.LocalName, reader.NamespaceURI));
+            }
+
+            ReadItem(reader);
         }
 
-        private Task ReadItemAsync(XmlReader reader)
+        public override void WriteTo(XmlWriter writer)
+        {
+            if (writer == null)
+            {
+                throw new ArgumentNullException(nameof(writer));
+            }
+            
+            writer.WriteStartElement(Atom10Constants.EntryTag, Atom10Constants.Atom10Namespace);
+            WriteItem(writer);
+            writer.WriteEndElement();
+        }
+
+        protected override SyndicationItem CreateItemInstance() => CreateItemInstance(ItemType);
+
+        private void ReadItem(XmlReader reader)
         {
             SetItem(CreateItemInstance());
-            return _feedSerializer.ReadItemFromAsync(XmlReaderWrapper.CreateFromReader(XmlDictionaryReader.CreateDictionaryReader(reader)), this.Item);
+            _feedSerializer.ReadItemFrom(XmlDictionaryReader.CreateDictionaryReader(reader), Item);
         }
 
-        private Task WriteItemAsync(XmlWriter writer)
+        private void WriteItem(XmlWriter writer)
         {
-            if (this.Item == null)
+            if (Item == null)
             {
                 throw new InvalidOperationException(SR.ItemFormatterDoesNotHaveItem);
             }
+
             XmlDictionaryWriter w = XmlDictionaryWriter.CreateDictionaryWriter(writer);
-            return _feedSerializer.WriteItemContentsAsync(w, this.Item);
+            _feedSerializer.WriteItemContents(w, Item);
         }
     }
 
     [XmlRoot(ElementName = Atom10Constants.EntryTag, Namespace = Atom10Constants.Atom10Namespace)]
-    public class Atom10ItemFormatter<TSyndicationItem> : Atom10ItemFormatter
-        where TSyndicationItem : SyndicationItem, new()
+    public class Atom10ItemFormatter<TSyndicationItem> : Atom10ItemFormatter where TSyndicationItem : SyndicationItem, new()
     {
-        // constructors
-        public Atom10ItemFormatter()
-            : base(typeof(TSyndicationItem))
-        {
-        }
-        public Atom10ItemFormatter(TSyndicationItem itemToWrite)
-            : base(itemToWrite)
+        public Atom10ItemFormatter() : base(typeof(TSyndicationItem))
         {
         }
 
-        protected override SyndicationItem CreateItemInstance()
+        public Atom10ItemFormatter(TSyndicationItem itemToWrite) : base(itemToWrite)
         {
-            return new TSyndicationItem();
         }
+
+        protected override SyndicationItem CreateItemInstance() => new TSyndicationItem();
     }
 }

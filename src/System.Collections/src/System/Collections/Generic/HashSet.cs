@@ -4,7 +4,6 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 
@@ -12,7 +11,7 @@ namespace System.Collections.Generic
 {
     /// <summary>
     /// Implementation notes:
-    /// This uses an array-based implementation similar to Dictionary<T>, using a buckets array
+    /// This uses an array-based implementation similar to <see cref="Dictionary{TKey, TValue}"/>, using a buckets array
     /// to map hash values to the Slots array. Items in the Slots array that hash to the same value
     /// are chained together through the "next" indices. 
     /// 
@@ -122,7 +121,6 @@ namespace System.Collections.Generic
             {
                 throw new ArgumentNullException(nameof(collection));
             }
-            Contract.EndContractBlock();
 
             var otherAsHashSet = collection as HashSet<T>;
             if (otherAsHashSet != null && AreEqualityComparersEqual(this, otherAsHashSet))
@@ -208,7 +206,6 @@ namespace System.Collections.Generic
             {
                 throw new ArgumentOutOfRangeException(nameof(capacity));
             }
-            Contract.EndContractBlock();
 
             if (capacity > 0)
             {
@@ -221,7 +218,7 @@ namespace System.Collections.Generic
         #region ICollection<T> methods
 
         /// <summary>
-        /// Add item to this hashset. This is the explicit implementation of the ICollection<T>
+        /// Add item to this hashset. This is the explicit implementation of the <see cref="ICollection{T}"/>
         /// interface. The other Add method returns bool indicating whether item was added.
         /// </summary>
         /// <param name="item">item to add</param>
@@ -260,14 +257,23 @@ namespace System.Collections.Generic
         {
             if (_buckets != null)
             {
+                int collisionCount = 0;
                 int hashCode = InternalGetHashCode(item);
+                Slot[] slots = _slots;
                 // see note at "HashSet" level describing why "- 1" appears in for loop
-                for (int i = _buckets[hashCode % _buckets.Length] - 1; i >= 0; i = _slots[i].next)
+                for (int i = _buckets[hashCode % _buckets.Length] - 1; i >= 0; i = slots[i].next)
                 {
-                    if (_slots[i].hashCode == hashCode && _comparer.Equals(_slots[i].value, item))
+                    if (slots[i].hashCode == hashCode && _comparer.Equals(slots[i].value, item))
                     {
                         return true;
                     }
+
+                    if (collisionCount >= slots.Length)
+                    {
+                        // The chain of entries forms a loop, which means a concurrent update has happened.
+                        throw new InvalidOperationException(SR.InvalidOperation_ConcurrentOperationsNotSupported);
+                    }
+                    collisionCount++;
                 }
             }
             // either _buckets is null or wasn't found
@@ -296,26 +302,28 @@ namespace System.Collections.Generic
                 int hashCode = InternalGetHashCode(item);
                 int bucket = hashCode % _buckets.Length;
                 int last = -1;
-                for (int i = _buckets[bucket] - 1; i >= 0; last = i, i = _slots[i].next)
+                int collisionCount = 0;
+                Slot[] slots = _slots;
+                for (int i = _buckets[bucket] - 1; i >= 0; last = i, i = slots[i].next)
                 {
-                    if (_slots[i].hashCode == hashCode && _comparer.Equals(_slots[i].value, item))
+                    if (slots[i].hashCode == hashCode && _comparer.Equals(slots[i].value, item))
                     {
                         if (last < 0)
                         {
                             // first iteration; update buckets
-                            _buckets[bucket] = _slots[i].next + 1;
+                            _buckets[bucket] = slots[i].next + 1;
                         }
                         else
                         {
                             // subsequent iterations; update 'next' pointers
-                            _slots[last].next = _slots[i].next;
+                            slots[last].next = slots[i].next;
                         }
-                        _slots[i].hashCode = -1;
+                        slots[i].hashCode = -1;
                         if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
                         {
-                            _slots[i].value = default(T);
+                            slots[i].value = default(T);
                         }
-                        _slots[i].next = _freeList;
+                        slots[i].next = _freeList;
 
                         _count--;
                         _version++;
@@ -330,6 +338,13 @@ namespace System.Collections.Generic
                         }
                         return true;
                     }
+
+                    if (collisionCount >= slots.Length)
+                    {
+                        // The chain of entries forms a loop, which means a concurrent update has happened.
+                        throw new InvalidOperationException(SR.InvalidOperation_ConcurrentOperationsNotSupported);
+                    }
+                    collisionCount++;
                 }
             }
             // either _buckets is null or wasn't found
@@ -383,7 +398,7 @@ namespace System.Collections.Generic
             }
 
             info.AddValue(VersionName, _version); // need to serialize version to avoid problems with serializing while enumerating
-            info.AddValue(ComparerName, _comparer, typeof(IComparer<T>));
+            info.AddValue(ComparerName, _comparer, typeof(IEqualityComparer<T>));
             info.AddValue(CapacityName, _buckets == null ? 0 : _buckets.Length);
 
             if (_buckets != null)
@@ -398,7 +413,7 @@ namespace System.Collections.Generic
 
         #region IDeserializationCallback methods
 
-        public virtual void OnDeserialization(Object sender)
+        public virtual void OnDeserialization(object sender)
         {
             if (_siInfo == null)
             {
@@ -458,7 +473,7 @@ namespace System.Collections.Generic
         /// Searches the set for a given value and returns the equal value it finds, if any.
         /// </summary>
         /// <param name="equalValue">The value to search for.</param>
-        /// <param name="actualValue">The value from the set that the search found, or the original value if the search yielded no match.</param>
+        /// <param name="actualValue">The value from the set that the search found, or the default value of <typeparamref name="T"/> when the search yielded no match.</param>
         /// <returns>A value indicating whether the search was successful.</returns>
         /// <remarks>
         /// This can be useful when you want to reuse a previously stored reference instead of 
@@ -495,7 +510,6 @@ namespace System.Collections.Generic
             {
                 throw new ArgumentNullException(nameof(other));
             }
-            Contract.EndContractBlock();
 
             foreach (T item in other)
             {
@@ -523,7 +537,6 @@ namespace System.Collections.Generic
             {
                 throw new ArgumentNullException(nameof(other));
             }
-            Contract.EndContractBlock();
 
             // intersection of anything with empty set is empty set, so return if count is 0
             if (_count == 0)
@@ -571,7 +584,6 @@ namespace System.Collections.Generic
             {
                 throw new ArgumentNullException(nameof(other));
             }
-            Contract.EndContractBlock();
 
             // this is already the empty set; return
             if (_count == 0)
@@ -603,7 +615,6 @@ namespace System.Collections.Generic
             {
                 throw new ArgumentNullException(nameof(other));
             }
-            Contract.EndContractBlock();
 
             // if set is empty, then symmetric difference is other
             if (_count == 0)
@@ -655,7 +666,6 @@ namespace System.Collections.Generic
             {
                 throw new ArgumentNullException(nameof(other));
             }
-            Contract.EndContractBlock();
 
             // The empty set is a subset of any set
             if (_count == 0)
@@ -712,7 +722,6 @@ namespace System.Collections.Generic
             {
                 throw new ArgumentNullException(nameof(other));
             }
-            Contract.EndContractBlock();
 
             // no set is a proper subset of itself.
             if (other == this)
@@ -771,7 +780,6 @@ namespace System.Collections.Generic
             {
                 throw new ArgumentNullException(nameof(other));
             }
-            Contract.EndContractBlock();
 
             // a set is always a superset of itself
             if (other == this)
@@ -829,7 +837,6 @@ namespace System.Collections.Generic
             {
                 throw new ArgumentNullException(nameof(other));
             }
-            Contract.EndContractBlock();
 
             // the empty set isn't a proper superset of any set.
             if (_count == 0)
@@ -880,7 +887,6 @@ namespace System.Collections.Generic
             {
                 throw new ArgumentNullException(nameof(other));
             }
-            Contract.EndContractBlock();
 
             if (_count == 0)
             {
@@ -915,7 +921,6 @@ namespace System.Collections.Generic
             {
                 throw new ArgumentNullException(nameof(other));
             }
-            Contract.EndContractBlock();
 
             // a set is equal to itself
             if (other == this)
@@ -965,7 +970,6 @@ namespace System.Collections.Generic
             {
                 throw new ArgumentNullException(nameof(array));
             }
-            Contract.EndContractBlock();
 
             // check array index valid index into array
             if (arrayIndex < 0)
@@ -1009,7 +1013,6 @@ namespace System.Collections.Generic
             {
                 throw new ArgumentNullException(nameof(match));
             }
-            Contract.EndContractBlock();
 
             int numRemoved = 0;
             for (int i = 0; i < _lastIndex; i++)
@@ -1041,6 +1044,24 @@ namespace System.Collections.Generic
             {
                 return _comparer;
             }
+        }
+
+        /// <summary>
+        /// Ensures that the hash set can hold up to 'capacity' entries without any further expansion of its backing storage.
+        /// </summary>
+        public int EnsureCapacity(int capacity)
+        {
+            if (capacity < 0)
+                throw new ArgumentOutOfRangeException(nameof(capacity));
+            int currentCapacity = _slots == null ? 0 : _slots.Length;
+            if (currentCapacity >= capacity)
+                return currentCapacity;
+            if (_buckets == null)
+                return Initialize(capacity);
+
+            int newSize = HashHelpers.GetPrime(capacity);
+            SetCapacity(newSize);
+            return newSize;
         }
 
         /// <summary>
@@ -1120,7 +1141,7 @@ namespace System.Collections.Generic
         /// greater than or equal to capacity.
         /// </summary>
         /// <param name="capacity"></param>
-        private void Initialize(int capacity)
+        private int Initialize(int capacity)
         {
             Debug.Assert(_buckets == null, "Initialize was called but _buckets was non-null");
 
@@ -1128,6 +1149,7 @@ namespace System.Collections.Generic
 
             _buckets = new int[size];
             _slots = new Slot[size];
+            return size;
         }
 
         /// <summary>
@@ -1136,7 +1158,6 @@ namespace System.Collections.Generic
         /// defragmentation, allowing faster execution; note that this is reasonable since 
         /// AddIfNotPresent attempts to insert new elements in re-opened spots.
         /// </summary>
-        /// <param name="sizeSuggestion"></param>
         private void IncreaseCapacity()
         {
             Debug.Assert(_buckets != null, "IncreaseCapacity called on a set with no elements");
@@ -1158,6 +1179,7 @@ namespace System.Collections.Generic
         /// </summary>
         private void SetCapacity(int newSize)
         {
+            Debug.Assert(HashHelpers.IsPrime(newSize), "New size is not prime!");
             Debug.Assert(_buckets != null, "SetCapacity called on a set with no elements");
 
             Slot[] newSlots = new Slot[newSize];
@@ -1192,35 +1214,44 @@ namespace System.Collections.Generic
 
             int hashCode = InternalGetHashCode(value);
             int bucket = hashCode % _buckets.Length;
-
-            for (int i = _buckets[bucket] - 1; i >= 0; i = _slots[i].next)
+            int collisionCount = 0;
+            Slot[] slots = _slots;
+            for (int i = _buckets[bucket] - 1; i >= 0; i = slots[i].next)
             {
-                if (_slots[i].hashCode == hashCode && _comparer.Equals(_slots[i].value, value))
+                if (slots[i].hashCode == hashCode && _comparer.Equals(slots[i].value, value))
                 {
                     return false;
                 }
+
+                if (collisionCount >= slots.Length)
+                {
+                    // The chain of entries forms a loop, which means a concurrent update has happened.
+                    throw new InvalidOperationException(SR.InvalidOperation_ConcurrentOperationsNotSupported);
+                }
+                collisionCount++;
             }
 
             int index;
             if (_freeList >= 0)
             {
                 index = _freeList;
-                _freeList = _slots[index].next;
+                _freeList = slots[index].next;
             }
             else
             {
-                if (_lastIndex == _slots.Length)
+                if (_lastIndex == slots.Length)
                 {
                     IncreaseCapacity();
                     // this will change during resize
+                    slots = _slots;
                     bucket = hashCode % _buckets.Length;
                 }
                 index = _lastIndex;
                 _lastIndex++;
             }
-            _slots[index].hashCode = hashCode;
-            _slots[index].value = value;
-            _slots[index].next = _buckets[bucket] - 1;
+            slots[index].hashCode = hashCode;
+            slots[index].value = value;
+            slots[index].next = _buckets[bucket] - 1;
             _buckets[bucket] = index + 1;
             _count++;
             _version++;
@@ -1329,17 +1360,10 @@ namespace System.Collections.Generic
             int originalLastIndex = _lastIndex;
             int intArrayLength = BitHelper.ToIntArrayLength(originalLastIndex);
 
-            BitHelper bitHelper;
-            if (intArrayLength <= StackAllocThreshold)
-            {
-                int* bitArrayPtr = stackalloc int[intArrayLength];
-                bitHelper = new BitHelper(bitArrayPtr, intArrayLength);
-            }
-            else
-            {
-                int[] bitArray = new int[intArrayLength];
-                bitHelper = new BitHelper(bitArray, intArrayLength);
-            }
+            Span<int> span = stackalloc int[StackAllocThreshold];
+            BitHelper bitHelper = intArrayLength <= StackAllocThreshold ?
+                new BitHelper(span.Slice(0, intArrayLength), clear: true) :
+                new BitHelper(new int[intArrayLength], clear: false);
 
             // mark if contains: find index of in slots array and mark corresponding element in bit array
             foreach (T item in other)
@@ -1372,13 +1396,22 @@ namespace System.Collections.Generic
         {
             Debug.Assert(_buckets != null, "_buckets was null; callers should check first");
 
+            int collisionCount = 0;
             int hashCode = InternalGetHashCode(item);
-            for (int i = _buckets[hashCode % _buckets.Length] - 1; i >= 0; i = _slots[i].next)
+            Slot[] slots = _slots;
+            for (int i = _buckets[hashCode % _buckets.Length] - 1; i >= 0; i = slots[i].next)
             {
-                if ((_slots[i].hashCode) == hashCode && _comparer.Equals(_slots[i].value, item))
+                if ((slots[i].hashCode) == hashCode && _comparer.Equals(slots[i].value, item))
                 {
                     return i;
                 }
+
+                if (collisionCount >= slots.Length)
+                {
+                    // The chain of entries forms a loop, which means a concurrent update has happened.
+                    throw new InvalidOperationException(SR.InvalidOperation_ConcurrentOperationsNotSupported);
+                }
+                collisionCount++;
             }
             // wasn't found
             return -1;
@@ -1425,24 +1458,15 @@ namespace System.Collections.Generic
             int originalLastIndex = _lastIndex;
             int intArrayLength = BitHelper.ToIntArrayLength(originalLastIndex);
 
-            BitHelper itemsToRemove;
-            BitHelper itemsAddedFromOther;
-            if (intArrayLength <= StackAllocThreshold / 2)
-            {
-                int* itemsToRemovePtr = stackalloc int[intArrayLength];
-                itemsToRemove = new BitHelper(itemsToRemovePtr, intArrayLength);
+            Span<int> itemsToRemoveSpan = stackalloc int[StackAllocThreshold / 2];
+            BitHelper itemsToRemove = intArrayLength <= StackAllocThreshold / 2 ?
+                new BitHelper(itemsToRemoveSpan.Slice(0, intArrayLength), clear: true) :
+                new BitHelper(new int[intArrayLength], clear: false);
 
-                int* itemsAddedFromOtherPtr = stackalloc int[intArrayLength];
-                itemsAddedFromOther = new BitHelper(itemsAddedFromOtherPtr, intArrayLength);
-            }
-            else
-            {
-                int[] itemsToRemoveArray = new int[intArrayLength];
-                itemsToRemove = new BitHelper(itemsToRemoveArray, intArrayLength);
-
-                int[] itemsAddedFromOtherArray = new int[intArrayLength];
-                itemsAddedFromOther = new BitHelper(itemsAddedFromOtherArray, intArrayLength);
-            }
+            Span<int> itemsAddedFromOtherSpan = stackalloc int[StackAllocThreshold / 2];
+            BitHelper itemsAddedFromOther = intArrayLength <= StackAllocThreshold / 2 ?
+                new BitHelper(itemsAddedFromOtherSpan.Slice(0, intArrayLength), clear: true) :
+                new BitHelper(new int[intArrayLength], clear: false);
 
             foreach (T item in other)
             {
@@ -1496,34 +1520,44 @@ namespace System.Collections.Generic
 
             int hashCode = InternalGetHashCode(value);
             int bucket = hashCode % _buckets.Length;
-            for (int i = _buckets[bucket] - 1; i >= 0; i = _slots[i].next)
+            int collisionCount = 0;
+            Slot[] slots = _slots;
+            for (int i = _buckets[bucket] - 1; i >= 0; i = slots[i].next)
             {
-                if (_slots[i].hashCode == hashCode && _comparer.Equals(_slots[i].value, value))
+                if (slots[i].hashCode == hashCode && _comparer.Equals(slots[i].value, value))
                 {
                     location = i;
                     return false; //already present
                 }
+
+                if (collisionCount >= slots.Length)
+                {
+                    // The chain of entries forms a loop, which means a concurrent update has happened.
+                    throw new InvalidOperationException(SR.InvalidOperation_ConcurrentOperationsNotSupported);
+                }
+                collisionCount++;
             }
             int index;
             if (_freeList >= 0)
             {
                 index = _freeList;
-                _freeList = _slots[index].next;
+                _freeList = slots[index].next;
             }
             else
             {
-                if (_lastIndex == _slots.Length)
+                if (_lastIndex == slots.Length)
                 {
                     IncreaseCapacity();
                     // this will change during resize
+                    slots = _slots;
                     bucket = hashCode % _buckets.Length;
                 }
                 index = _lastIndex;
                 _lastIndex++;
             }
-            _slots[index].hashCode = hashCode;
-            _slots[index].value = value;
-            _slots[index].next = _buckets[bucket] - 1;
+            slots[index].hashCode = hashCode;
+            slots[index].value = value;
+            slots[index].next = _buckets[bucket] - 1;
             _buckets[bucket] = index + 1;
             _count++;
             _version++;
@@ -1579,17 +1613,10 @@ namespace System.Collections.Generic
             int originalLastIndex = _lastIndex;
             int intArrayLength = BitHelper.ToIntArrayLength(originalLastIndex);
 
-            BitHelper bitHelper;
-            if (intArrayLength <= StackAllocThreshold)
-            {
-                int* bitArrayPtr = stackalloc int[intArrayLength];
-                bitHelper = new BitHelper(bitArrayPtr, intArrayLength);
-            }
-            else
-            {
-                int[] bitArray = new int[intArrayLength];
-                bitHelper = new BitHelper(bitArray, intArrayLength);
-            }
+            Span<int> span = stackalloc int[StackAllocThreshold];
+            BitHelper bitHelper = intArrayLength <= StackAllocThreshold ?
+                new BitHelper(span.Slice(0, intArrayLength), clear: true) :
+                new BitHelper(new int[intArrayLength], clear: false);
 
             // count of items in other not found in this
             int unfoundCount = 0;

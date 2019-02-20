@@ -79,16 +79,17 @@ namespace System.IO.Pipes.Tests
             }
         }
 
-        [ConditionalFact(typeof(PlatformDetection), "IsNotRedHat69")]
+        [ConditionalFact(typeof(PlatformDetection), "IsNotRedHatFamily6")]
         [PlatformSpecific(TestPlatforms.Linux)]  // On Linux, setting the buffer size of the server will also set the buffer size of the client
         public static void Linux_BufferSizeRoundtrips()
         {
             // On Linux, setting the buffer size of the server will also set the buffer size of the
             // client, regardless of the direction of the flow
 
-            int desiredBufferSize;
-            using (var server = new AnonymousPipeServerStream(PipeDirection.Out))
+            int desiredBufferSize = 4096;
+            using (var server = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.None, desiredBufferSize))
             {
+                Assert.Equal(desiredBufferSize, server.OutBufferSize);
                 desiredBufferSize = server.OutBufferSize * 2;
                 Assert.True(desiredBufferSize > 0);
             }

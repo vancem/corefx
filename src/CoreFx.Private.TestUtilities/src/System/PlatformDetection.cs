@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace System
@@ -18,27 +19,45 @@ namespace System
         // do it in a way that failures don't cascade.
         //
 
-        public static bool HasWindowsShell => IsNotWindowsServerCore && IsNotWindowsNanoServer && IsNotWindowsIoTCore;
+        public static bool HasWindowsShell => IsWindows && IsNotWindowsServerCore && IsNotWindowsNanoServer && IsNotWindowsIoTCore;
         public static bool IsUap => IsInAppContainer || IsNetNative;
         public static bool IsFullFramework => RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase);
         public static bool IsNetNative => RuntimeInformation.FrameworkDescription.StartsWith(".NET Native", StringComparison.OrdinalIgnoreCase);
         public static bool IsNetCore => RuntimeInformation.FrameworkDescription.StartsWith(".NET Core", StringComparison.OrdinalIgnoreCase);
         public static bool IsOSX => RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+        public static bool IsFreeBSD => RuntimeInformation.IsOSPlatform(OSPlatform.Create("FREEBSD"));
         public static bool IsNetBSD => RuntimeInformation.IsOSPlatform(OSPlatform.Create("NETBSD"));
         public static bool IsNotWindows8x => !IsWindows8x;
         public static bool IsNotWindowsNanoServer => !IsWindowsNanoServer;
         public static bool IsNotWindowsServerCore => !IsWindowsServerCore;
         public static bool IsNotWindowsIoTCore => !IsWindowsIoTCore;
-        public static bool IsDrawingSupported => (IsNotWindowsNanoServer && IsNotWindowsIoTCore);
+        public static bool IsNotWindowsHomeEdition => !IsWindowsHomeEdition;
         public static bool IsArmProcess => RuntimeInformation.ProcessArchitecture == Architecture.Arm;
         public static bool IsNotArmProcess => !IsArmProcess;
+        public static bool IsArm64Process => RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
+        public static bool IsNotArm64Process => !IsArm64Process;
+        public static bool IsArgIteratorSupported => IsWindows && (IsNotArmProcess || IsArm64Process);
+        public static bool IsArgIteratorNotSupported => !IsArgIteratorSupported;
 
         public static bool IsNotInAppContainer => !IsInAppContainer;
         public static bool IsWinRTSupported => IsWindows && !IsWindows7;
         public static bool IsNotWinRTSupported => !IsWinRTSupported;
         public static bool IsNotMacOsHighSierraOrHigher => !IsMacOsHighSierraOrHigher;
 
-        // Officially, .Net Native only supports processes running in an AppContainer. However, the majority of tests still work fine 
+        public static bool IsDomainJoinedMachine => !Environment.MachineName.Equals(Environment.UserDomainName, StringComparison.OrdinalIgnoreCase);
+
+        public static bool IsNotNetNative => !IsNetNative;
+
+        // Windows - Schannel supports alpn from win8.1/2012 R2 and higher.
+        // Linux - OpenSsl supports alpn from openssl 1.0.2 and higher.
+        // OSX - SecureTransport doesn't expose alpn APIs. #30492
+        public static bool SupportsAlpn => (IsWindows && !IsWindows7) ||
+            ((!IsOSX && !IsWindows) &&
+            (OpenSslVersion.Major >= 1 && (OpenSslVersion.Minor >= 1 || OpenSslVersion.Build >= 2)));
+        public static bool SupportsClientAlpn => SupportsAlpn ||
+            (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && PlatformDetection.OSXVersion > new Version(10, 12));
+
+        // Officially, .Net Native only supports processes running in an AppContainer. However, the majority of tests still work fine
         // in a normal Win32 process and we often do so as running in an AppContainer imposes a substantial tax in debuggability
         // and investigatability. This predicate is used in ConditionalFacts to disable the specific tests that really need to be
         // running in AppContainer when running on .NetNative.
@@ -69,6 +88,24 @@ namespace System
 
             return false;
         }
+
+        private static Lazy<bool> s_largeArrayIsNotSupported = new Lazy<bool>(IsLargeArrayNotSupported);
+
+        [MethodImpl(MethodImplOptions.NoOptimization)]
+        private static bool IsLargeArrayNotSupported()
+        {
+            try
+            {
+                var tmp = new byte[int.MaxValue];
+                return tmp == null;
+            }
+            catch (OutOfMemoryException)
+            {
+                return true;
+            }
+        }
+
+        public static bool IsNotIntMaxValueArrayIndexSupported => s_largeArrayIsNotSupported.Value;
 
         public static bool IsNonZeroLowerBoundArraySupported
         {
@@ -101,33 +138,5 @@ namespace System
         // System.Security.Cryptography.Xml.XmlDsigXsltTransform.GetOutput() relies on XslCompiledTransform which relies
         // heavily on Reflection.Emit
         public static bool IsXmlDsigXsltTransformSupported => !PlatformDetection.IsUap;
-
-        public static Range[] FrameworkRanges => new Range[]{
-          new Range(new Version(4, 7, 2500, 0), null, new Version(4, 7, 1)),
-          new Range(new Version(4, 6, 2000, 0), new Version(4, 7, 2090, 0), new Version(4, 7, 0)),
-          new Range(new Version(4, 6, 1500, 0), new Version(4, 6, 1999, 0), new Version(4, 6, 2)),
-          new Range(new Version(4, 6, 1000, 0), new Version(4, 6, 1499, 0), new Version(4, 6, 1)),
-          new Range(new Version(4, 6, 55, 0), new Version(4, 6, 999, 0), new Version(4, 6, 0)),
-          new Range(new Version(4, 0, 30319, 0), new Version(4, 0, 52313, 36313), new Version(4, 5, 2))
-        };
-
-        public class Range
-        {
-            public Version Start { get; private set; }
-            public Version Finish { get; private set; }
-            public Version FrameworkVersion { get; private set; }
-
-            public Range(Version start, Version finish, Version frameworkVersion)
-            {
-                Start = start;
-                Finish = finish;
-                FrameworkVersion = frameworkVersion;
-            }
-
-            public bool IsInRange(Version version)
-            {
-                return version >= Start && (Finish == null || version <= Finish);
-            }
-        }
     }
 }

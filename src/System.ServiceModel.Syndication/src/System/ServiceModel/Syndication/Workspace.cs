@@ -2,34 +2,28 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Collections.ObjectModel;
+using System.Collections.Generic;
+using System.Xml;
+
 namespace System.ServiceModel.Syndication
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Collections.ObjectModel;
-    using System.Runtime.CompilerServices;
-    using System.Threading.Tasks;
-    using System.Xml;
-
     public class Workspace : IExtensibleSyndicationObject
     {
-        private Uri _baseUri;
         private Collection<ResourceCollectionInfo> _collections;
         private ExtensibleSyndicationObject _extensions = new ExtensibleSyndicationObject();
-        private TextSyndicationContent _title;
 
         public Workspace()
         {
         }
 
-        public Workspace(string title, IEnumerable<ResourceCollectionInfo> collections)
-            : this((title != null) ? new TextSyndicationContent(title) : null, collections)
+        public Workspace(string title, IEnumerable<ResourceCollectionInfo> collections) : this((title != null) ? new TextSyndicationContent(title) : null, collections)
         {
         }
 
         public Workspace(TextSyndicationContent title, IEnumerable<ResourceCollectionInfo> collections)
         {
-            _title = title;
+            Title = title;
             if (collections != null)
             {
                 _collections = new NullNotAllowedCollection<ResourceCollectionInfo>();
@@ -40,45 +34,18 @@ namespace System.ServiceModel.Syndication
             }
         }
 
-        public Dictionary<XmlQualifiedName, string> AttributeExtensions
-        {
-            get
-            {
-                return _extensions.AttributeExtensions;
-            }
-        }
+        public Dictionary<XmlQualifiedName, string> AttributeExtensions => _extensions.AttributeExtensions;
 
-        public Uri BaseUri
-        {
-            get { return _baseUri; }
-            set { _baseUri = value; }
-        }
+        public Uri BaseUri { get; set; }
 
         public Collection<ResourceCollectionInfo> Collections
         {
-            get
-            {
-                if (_collections == null)
-                {
-                    _collections = new NullNotAllowedCollection<ResourceCollectionInfo>();
-                }
-                return _collections;
-            }
+            get => _collections ?? (_collections = new NullNotAllowedCollection<ResourceCollectionInfo>());
         }
 
-        public SyndicationElementExtensionCollection ElementExtensions
-        {
-            get
-            {
-                return _extensions.ElementExtensions;
-            }
-        }
+        public SyndicationElementExtensionCollection ElementExtensions => _extensions.ElementExtensions;
 
-        public TextSyndicationContent Title
-        {
-            get { return _title; }
-            set { _title = value; }
-        }
+        public TextSyndicationContent Title { get; set; }
 
         protected internal virtual ResourceCollectionInfo CreateResourceCollection()
         {
@@ -95,17 +62,17 @@ namespace System.ServiceModel.Syndication
             return false;
         }
 
-        protected internal virtual Task WriteAttributeExtensions(XmlWriter writer, string version)
+        protected internal virtual void WriteAttributeExtensions(XmlWriter writer, string version)
         {
-            return _extensions.WriteAttributeExtensionsAsync(writer);
+            _extensions.WriteAttributeExtensions(writer);
         }
 
-        protected internal virtual Task WriteElementExtensionsAsync(XmlWriter writer, string version)
+        protected internal virtual void WriteElementExtensions(XmlWriter writer, string version)
         {
-            return _extensions.WriteElementExtensionsAsync(writer);
+            _extensions.WriteElementExtensions(writer);
         }
 
-        internal void LoadElementExtensions(XmlReaderWrapper readerOverUnparsedExtensions, int maxExtensionSize)
+        internal void LoadElementExtensions(XmlReader readerOverUnparsedExtensions, int maxExtensionSize)
         {
             _extensions.LoadElementExtensions(readerOverUnparsedExtensions, maxExtensionSize);
         }

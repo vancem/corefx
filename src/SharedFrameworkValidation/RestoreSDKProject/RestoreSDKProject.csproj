@@ -1,13 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
     <RuntimeFrameworkVersion>$(_RuntimeFrameworkVersion)</RuntimeFrameworkVersion>
     <CoreFxPackageVersion>4.4.0-$(CoreFxExpectedPrerelease)</CoreFxPackageVersion>
     <RuntimeIdentifier>$(_PackageRID)</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
+    <ProjectGuid>{8371FF08-5374-4584-970C-6DC5B25E8BF1}</ProjectGuid>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Microsoft.CSharp" Version="$(CoreFxPackageVersion)" />
     <PackageReference Include="Microsoft.NETCore.Platforms" Version="2.0.0-$(CoreFxExpectedPrerelease)" />
@@ -20,12 +18,12 @@
     <PackageReference Include="System.CodeDom" Version="$(CoreFxPackageVersion)" />
     <PackageReference Include="System.Collections.Immutable" Version="1.4.0-$(CoreFxExpectedPrerelease)" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="$(CoreFxPackageVersion)" />
-    <PackageReference Include="System.Composition" Version="1.1.0-$(CoreFxExpectedPrerelease)" />
-    <PackageReference Include="System.Composition.AttributedModel" Version="1.1.0-$(CoreFxExpectedPrerelease)" />
-    <PackageReference Include="System.Composition.Convention" Version="1.1.0-$(CoreFxExpectedPrerelease)" />
-    <PackageReference Include="System.Composition.Hosting" Version="1.1.0-$(CoreFxExpectedPrerelease)" />
-    <PackageReference Include="System.Composition.Runtime" Version="1.1.0-$(CoreFxExpectedPrerelease)" />
-    <PackageReference Include="System.Composition.TypedParts" Version="1.1.0-$(CoreFxExpectedPrerelease)" />
+    <PackageReference Include="System.Composition" Version="1.2.0-$(CoreFxExpectedPrerelease)" />
+    <PackageReference Include="System.Composition.AttributedModel" Version="1.2.0-$(CoreFxExpectedPrerelease)" />
+    <PackageReference Include="System.Composition.Convention" Version="1.2.0-$(CoreFxExpectedPrerelease)" />
+    <PackageReference Include="System.Composition.Hosting" Version="1.2.0-$(CoreFxExpectedPrerelease)" />
+    <PackageReference Include="System.Composition.Runtime" Version="1.2.0-$(CoreFxExpectedPrerelease)" />
+    <PackageReference Include="System.Composition.TypedParts" Version="1.2.0-$(CoreFxExpectedPrerelease)" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="$(CoreFxPackageVersion)" />
     <PackageReference Include="System.Data.SqlClient" Version="$(CoreFxPackageVersion)" />
     <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="$(CoreFxPackageVersion)" />
@@ -57,10 +55,7 @@
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="$(CoreFxPackageVersion)" />
     <PackageReference Include="System.ValueTuple" Version="$(CoreFxPackageVersion)" />
   </ItemGroup>
-
   <Target Name="BinPlaceMetaPackageRef" BeforeTargets="CoreCompile">
     <Copy SourceFiles="%(ReferencePath.Identity)" DestinationFolder="$(_MetaPackageDestinationFolder)" />
   </Target>
-
 </Project>
-

@@ -22,18 +22,15 @@ namespace System.Net.Security
         private static AsyncProtocolCallback s_readFrameCallback = new AsyncProtocolCallback(ReadFrameCallback);
         private static AsyncCallback s_writeCallback = new AsyncCallback(WriteCallback);
 
-        private RemoteCertValidationCallback _certValidationDelegate;
-        private LocalCertSelectionCallback _certSelectionDelegate;
+        internal SslAuthenticationOptions _sslAuthenticationOptions;
 
-        private Stream _innerStream;
-
-        private SslStreamInternal _secureStream;
+        private readonly Stream _innerStream;
+        private readonly SslStreamInternal _secureStream;
 
         private int _nestedAuth;
         private SecureChannel _context;
 
         private bool _handshakeCompleted;
-        private bool _certValidationFailed;
         private bool _shutdown;
 
         private SecurityStatusPal _securityStatus;
@@ -70,70 +67,106 @@ namespace System.Net.Security
         private int _lockReadState;
         private object _queuedReadStateRequest;
 
-        private readonly EncryptionPolicy _encryptionPolicy;
-
         //
         //  The public Client and Server classes enforce the parameters rules before
         //  calling into this .ctor.
         //
-        internal SslState(Stream innerStream, RemoteCertValidationCallback certValidationCallback, LocalCertSelectionCallback certSelectionCallback, EncryptionPolicy encryptionPolicy)
+        internal SslState(Stream innerStream)
         {
             _innerStream = innerStream;
-            _certValidationDelegate = certValidationCallback;
-            _certSelectionDelegate = certSelectionCallback;
-            _encryptionPolicy = encryptionPolicy;
+            _secureStream = new SslStreamInternal(this);
         }
 
-        internal void ValidateCreateContext(bool isServer, string targetHost, SslProtocols enabledSslProtocols, X509Certificate serverCertificate, X509CertificateCollection clientCertificates, bool remoteCertRequired, bool checkCertRevocationStatus)
-        {
-            ValidateCreateContext(isServer, targetHost, enabledSslProtocols, serverCertificate, clientCertificates, remoteCertRequired,
-                                   checkCertRevocationStatus, !isServer);
-        }
+        /// <summary>Set as the _exception when the instance is disposed.</summary>
+        private static readonly ExceptionDispatchInfo s_disposedSentinel = ExceptionDispatchInfo.Capture(new ObjectDisposedException(nameof(SslStream)));
 
-        internal void ValidateCreateContext(bool isServer, string targetHost, SslProtocols enabledSslProtocols, X509Certificate serverCertificate, X509CertificateCollection clientCertificates, bool remoteCertRequired, bool checkCertRevocationStatus, bool checkCertName)
+        private void ThrowIfExceptional()
         {
-            //
-            // We don't support SSL alerts right now, hence any exception is fatal and cannot be retried.
-            //
-            if (_exception != null)
+            ExceptionDispatchInfo e = _exception;
+            if (e != null)
             {
-                _exception.Throw();
+                // If the stored exception just indicates disposal, throw a new ODE rather than the stored one,
+                // so as to not continually build onto the shared exception's stack.
+                if (ReferenceEquals(e, s_disposedSentinel))
+                {
+                    throw new ObjectDisposedException(nameof(SslStream));
+                }
+
+                // Throw the stored exception.
+                e.Throw();
             }
+        }
+
+        internal void ValidateCreateContext(SslClientAuthenticationOptions sslClientAuthenticationOptions, RemoteCertValidationCallback remoteCallback, LocalCertSelectionCallback localCallback)
+        {
+            ThrowIfExceptional();
 
             if (Context != null && Context.IsValidContext)
             {
                 throw new InvalidOperationException(SR.net_auth_reauth);
             }
 
-            if (Context != null && IsServer != isServer)
+            if (Context != null && IsServer)
             {
                 throw new InvalidOperationException(SR.net_auth_client_server);
             }
 
-            if (targetHost == null)
+            if (sslClientAuthenticationOptions.TargetHost == null)
             {
-                throw new ArgumentNullException(nameof(targetHost));
-            }
-
-            if (isServer && serverCertificate == null)
-            {
-                throw new ArgumentNullException(nameof(serverCertificate));
-            }
-
-            if (targetHost.Length == 0)
-            {
-                targetHost = "?" + Interlocked.Increment(ref s_uniqueNameInteger).ToString(NumberFormatInfo.InvariantInfo);
+                throw new ArgumentNullException(nameof(sslClientAuthenticationOptions.TargetHost));
             }
 
             _exception = null;
             try
             {
-                _context = new SecureChannel(targetHost, isServer, enabledSslProtocols, serverCertificate, clientCertificates, remoteCertRequired,
-                                                                 checkCertName, checkCertRevocationStatus, _encryptionPolicy, _certSelectionDelegate);
+                _sslAuthenticationOptions = new SslAuthenticationOptions(sslClientAuthenticationOptions, remoteCallback, localCallback);
+                if (_sslAuthenticationOptions.TargetHost.Length == 0)
+                {
+                    _sslAuthenticationOptions.TargetHost = "?" + Interlocked.Increment(ref s_uniqueNameInteger).ToString(NumberFormatInfo.InvariantInfo);
+                }
+                _context = new SecureChannel(_sslAuthenticationOptions);
             }
             catch (Win32Exception e)
             {
                 throw new AuthenticationException(SR.net_auth_SSPI, e);
+            }
+        }
+
+        internal void ValidateCreateContext(SslAuthenticationOptions sslAuthenticationOptions)
+        {
+            ThrowIfExceptional();
+
+            if (Context != null && Context.IsValidContext)
+            {
+                throw new InvalidOperationException(SR.net_auth_reauth);
+            }
+
+            if (Context != null && !IsServer)
+            {
+                throw new InvalidOperationException(SR.net_auth_client_server);
+            }
+
+            _exception = null;
+            _sslAuthenticationOptions = sslAuthenticationOptions;
+
+            try
+            {
+                _context = new SecureChannel(_sslAuthenticationOptions);
+            }
+            catch (Win32Exception e)
+            {
+                throw new AuthenticationException(SR.net_auth_SSPI, e);
+            }
+        }
+
+        internal SslApplicationProtocol NegotiatedApplicationProtocol
+        {
+            get
+            {
+                if (Context == null)
+                    return default;
+
+                return Context.NegotiatedApplicationProtocol;
             }
         }
 
@@ -173,14 +206,6 @@ namespace System.Net.Security
         }
 
         //
-        // SSL related properties
-        //
-        internal void SetCertValidationDelegate(RemoteCertValidationCallback certValidationCallback)
-        {
-            _certValidationDelegate = certValidationCallback;
-        }
-
-        //
         // This will return selected local cert for both client/server streams
         //
         internal X509Certificate LocalCertificate
@@ -209,20 +234,7 @@ namespace System.Net.Security
         {
             get
             {
-                return Context != null && Context.CheckCertRevocationStatus;
-            }
-        }
-
-        internal SecurityStatusPal LastSecurityStatus
-        {
-            get { return _securityStatus; }
-        }
-
-        internal bool IsCertValidationFailed
-        {
-            get
-            {
-                return _certValidationFailed;
+                return Context != null && Context.CheckCertRevocationStatus != X509RevocationMode.NoCheck;
             }
         }
 
@@ -364,6 +376,11 @@ namespace System.Net.Security
                     ret |= SslProtocols.Tls12;
                 }
 
+                if ((proto & SslProtocols.Tls13) != 0)
+                {
+                    ret |= SslProtocols.Tls13;
+                }
+
                 return ret;
             }
         }
@@ -381,20 +398,7 @@ namespace System.Net.Security
             get
             {
                 CheckThrow(true);
-                if (_secureStream == null)
-                {
-                    Interlocked.CompareExchange<SslStreamInternal>(ref _secureStream, new SslStreamInternal(this), null);
-                }
-
                 return _secureStream;
-            }
-        }
-
-        internal int HeaderSize
-        {
-            get
-            {
-                return Context.HeaderSize;
             }
         }
 
@@ -406,7 +410,7 @@ namespace System.Net.Security
             }
         }
 
-        private ExceptionDispatchInfo SetException(Exception e)
+        private void SetException(Exception e)
         {
             Debug.Assert(e != null, $"Expected non-null Exception to be passed to {nameof(SetException)}");
 
@@ -415,12 +419,7 @@ namespace System.Net.Security
                 _exception = ExceptionDispatchInfo.Capture(e);
             }
 
-            if (_exception != null && Context != null)
-            {
-                Context.Close();
-            }
-
-            return _exception;
+            Context?.Close();
         }
 
         private bool HandshakeCompleted
@@ -441,10 +440,7 @@ namespace System.Net.Security
 
         internal void CheckThrow(bool authSuccessCheck, bool shutdownCheck = false)
         {
-            if (_exception != null)
-            {
-                _exception.Throw();
-            }
+            ThrowIfExceptional();
 
             if (authSuccessCheck && !IsAuthenticated)
             {
@@ -472,11 +468,9 @@ namespace System.Net.Security
         //
         internal void Close()
         {
-            _exception = ExceptionDispatchInfo.Capture(new ObjectDisposedException("SslStream"));
-            if (Context != null)
-            {
-                Context.Close();
-            }
+            _exception = s_disposedSentinel;
+            Context?.Close();
+            _secureStream?.Dispose();
         }
 
         internal SecurityStatusPal EncryptData(ReadOnlyMemory<byte> buffer, ref byte[] outBuffer, out int outSize)
@@ -526,14 +520,14 @@ namespace System.Net.Security
         //
         // Must be called under the lock in case concurrent handshake is going.
         //
-        internal int CheckOldKeyDecryptedData(byte[] buffer, int offset, int count)
+        internal int CheckOldKeyDecryptedData(Memory<byte> buffer)
         {
             CheckThrow(true);
             if (_queuedReadData != null)
             {
                 // This is inefficient yet simple and should be a REALLY rare case.
-                int toCopy = Math.Min(_queuedReadCount, count);
-                Buffer.BlockCopy(_queuedReadData, 0, buffer, offset, toCopy);
+                int toCopy = Math.Min(_queuedReadCount, buffer.Length);
+                new Span<byte>(_queuedReadData, 0, toCopy).CopyTo(buffer.Span);
                 _queuedReadCount -= toCopy;
                 if (_queuedReadCount == 0)
                 {
@@ -580,14 +574,15 @@ namespace System.Net.Security
                 // Not aync so the connection is completed at this point.
                 if (lazyResult == null && NetEventSource.IsEnabled)
                 {
-                    if (NetEventSource.IsEnabled) NetEventSource.Log.SspiSelectedCipherSuite(nameof(ProcessAuthentication),
-                        SslProtocol,
-                        CipherAlgorithm,
-                        CipherStrength,
-                        HashAlgorithm,
-                        HashStrength,
-                        KeyExchangeAlgorithm,
-                        KeyExchangeStrength);
+                    if (NetEventSource.IsEnabled)
+                        NetEventSource.Log.SspiSelectedCipherSuite(nameof(ProcessAuthentication),
+                                                                    SslProtocol,
+                                                                    CipherAlgorithm,
+                                                                    CipherStrength,
+                                                                    HashAlgorithm,
+                                                                    HashStrength,
+                                                                    KeyExchangeAlgorithm,
+                                                                    KeyExchangeStrength);
                 }
             }
             catch (Exception)
@@ -672,14 +667,12 @@ namespace System.Net.Security
                 _Framing = Framing.Unknown;
                 _handshakeCompleted = false;
 
-                if (SetException(e).SourceException == e)
+                SetException(e);
+                if (_exception.SourceException != e)
                 {
-                    throw;
+                   ThrowIfExceptional();
                 }
-                else
-                {
-                    _exception.Throw();
-                }
+                throw;
             }
             finally
             {
@@ -714,14 +707,15 @@ namespace System.Net.Security
             // Connection is completed at this point.
             if (NetEventSource.IsEnabled)
             {
-                if (NetEventSource.IsEnabled) NetEventSource.Log.SspiSelectedCipherSuite(nameof(EndProcessAuthentication),
-                    SslProtocol,
-                    CipherAlgorithm,
-                    CipherStrength,
-                    HashAlgorithm,
-                    HashStrength,
-                    KeyExchangeAlgorithm,
-                    KeyExchangeStrength);
+                if (NetEventSource.IsEnabled)
+                    NetEventSource.Log.SspiSelectedCipherSuite(nameof(EndProcessAuthentication),
+                                                                SslProtocol,
+                                                                CipherAlgorithm,
+                                                                CipherStrength,
+                                                                HashAlgorithm,
+                                                                HashStrength,
+                                                                KeyExchangeAlgorithm,
+                                                                KeyExchangeStrength);
             }
         }
 
@@ -737,7 +731,8 @@ namespace System.Net.Security
                 _Framing = Framing.Unknown;
                 _handshakeCompleted = false;
 
-                SetException(e).Throw();
+                SetException(e);
+                ThrowIfExceptional();
             }
         }
 
@@ -855,7 +850,7 @@ namespace System.Net.Security
             else
             {
                 asyncRequest.SetNextRequest(buffer, 0, SecureChannel.ReadHeaderSize, s_partialFrameCallback);
-                FixedSizeReader.ReadPacketAsync(_innerStream, asyncRequest);
+                _ = FixedSizeReader.ReadPacketAsync(_innerStream, asyncRequest);
                 if (!asyncRequest.MustCompleteSynchronously)
                 {
                     return;
@@ -903,7 +898,7 @@ namespace System.Net.Security
             else
             {
                 asyncRequest.SetNextRequest(buffer, readBytes, restBytes, s_readFrameCallback);
-                FixedSizeReader.ReadPacketAsync(_innerStream, asyncRequest);
+                _ = FixedSizeReader.ReadPacketAsync(_innerStream, asyncRequest);
                 if (!asyncRequest.MustCompleteSynchronously)
                 {
                     return;
@@ -1014,23 +1009,24 @@ namespace System.Net.Security
         //
         private bool CompleteHandshake(ref ProtocolToken alertToken)
         {
-            if (NetEventSource.IsEnabled) NetEventSource.Enter(this);
+            if (NetEventSource.IsEnabled)
+                NetEventSource.Enter(this);
 
             Context.ProcessHandshakeSuccess();
 
-            if (!Context.VerifyRemoteCertificate(_certValidationDelegate, ref alertToken))
+            if (!Context.VerifyRemoteCertificate(_sslAuthenticationOptions.CertValidationDelegate, ref alertToken))
             {
                 _handshakeCompleted = false;
-                _certValidationFailed = true;
 
-                if (NetEventSource.IsEnabled) NetEventSource.Exit(this, false);
+                if (NetEventSource.IsEnabled)
+                    NetEventSource.Exit(this, false);
                 return false;
             }
 
-            _certValidationFailed = false;
             _handshakeCompleted = true;
 
-            if (NetEventSource.IsEnabled) NetEventSource.Exit(this, true);
+            if (NetEventSource.IsEnabled)
+                NetEventSource.Exit(this, true);
             return true;
         }
 
@@ -1088,7 +1084,8 @@ namespace System.Net.Security
 
         private static void PartialFrameCallback(AsyncProtocolRequest asyncRequest)
         {
-            if (NetEventSource.IsEnabled) NetEventSource.Enter(null);
+            if (NetEventSource.IsEnabled)
+                NetEventSource.Enter(null);
 
             // Async ONLY completion.
             SslState sslState = (SslState)asyncRequest.AsyncObject;
@@ -1112,7 +1109,8 @@ namespace System.Net.Security
         //
         private static void ReadFrameCallback(AsyncProtocolRequest asyncRequest)
         {
-            if (NetEventSource.IsEnabled) NetEventSource.Enter(null);
+            if (NetEventSource.IsEnabled)
+                NetEventSource.Enter(null);
 
             // Async ONLY completion.
             SslState sslState = (SslState)asyncRequest.AsyncObject;
@@ -1183,43 +1181,28 @@ namespace System.Net.Security
                 }
 
                 _lockReadState = LockRead;
-                object obj = _queuedReadStateRequest;
-                if (obj == null)
-                {
-                    // Other thread did not get under the lock yet.
-                    return;
-                }
-
-                _queuedReadStateRequest = null;
-                if (obj is LazyAsyncResult)
-                {
-                    ((LazyAsyncResult)obj).InvokeCallback();
-                }
-                else
-                {
-                    ThreadPool.QueueUserWorkItem(new WaitCallback(CompleteRequestWaitCallback), obj);
-                }
+                HandleQueuedCallback(ref _queuedReadStateRequest);
             }
         }
-
+        
         // Returns:
         // -1    - proceed
         // 0     - queued
         // X     - some bytes are ready, no need for IO
-        internal int CheckEnqueueRead(byte[] buffer, int offset, int count, AsyncProtocolRequest request)
+        internal int CheckEnqueueRead(Memory<byte> buffer)
         {
             int lockState = Interlocked.CompareExchange(ref _lockReadState, LockRead, LockNone);
 
             if (lockState != LockHandshake)
             {
                 // Proceed, no concurrent handshake is ongoing so no need for a lock.
-                return CheckOldKeyDecryptedData(buffer, offset, count);
+                return CheckOldKeyDecryptedData(buffer);
             }
 
             LazyAsyncResult lazyResult = null;
             lock (this)
             {
-                int result = CheckOldKeyDecryptedData(buffer, offset, count);
+                int result = CheckOldKeyDecryptedData(buffer);
                 if (result != -1)
                 {
                     return result;
@@ -1235,12 +1218,6 @@ namespace System.Net.Security
 
                 _lockReadState = LockPendingRead;
 
-                if (request != null)
-                {
-                    // Request queued.
-                    _queuedReadStateRequest = request;
-                    return 0;
-                }
                 lazyResult = new LazyAsyncResult(null, null, /*must be */ null);
                 _queuedReadStateRequest = lazyResult;
             }
@@ -1248,7 +1225,40 @@ namespace System.Net.Security
             lazyResult.InternalWaitForCompletion();
             lock (this)
             {
-                return CheckOldKeyDecryptedData(buffer, offset, count);
+                return CheckOldKeyDecryptedData(buffer);
+            }
+        }
+
+        internal ValueTask<int> CheckEnqueueReadAsync(Memory<byte> buffer)
+        {
+            int lockState = Interlocked.CompareExchange(ref _lockReadState, LockRead, LockNone);
+
+            if (lockState != LockHandshake)
+            {
+                // Proceed, no concurrent handshake is ongoing so no need for a lock.
+                return new ValueTask<int>(CheckOldKeyDecryptedData(buffer));
+            }
+
+            lock (this)
+            {
+                int result = CheckOldKeyDecryptedData(buffer);
+                if (result != -1)
+                {
+                    return new ValueTask<int>(result);
+                }
+
+                // Check again under lock.
+                if (_lockReadState != LockHandshake)
+                {
+                    // The other thread has finished before we grabbed the lock.
+                    _lockReadState = LockRead;
+                    return new ValueTask<int>(-1);
+                }
+
+                _lockReadState = LockPendingRead;
+                TaskCompletionSource<int> taskCompletionSource = new TaskCompletionSource<int>(buffer, TaskCreationOptions.RunContinuationsAsynchronously);
+                _queuedReadStateRequest = taskCompletionSource;
+                return new ValueTask<int>(taskCompletionSource.Task);
             }
         }
 
@@ -1274,7 +1284,7 @@ namespace System.Net.Security
                     AsyncProtocolRequest request = (AsyncProtocolRequest)_queuedReadStateRequest;
                     request.Buffer = renegotiateBuffer;
                     _queuedReadStateRequest = null;
-                    ThreadPool.QueueUserWorkItem(new WaitCallback(AsyncResumeHandshakeRead), request);
+                    ThreadPool.QueueUserWorkItem(s => s.sslState.AsyncResumeHandshakeRead(s.request), (sslState: this, request), preferLocal: false);
                 }
             }
         }
@@ -1346,25 +1356,44 @@ namespace System.Net.Security
 
             lock (this)
             {
-                object obj = _queuedWriteStateRequest;
-                if (obj == null)
-                {
-                    // A repeated call.
-                    return;
-                }
+                HandleQueuedCallback(ref _queuedWriteStateRequest);
+            }
+        }
 
-                _queuedWriteStateRequest = null;
-                if (obj is LazyAsyncResult)
-                {
-                    // Sync handshake is waiting on other thread.
-                    ((LazyAsyncResult)obj).InvokeCallback();
-                }
-                else
-                {
-                    // Async handshake is pending, start it on other thread.
-                    // Consider: we could start it in on this thread but that will delay THIS write completion
-                    ThreadPool.QueueUserWorkItem(new WaitCallback(AsyncResumeHandshake), obj);
-                }
+        private void HandleQueuedCallback(ref object queuedStateRequest)
+        {
+            object obj = queuedStateRequest;
+            if (obj == null)
+            {
+                return;
+            }
+            queuedStateRequest = null;
+
+            switch (obj)
+            {
+                case LazyAsyncResult lazy:
+                    lazy.InvokeCallback();
+                    break;
+                case TaskCompletionSource<int> taskCompletionSource when taskCompletionSource.Task.AsyncState != null:
+                    Memory<byte> array = (Memory<byte>)taskCompletionSource.Task.AsyncState;
+                    int oldKeyResult = -1;
+                    try
+                    {
+                        oldKeyResult = CheckOldKeyDecryptedData(array);
+                    }
+                    catch (Exception exc)
+                    {
+                        taskCompletionSource.SetException(exc);
+                        break;
+                    }
+                    taskCompletionSource.SetResult(oldKeyResult);
+                    break;
+                case TaskCompletionSource<int> taskCompletionSource:
+                    taskCompletionSource.SetResult(0);
+                    break;
+                default:
+                    ThreadPool.QueueUserWorkItem(s => s.sslState.AsyncResumeHandshake(s.obj), (sslState: this, obj), preferLocal: false);
+                    break;
             }
         }
 
@@ -1425,26 +1454,7 @@ namespace System.Net.Security
                     }
 
                     _lockWriteState = LockWrite;
-                    object obj = _queuedWriteStateRequest;
-                    if (obj == null)
-                    {
-                        // We finished before Write has grabbed the lock.
-                        return;
-                    }
-
-                    _queuedWriteStateRequest = null;
-
-                    if (obj is LazyAsyncResult)
-                    {
-                        // Sync write is waiting on other thread.
-                        ((LazyAsyncResult)obj).InvokeCallback();
-                    }
-                    else
-                    {
-                        // Async write is pending, start it on other thread.
-                        // Consider: we could start it in on this thread but that will delay THIS handshake completion
-                        ThreadPool.QueueUserWorkItem(new WaitCallback(CompleteRequestWaitCallback), obj);
-                    }
+                    HandleQueuedCallback(ref _queuedWriteStateRequest);
                 }
             }
             finally
@@ -1596,7 +1606,7 @@ namespace System.Net.Security
 #if TRACE_VERBOSE
                 if (bytes[1] != 3 && NetEventSource.IsEnabled)
                 {
-                    if (NetEventSource.IsEnabled) NetEventSource.Info(this, $"WARNING: SslState::DetectFraming() SSL protocol is > 3, trying SSL3 framing in retail = {bytes[i]:x}");
+                    if (NetEventSource.IsEnabled) NetEventSource.Info(this, $"WARNING: SslState::DetectFraming() SSL protocol is > 3, trying SSL3 framing in retail = {bytes[1]:x}");
                 }
 #endif
 
@@ -1679,7 +1689,8 @@ namespace System.Net.Security
         // This is called from SslStream class too.
         internal int GetRemainingFrameSize(byte[] buffer, int offset, int dataSize)
         {
-            if (NetEventSource.IsEnabled) NetEventSource.Enter(this, buffer, offset, dataSize);
+            if (NetEventSource.IsEnabled)
+                NetEventSource.Enter(this, buffer, offset, dataSize);
 
             int payloadSize = -1;
             switch (_Framing)
@@ -1719,7 +1730,8 @@ namespace System.Net.Security
                     break;
             }
 
-            if (NetEventSource.IsEnabled) NetEventSource.Exit(this, payloadSize);
+            if (NetEventSource.IsEnabled)
+                NetEventSource.Exit(this, payloadSize);
             return payloadSize;
         }
 
@@ -1744,9 +1756,8 @@ namespace System.Net.Security
         //
         // Called with no user stack.
         //
-        private void AsyncResumeHandshakeRead(object state)
+        private void AsyncResumeHandshakeRead(AsyncProtocolRequest asyncRequest)
         {
-            AsyncProtocolRequest asyncRequest = (AsyncProtocolRequest)state;
             try
             {
                 if (_pendingReHandshake)
@@ -1770,22 +1781,6 @@ namespace System.Net.Security
 
                 FinishHandshake(e, asyncRequest);
             }
-        }
-
-        //
-        // Called with no user stack.
-        //
-        private void CompleteRequestWaitCallback(object state)
-        {
-            AsyncProtocolRequest request = (AsyncProtocolRequest)state;
-
-            // Force async completion.
-            if (request.MustCompleteSynchronously)
-            {
-                throw new InternalException();
-            }
-
-            request.CompleteRequest(0);
         }
 
         private void RehandshakeCompleteCallback(IAsyncResult result)
@@ -1841,7 +1836,7 @@ namespace System.Net.Security
 
         internal IAsyncResult BeginShutdown(AsyncCallback asyncCallback, object asyncState)
         {
-            CheckThrow(authSuccessCheck:true, shutdownCheck:true);
+            CheckThrow(authSuccessCheck: true, shutdownCheck: true);
 
             ProtocolToken message = Context.CreateShutdownToken();
             return TaskToApm.Begin(InnerStream.WriteAsync(message.Payload, 0, message.Payload.Length), asyncCallback, asyncState);
@@ -1849,7 +1844,7 @@ namespace System.Net.Security
 
         internal void EndShutdown(IAsyncResult result)
         {
-            CheckThrow(authSuccessCheck: true, shutdownCheck:true);
+            CheckThrow(authSuccessCheck: true, shutdownCheck: true);
 
             TaskToApm.End(result);
             _shutdown = true;

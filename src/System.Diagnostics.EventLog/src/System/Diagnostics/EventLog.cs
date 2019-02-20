@@ -2,14 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Collections;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security;
-using System.Security.Permissions;
 using System.Text;
 using System.Threading;
 using Microsoft.Win32;
@@ -17,7 +15,10 @@ using Microsoft.Win32.SafeHandles;
 
 namespace System.Diagnostics
 {
-    [DefaultEvent("EntryWritten"), MonitoringDescription("Provides interaction with Windows event logs.")]
+    /// <summary>
+    /// Provides interaction with Windows event logs.
+    /// </summary>
+    [DefaultEvent("EntryWritten")]
     public class EventLog : Component, ISupportInitialize
     {
         private const string EventLogKey = "SYSTEM\\CurrentControlSet\\Services\\EventLog";
@@ -26,7 +27,7 @@ namespace System.Diagnostics
         private const int DefaultMaxSize = 512 * 1024;
         private const int DefaultRetention = 7 * SecondsPerDay;
         private const int SecondsPerDay = 60 * 60 * 24;
-        
+
         private EventLogInternal _underlyingEventLog;
 
         public EventLog() : this(string.Empty, ".", string.Empty)
@@ -46,9 +47,11 @@ namespace System.Diagnostics
             _underlyingEventLog = new EventLogInternal(logName, machineName, source, this);
         }
 
+        /// <summary>
+        /// The contents of the log.
+        /// </summary>
         [Browsable(false)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        [MonitoringDescription("The contents of the log.")]
         public EventLogEntryCollection Entries
         {
             get
@@ -66,8 +69,10 @@ namespace System.Diagnostics
             }
         }
 
+        /// <summary>
+        /// Gets or sets the name of the log to read from and write to.
+        /// </summary>
         [ReadOnly(true)]
-        [MonitoringDescription("Gets or sets the name of the log to read from and write to.")]
         [DefaultValue("")]
         [SettingsBindable(true)]
         public string Log
@@ -92,8 +97,10 @@ namespace System.Diagnostics
             }
         }
 
+        /// <summary>
+        /// The machine on which this event log resides.
+        /// </summary>
         [ReadOnly(true)]
-        [MonitoringDescription("The machine on which this event log resides.")]
         [DefaultValue(".")]
         [SettingsBindable(true)]
         public string MachineName
@@ -120,22 +127,19 @@ namespace System.Diagnostics
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         [Browsable(false)]
-        [ComVisible(false)]
-        public long MaximumKilobytes 
+        public long MaximumKilobytes
         {
             get => _underlyingEventLog.MaximumKilobytes;
             set => _underlyingEventLog.MaximumKilobytes = value;
         }
 
         [Browsable(false)]
-        [ComVisible(false)]
         public OverflowAction OverflowAction
         {
             get => _underlyingEventLog.OverflowAction;
         }
 
         [Browsable(false)]
-        [ComVisible(false)]
         public int MinimumRetentionDays
         {
             get => _underlyingEventLog.MinimumRetentionDays;
@@ -151,8 +155,10 @@ namespace System.Diagnostics
             return GetService(service);
         }
 
+        /// <summary>
+        /// Indicates if the component monitors the event log for changes.
+        /// </summary>
         [Browsable(false)]
-        [MonitoringDescription("Indicates if the component monitors the event log for changes.")]
         [DefaultValue(false)]
         public bool EnableRaisingEvents
         {
@@ -160,17 +166,21 @@ namespace System.Diagnostics
             set => _underlyingEventLog.EnableRaisingEvents = value;
         }
 
+        /// <summary>
+        /// The object used to marshal the event handler calls issued as a result of an EventLog change.
+        /// </summary>
         [Browsable(false)]
         [DefaultValue(null)]
-        [MonitoringDescription("The object used to marshal the event handler calls issued as a result of an EventLog change.")]
         public ISynchronizeInvoke SynchronizingObject
         {
             get => _underlyingEventLog.SynchronizingObject;
             set => _underlyingEventLog.SynchronizingObject = value;
         }
 
+        /// <summary>
+        /// The application name (source name) to use when writing to the event log.
+        /// </summary>
         [ReadOnly(true)]
-        [MonitoringDescription("The application name (source name) to use when writing to the event log.")]
         [DefaultValue("")]
         [SettingsBindable(true)]
         public string Source
@@ -192,7 +202,9 @@ namespace System.Diagnostics
             }
         }
 
-        [MonitoringDescription("Raised each time any application writes an entry to the event log.")]
+        /// <summary>
+        /// Raised each time any application writes an entry to the event log.
+        /// </summary>
         public event EntryWrittenEventHandler EntryWritten
         {
             add
@@ -225,7 +237,7 @@ namespace System.Diagnostics
             CreateEventSource(new EventSourceCreationData(source, logName, "."));
         }
 
-        [Obsolete("This method has been deprecated.  Please use System.Diagnostics.EventLog.CreateEventSource(EventSourceCreationData sourceData) instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("This method has been deprecated.  Please use System.Diagnostics.EventLog.CreateEventSource(EventSourceCreationData sourceData) instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public static void CreateEventSource(string source, string logName, string machineName)
         {
             CreateEventSource(new EventSourceCreationData(source, logName, machineName));
@@ -259,7 +271,7 @@ namespace System.Diagnostics
             RuntimeHelpers.PrepareConstrainedRegions();
             try
             {
-                SharedUtils.EnterMutex(eventLogMutexName, ref mutex);
+                NetFrameworkUtils.EnterMutex(eventLogMutexName, ref mutex);
                 Debug.WriteLineIf(CompModSwitches.EventLog.TraceVerbose, "CreateEventSource: Calling SourceExists");
                 if (SourceExists(source, machineName, true))
                 {
@@ -298,9 +310,9 @@ namespace System.Diagnostics
                     if (logKey == null && logName.Length >= 8)
                     {
                         string logNameFirst8 = logName.Substring(0, 8);
-                        if (string.Compare(logNameFirst8, "AppEvent", StringComparison.OrdinalIgnoreCase) == 0 ||
-                             string.Compare(logNameFirst8, "SecEvent", StringComparison.OrdinalIgnoreCase) == 0 ||
-                             string.Compare(logNameFirst8, "SysEvent", StringComparison.OrdinalIgnoreCase) == 0)
+                        if (string.Equals(logNameFirst8, "AppEvent", StringComparison.OrdinalIgnoreCase) ||
+                             string.Equals(logNameFirst8, "SecEvent", StringComparison.OrdinalIgnoreCase) ||
+                             string.Equals(logNameFirst8, "SysEvent", StringComparison.OrdinalIgnoreCase))
                             throw new ArgumentException(SR.Format(SR.InvalidCustomerLogName, logName));
 
                         string sameLogName = FindSame8FirstCharsLog(eventKey, logName);
@@ -362,7 +374,7 @@ namespace System.Diagnostics
         public static void Delete(string logName, string machineName)
         {
             if (!SyntaxCheck.CheckMachineName(machineName))
-                throw new ArgumentException(SR.InvalidParameterFormat, nameof(machineName));
+                throw new ArgumentException(SR.Format(SR.InvalidParameterFormat, nameof(machineName)), nameof(machineName));
             if (logName == null || logName.Length == 0)
                 throw new ArgumentException(SR.NoLogName);
             if (!ValidLogName(logName, false))
@@ -374,7 +386,7 @@ namespace System.Diagnostics
             RuntimeHelpers.PrepareConstrainedRegions();
             try
             {
-                SharedUtils.EnterMutex(eventLogMutexName, ref mutex);
+                NetFrameworkUtils.EnterMutex(eventLogMutexName, ref mutex);
                 try
                 {
                     eventlogkey = GetEventLogRegKey(machineName, true);
@@ -445,7 +457,7 @@ namespace System.Diagnostics
             RuntimeHelpers.PrepareConstrainedRegions();
             try
             {
-                SharedUtils.EnterMutex(eventLogMutexName, ref mutex);
+                NetFrameworkUtils.EnterMutex(eventLogMutexName, ref mutex);
                 RegistryKey key = null;
                 // First open the key read only so we can do some checks.  This is important so we get the same 
                 // exceptions even if we don't have write access to the reg key. 
@@ -478,7 +490,7 @@ namespace System.Diagnostics
             }
             finally
             {
-               mutex?.ReleaseMutex();
+                mutex?.ReleaseMutex();
             }
         }
 
@@ -535,7 +547,7 @@ namespace System.Diagnostics
             {
                 string currentLogName = logNames[i];
                 if (currentLogName.Length >= 8 &&
-                    string.Compare(currentLogName.Substring(0, 8), logNameFirst8, StringComparison.OrdinalIgnoreCase) == 0)
+                    string.Equals(currentLogName.Substring(0, 8), logNameFirst8, StringComparison.OrdinalIgnoreCase))
                     return currentLogName;
             }
 
@@ -644,7 +656,7 @@ namespace System.Diagnostics
                 throw new ArgumentException(SR.Format(SR.InvalidParameter, nameof(machineName), machineName));
             }
 
-            string[] logNames = new string[0];
+            string[] logNames = null;
 
             RegistryKey eventkey = null;
             try
@@ -700,7 +712,7 @@ namespace System.Diagnostics
 
         internal static string GetDllPath(string machineName)
         {
-            return Path.Combine(SharedUtils.GetLatestBuildDllDirectory(machineName), DllName);
+            return Path.Combine(NetFrameworkUtils.GetLatestBuildDllDirectory(machineName), DllName);
         }
 
         public static bool SourceExists(string source)
@@ -747,13 +759,11 @@ namespace System.Diagnostics
             }
         }
 
-        [ComVisible(false)]
         public void ModifyOverflowPolicy(OverflowAction action, int retentionDays)
         {
             _underlyingEventLog.ModifyOverflowPolicy(action, retentionDays);
         }
 
-        [ComVisible(false)]
         public void RegisterDisplayName(string resourceFile, long resourceId)
         {
             _underlyingEventLog.RegisterDisplayName(resourceFile, resourceId);
@@ -804,7 +814,7 @@ namespace System.Diagnostics
             }
 
             // If you pass in an empty array UnsafeTryFormatMessage will just pull out the message.
-            string formatString = UnsafeTryFormatMessage(hModule, messageNum, new string[0]);
+            string formatString = UnsafeTryFormatMessage(hModule, messageNum, Array.Empty<string>());
 
             if (formatString == null)
             {
@@ -820,7 +830,7 @@ namespace System.Diagnostics
                     if (formatString.Length > i + 1)
                     {
                         StringBuilder sb = new StringBuilder();
-                        while (i + 1 < formatString.Length && Char.IsDigit(formatString[i + 1]))
+                        while (i + 1 < formatString.Length && char.IsDigit(formatString[i + 1]))
                         {
                             sb.Append(formatString[i + 1]);
                             i++;
@@ -831,7 +841,7 @@ namespace System.Diagnostics
                         if (sb.Length > 0)
                         {
                             int num = -1;
-                            if (Int32.TryParse(sb.ToString(), NumberStyles.None, CultureInfo.InvariantCulture, out num))
+                            if (int.TryParse(sb.ToString(), NumberStyles.None, CultureInfo.InvariantCulture, out num))
                             {
                                 largestNumber = Math.Max(largestNumber, num);
                             }
@@ -861,7 +871,7 @@ namespace System.Diagnostics
             string msg = null;
 
             int msgLen = 0;
-            StringBuilder buf = new StringBuilder(1024);
+            var buf = new char[1024];
             int flags = Interop.Kernel32.FORMAT_MESSAGE_FROM_HMODULE | Interop.Kernel32.FORMAT_MESSAGE_ARGUMENT_ARRAY;
 
             IntPtr[] addresses = new IntPtr[insertionStrings.Length];
@@ -880,8 +890,8 @@ namespace System.Diagnostics
                     handles[i] = GCHandle.Alloc(insertionStrings[i], GCHandleType.Pinned);
                     addresses[i] = handles[i].AddrOfPinnedObject();
                 }
-                int lastError = Interop.Kernel32.ERROR_INSUFFICIENT_BUFFER;
-                while (msgLen == 0 && lastError == Interop.Kernel32.ERROR_INSUFFICIENT_BUFFER)
+                int lastError = Interop.Errors.ERROR_INSUFFICIENT_BUFFER;
+                while (msgLen == 0 && lastError == Interop.Errors.ERROR_INSUFFICIENT_BUFFER)
                 {
                     msgLen = Interop.Kernel32.FormatMessage(
                         flags,
@@ -889,14 +899,14 @@ namespace System.Diagnostics
                         messageNum,
                         0,
                         buf,
-                        buf.Capacity,
+                        buf.Length,
                         addresses);
 
                     if (msgLen == 0)
                     {
                         lastError = Marshal.GetLastWin32Error();
-                        if (lastError == Interop.Kernel32.ERROR_INSUFFICIENT_BUFFER)
-                            buf.Capacity = buf.Capacity * 2;
+                        if (lastError == Interop.Errors.ERROR_INSUFFICIENT_BUFFER)
+                            buf = new char[buf.Length * 2];
                     }
                 }
             }
@@ -916,10 +926,9 @@ namespace System.Diagnostics
 
             if (msgLen > 0)
             {
-                msg = buf.ToString();
-                // chop off a single CR/LF pair from the end if there is one. FormatMessage always appends one extra.
-                if (msg.Length > 1 && msg[msg.Length - 1] == '\n')
-                    msg = msg.Substring(0, msg.Length - 2);
+                msg = msgLen > 1 && buf[msgLen - 1] == '\n' ?
+                    new string(buf, 0, msgLen - 2) : // chop off a single CR/LF pair from the end if there is one. FormatMessage always appends one extra.
+                    new string(buf, 0, msgLen);
             }
 
             return msg;
@@ -929,7 +938,7 @@ namespace System.Diagnostics
         // the code here.  
         private static bool CharIsPrintable(char c)
         {
-            UnicodeCategory uc = Char.GetUnicodeCategory(c);
+            UnicodeCategory uc = char.GetUnicodeCategory(c);
             return (!(uc == UnicodeCategory.Control) || (uc == UnicodeCategory.Format) ||
                     (uc == UnicodeCategory.LineSeparator) || (uc == UnicodeCategory.ParagraphSeparator) ||
             (uc == UnicodeCategory.OtherNotAssigned));
@@ -1005,19 +1014,17 @@ namespace System.Diagnostics
             _underlyingEventLog.WriteEntry(message, type, eventID, category, rawData);
         }
 
-        [ComVisible(false)]
-        public void WriteEvent(EventInstance instance, params Object[] values)
+        public void WriteEvent(EventInstance instance, params object[] values)
         {
             WriteEvent(instance, null, values);
         }
 
-        [ComVisible(false)]
-        public void WriteEvent(EventInstance instance, byte[] data, params Object[] values)
+        public void WriteEvent(EventInstance instance, byte[] data, params object[] values)
         {
             _underlyingEventLog.WriteEvent(instance, data, values);
         }
 
-        public static void WriteEvent(string source, EventInstance instance, params Object[] values)
+        public static void WriteEvent(string source, EventInstance instance, params object[] values)
         {
             using (EventLogInternal log = new EventLogInternal(string.Empty, ".", CheckAndNormalizeSourceName(source)))
             {
@@ -1025,7 +1032,7 @@ namespace System.Diagnostics
             }
         }
 
-        public static void WriteEvent(string source, EventInstance instance, byte[] data, params Object[] values)
+        public static void WriteEvent(string source, EventInstance instance, byte[] data, params object[] values)
         {
             using (EventLogInternal log = new EventLogInternal(string.Empty, ".", CheckAndNormalizeSourceName(source)))
             {

@@ -2,37 +2,29 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Xml;
+using System.Collections.Generic;
+
 namespace System.ServiceModel.Syndication
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Runtime.CompilerServices;
-    using System.Threading.Tasks;
-    using System.Xml;
-
     // NOTE: This class implements Clone so if you add any members, please update the copy ctor
     public class SyndicationCategory : IExtensibleSyndicationObject
     {
         private ExtensibleSyndicationObject _extensions = new ExtensibleSyndicationObject();
-        private string _label;
-        private string _name;
-        private string _scheme;
 
-        public SyndicationCategory()
-            : this((string)null)
+        public SyndicationCategory() : this((string)null)
         {
         }
 
-        public SyndicationCategory(string name)
-            : this(name, null, null)
+        public SyndicationCategory(string name) : this(name, null, null)
         {
         }
 
         public SyndicationCategory(string name, string scheme, string label)
         {
-            _name = name;
-            _scheme = scheme;
-            _label = label;
+            Name = name;
+            Scheme = scheme;
+            Label = label;
         }
 
         protected SyndicationCategory(SyndicationCategory source)
@@ -41,44 +33,24 @@ namespace System.ServiceModel.Syndication
             {
                 throw new ArgumentNullException(nameof(source));
             }
-            _label = source._label;
-            _name = source._name;
-            _scheme = source._scheme;
+
+            Label = source.Label;
+            Name = source.Name;
+            Scheme = source.Scheme;
             _extensions = source._extensions.Clone();
         }
 
-        public Dictionary<XmlQualifiedName, string> AttributeExtensions
-        {
-            get { return _extensions.AttributeExtensions; }
-        }
+        public Dictionary<XmlQualifiedName, string> AttributeExtensions => _extensions.AttributeExtensions;
 
-        public SyndicationElementExtensionCollection ElementExtensions
-        {
-            get { return _extensions.ElementExtensions; }
-        }
+        public SyndicationElementExtensionCollection ElementExtensions => _extensions.ElementExtensions;
 
-        public string Label
-        {
-            get { return _label; }
-            set { _label = value; }
-        }
+        public string Label { get; set; }
 
-        public string Name
-        {
-            get { return _name; }
-            set { _name = value; }
-        }
+        public string Name { get; set; }
 
-        public string Scheme
-        {
-            get { return _scheme; }
-            set { _scheme = value; }
-        }
+        public string Scheme { get; set; }
 
-        public virtual SyndicationCategory Clone()
-        {
-            return new SyndicationCategory(this);
-        }
+        public virtual SyndicationCategory Clone() => new SyndicationCategory(this);
 
         protected internal virtual bool TryParseAttribute(string name, string ns, string value, string version)
         {
@@ -90,14 +62,14 @@ namespace System.ServiceModel.Syndication
             return false;
         }
 
-        protected internal virtual Task WriteAttributeExtensionsAsync(XmlWriter writer, string version)
+        protected internal virtual void WriteAttributeExtensions(XmlWriter writer, string version)
         {
-            return _extensions.WriteAttributeExtensionsAsync(writer);
+            _extensions.WriteAttributeExtensions(writer);
         }
 
-        protected internal virtual Task WriteElementExtensionsAsync(XmlWriter writer, string version)
+        protected internal virtual void WriteElementExtensions(XmlWriter writer, string version)
         {
-            return _extensions.WriteElementExtensionsAsync(writer);
+            _extensions.WriteElementExtensions(writer);
         }
 
         internal void LoadElementExtensions(XmlReader readerOverUnparsedExtensions, int maxExtensionSize)

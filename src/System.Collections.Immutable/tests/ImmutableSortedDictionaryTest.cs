@@ -7,11 +7,12 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace System.Collections.Immutable.Tests
 {
-    public class ImmutableSortedDictionaryTest : ImmutableDictionaryTestBase
+    public partial class ImmutableSortedDictionaryTest : ImmutableDictionaryTestBase
     {
         private enum Operation
         {
@@ -479,6 +480,37 @@ namespace System.Collections.Immutable.Tests
             Debug.WriteLine("Timing_Empty:{0}{1}", Environment.NewLine, timingText);
         }
 
+        [Fact]
+        public void ValueRef()
+        {
+            var dictionary = new Dictionary<string, int>()
+            {
+                { "a", 1 },
+                { "b", 2 }
+            }.ToImmutableSortedDictionary();
+
+            ref readonly var safeRef = ref dictionary.ValueRef("a");
+            ref var unsafeRef = ref Unsafe.AsRef(safeRef);
+
+            Assert.Equal(1, dictionary.ValueRef("a"));
+
+            unsafeRef = 5;
+
+            Assert.Equal(5, dictionary.ValueRef("a"));
+        }
+
+        [Fact]
+        public void ValueRef_NonExistentKey()
+        {
+            var dictionary = new Dictionary<string, int>()
+            {
+                { "a", 1 },
+                { "b", 2 }
+            }.ToImmutableSortedDictionary();
+
+            Assert.Throws<KeyNotFoundException>(() => dictionary.ValueRef("c"));
+        }
+
         protected override IImmutableDictionary<TKey, TValue> Empty<TKey, TValue>()
         {
             return ImmutableSortedDictionaryTest.Empty<TKey, TValue>();
@@ -492,11 +524,6 @@ namespace System.Collections.Immutable.Tests
         protected override IEqualityComparer<TValue> GetValueComparer<TKey, TValue>(IImmutableDictionary<TKey, TValue> dictionary)
         {
             return ((ImmutableSortedDictionary<TKey, TValue>)dictionary).ValueComparer;
-        }
-
-        internal override IBinaryTree GetRootNode<TKey, TValue>(IImmutableDictionary<TKey, TValue> dictionary)
-        {
-            return ((ImmutableSortedDictionary<TKey, TValue>)dictionary).Root;
         }
 
         protected void ContainsValueTestHelper<TKey, TValue>(ImmutableSortedDictionary<TKey, TValue> map, TKey key, TValue value)

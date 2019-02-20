@@ -43,7 +43,7 @@ namespace System.Net
         public override int GetHashCode() { throw null; }
         public override string ToString() { throw null; }
     }
-    public partial class CookieCollection : System.Collections.ICollection, System.Collections.IEnumerable
+    public partial class CookieCollection : System.Collections.Generic.ICollection<System.Net.Cookie>, System.Collections.Generic.IReadOnlyCollection<System.Net.Cookie>, System.Collections.Generic.IEnumerable<System.Net.Cookie>, System.Collections.ICollection, System.Collections.IEnumerable
     {
         public CookieCollection() { }
         public int Count { get { throw null; } }
@@ -53,6 +53,10 @@ namespace System.Net
         public object SyncRoot { get { throw null; } }
         public void Add(System.Net.Cookie cookie) { }
         public void Add(System.Net.CookieCollection cookies) { }
+        public void Clear() { }
+        public bool Contains(System.Net.Cookie cookie) { throw null; }
+        public bool Remove(System.Net.Cookie cookie) { throw null; }
+        System.Collections.Generic.IEnumerator<System.Net.Cookie> System.Collections.Generic.IEnumerable<System.Net.Cookie>.GetEnumerator() { throw null; }
         public System.Collections.IEnumerator GetEnumerator() { throw null; }
         public void CopyTo(System.Array array, int index) { }
         public void CopyTo(Cookie[] array, int index) { }
@@ -101,6 +105,8 @@ namespace System.Net
     [System.FlagsAttribute]
     public enum DecompressionMethods
     {
+        All = ~None,
+        Brotli = 4,
         Deflate = 2,
         GZip = 1,
         None = 0,
@@ -126,40 +132,55 @@ namespace System.Net
     public enum HttpStatusCode
     {
         Accepted = 202,
+        AlreadyReported = 208,
         Ambiguous = 300,
         BadGateway = 502,
         BadRequest = 400,
         Conflict = 409,
         Continue = 100,
         Created = 201,
+        EarlyHints = 103,
         ExpectationFailed = 417,
+        FailedDependency = 424,
         Forbidden = 403,
         Found = 302,
         GatewayTimeout = 504,
         Gone = 410,
         HttpVersionNotSupported = 505,
+        IMUsed = 226,
+        InsufficientStorage = 507,
         InternalServerError = 500,
         LengthRequired = 411,
+        Locked = 423,
+        LoopDetected = 508,
         MethodNotAllowed = 405,
+        MisdirectedRequest = 421,
         Moved = 301,
         MovedPermanently = 301,
         MultipleChoices = 300,
+        MultiStatus = 207,
+        NetworkAuthenticationRequired = 511,
         NoContent = 204,
         NonAuthoritativeInformation = 203,
         NotAcceptable = 406,
+        NotExtended = 510,
         NotFound = 404,
         NotImplemented = 501,
         NotModified = 304,
         OK = 200,
         PartialContent = 206,
         PaymentRequired = 402,
+        PermanentRedirect = 308,
         PreconditionFailed = 412,
+        PreconditionRequired = 428,
+        Processing = 102,
         ProxyAuthenticationRequired = 407,
         Redirect = 302,
         RedirectKeepVerb = 307,
         RedirectMethod = 303,
         RequestedRangeNotSatisfiable = 416,
         RequestEntityTooLarge = 413,
+        RequestHeaderFieldsTooLarge = 431,
         RequestTimeout = 408,
         RequestUriTooLong = 414,
         ResetContent = 205,
@@ -167,11 +188,15 @@ namespace System.Net
         ServiceUnavailable = 503,
         SwitchingProtocols = 101,
         TemporaryRedirect = 307,
+        TooManyRequests = 429,
         Unauthorized = 401,
+        UnavailableForLegalReasons = 451,
+        UnprocessableEntity = 422,
         UnsupportedMediaType = 415,
         Unused = 306,
         UpgradeRequired = 426,
         UseProxy = 305,
+        VariantAlsoNegotiates = 506
     }
     public partial interface ICredentials
     {
@@ -221,7 +246,7 @@ namespace System.Net
         public bool TryFormat(Span<char> destination, out int charsWritten) { throw null; }
         public static bool TryParse(string ipString, out System.Net.IPAddress address) { throw null; }
         public static bool TryParse(ReadOnlySpan<char> ipString, out System.Net.IPAddress address) { throw null; }
-        [Obsolete("This property has been deprecated. It is address family dependent. Please use IPAddress.Equals method to perform comparisons. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("This property has been deprecated. It is address family dependent. Please use IPAddress.Equals method to perform comparisons. https://go.microsoft.com/fwlink/?linkid=14202")]
         public long Address { get { throw null; } set { } }
     }
     public partial class IPEndPoint : System.Net.EndPoint
@@ -238,6 +263,10 @@ namespace System.Net
         public override int GetHashCode() { throw null; }
         public override System.Net.SocketAddress Serialize() { throw null; }
         public override string ToString() { throw null; }
+        public static bool TryParse(string s, out IPEndPoint result) { throw null; }
+        public static bool TryParse(ReadOnlySpan<char> s, out IPEndPoint result) { throw null; }
+        public static IPEndPoint Parse(string s) { throw null; }
+        public static IPEndPoint Parse(ReadOnlySpan<char> s) { throw null; }
     }
     public partial interface IWebProxy
     {
@@ -472,14 +501,15 @@ namespace System.Security.Authentication
     public enum SslProtocols
     {
         None = 0,
-        [Obsolete("This value has been deprecated.  It is no longer supported. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("This value has been deprecated.  It is no longer supported. https://go.microsoft.com/fwlink/?linkid=14202")]
         Ssl2 = 12,
-        [Obsolete("This value has been deprecated.  It is no longer supported. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("This value has been deprecated.  It is no longer supported. https://go.microsoft.com/fwlink/?linkid=14202")]
         Ssl3 = 48,
         Tls = 192,
         Tls11 = 768,
         Tls12 = 3072,
-        [Obsolete("This value has been deprecated.  It is no longer supported. http://go.microsoft.com/fwlink/?linkid=14202")]
+        Tls13 = 12288,
+        [Obsolete("This value has been deprecated.  It is no longer supported. https://go.microsoft.com/fwlink/?linkid=14202")]
         Default = Ssl3 | Tls
     }
 }

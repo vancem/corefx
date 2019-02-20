@@ -16,10 +16,9 @@ namespace System.Net.WebSockets.Client.Tests
     {
         public ConnectTest(ITestOutputHelper output) : base(output) { }
 
-        [ActiveIssue(20360, TargetFrameworkMonikers.NetFramework)]
         [OuterLoop] // TODO: Issue #11345
         [ConditionalTheory(nameof(WebSocketsSupported)), MemberData(nameof(UnavailableWebSocketServers))]
-        public async Task ConnectAsync_NotWebSocketServer_ThrowsWebSocketExceptionWithMessage(Uri server)
+        public async Task ConnectAsync_NotWebSocketServer_ThrowsWebSocketExceptionWithMessage(Uri server, string exceptionMessage)
         {
             using (var cws = new ClientWebSocket())
             {
@@ -29,7 +28,12 @@ namespace System.Net.WebSockets.Client.Tests
 
                 Assert.Equal(WebSocketError.Success, ex.WebSocketErrorCode);
                 Assert.Equal(WebSocketState.Closed, cws.State);
-                Assert.Equal(ResourceHelper.GetExceptionMessage("net_webstatus_ConnectFailure"), ex.Message);
+
+                // .NET Framework and UAP implmentations have different exception message from .NET Core.
+                if (!PlatformDetection.IsFullFramework && !PlatformDetection.IsUap)
+                {
+                    Assert.Equal(exceptionMessage, ex.Message);
+                }
             }
         }
 
@@ -86,9 +90,11 @@ namespace System.Net.WebSockets.Client.Tests
 
         [ActiveIssue(18784, TargetFrameworkMonikers.NetFramework)]
         [OuterLoop]
-        [ConditionalTheory(nameof(WebSocketsSupported)), MemberData(nameof(EchoHeadersServers))]
-        public async Task ConnectAsync_AddHostHeader_Success(Uri server)
+        [ConditionalTheory(nameof(WebSocketsSupported))]
+        public async Task ConnectAsync_AddHostHeader_Success()
         {
+            Uri server = System.Net.Test.Common.Configuration.WebSockets.RemoteEchoServer;
+
             // Send via the physical address such as "corefx-net.cloudapp.net"
             // Set the Host header to logical address like "subdomain.corefx-net.cloudapp.net"
             // Verify the scenario works and the remote server received "Host: subdomain.corefx-net.cloudapp.net"

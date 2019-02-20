@@ -61,8 +61,6 @@ namespace System.Collections.Generic
         private IComparer<TKey> comparer; // Do not rename (binary serialization)
         private KeyList keyList; // Do not rename (binary serialization)
         private ValueList valueList; // Do not rename (binary serialization)
-        [NonSerialized]
-        private object _syncRoot;
 
         private const int DefaultCapacity = 4;
 
@@ -399,17 +397,7 @@ namespace System.Collections.Generic
         }
 
         // Synchronization root for this object.
-        object ICollection.SyncRoot
-        {
-            get
-            {
-                if (_syncRoot == null)
-                {
-                    Threading.Interlocked.CompareExchange(ref _syncRoot, new object(), null);
-                }
-                return _syncRoot;
-            }
-        }
+        object ICollection.SyncRoot => this;
 
         // Removes all entries from this sorted list.
         public void Clear()
@@ -597,7 +585,7 @@ namespace System.Collections.Generic
                 if (i >= 0)
                     return values[i];
 
-                throw new KeyNotFoundException();
+                throw new KeyNotFoundException(SR.Format(SR.Arg_KeyNotFoundWithKey, key.ToString()));
             }
             set
             {

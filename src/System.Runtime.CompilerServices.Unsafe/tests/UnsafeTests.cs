@@ -382,8 +382,8 @@ namespace System.Runtime.CompilerServices
         public static void DangerousAs()
         {
             // Verify that As does not perform type checks
-            object o = new Object();
-            Assert.IsType(typeof(Object), Unsafe.As<string>(o));
+            object o = new object();
+            Assert.IsType(typeof(object), Unsafe.As<string>(o));
         }
 
         [Fact]
@@ -609,6 +609,44 @@ namespace System.Runtime.CompilerServices
         }
 
         [Fact]
+        public static unsafe void RefIsAddressGreaterThan()
+        {
+            int[] a = new int[2];
+
+            Assert.False(Unsafe.IsAddressGreaterThan(ref a[0], ref a[0]));
+            Assert.False(Unsafe.IsAddressGreaterThan(ref a[0], ref a[1]));
+            Assert.True(Unsafe.IsAddressGreaterThan(ref a[1], ref a[0]));
+            Assert.False(Unsafe.IsAddressGreaterThan(ref a[1], ref a[1]));
+
+            // The following tests ensure that we're using unsigned comparison logic
+
+            Assert.False(Unsafe.IsAddressGreaterThan(ref Unsafe.AsRef<byte>((void*)(1)), ref Unsafe.AsRef<byte>((void*)(-1))));
+            Assert.True(Unsafe.IsAddressGreaterThan(ref Unsafe.AsRef<byte>((void*)(-1)), ref Unsafe.AsRef<byte>((void*)(1))));
+            Assert.True(Unsafe.IsAddressGreaterThan(ref Unsafe.AsRef<byte>((void*)(int.MinValue)), ref Unsafe.AsRef<byte>((void*)(int.MaxValue))));
+            Assert.False(Unsafe.IsAddressGreaterThan(ref Unsafe.AsRef<byte>((void*)(int.MaxValue)), ref Unsafe.AsRef<byte>((void*)(int.MinValue))));
+            Assert.False(Unsafe.IsAddressGreaterThan(ref Unsafe.AsRef<byte>(null), ref Unsafe.AsRef<byte>(null)));
+        }
+
+        [Fact]
+        public static unsafe void RefIsAddressLessThan()
+        {
+            int[] a = new int[2];
+
+            Assert.False(Unsafe.IsAddressLessThan(ref a[0], ref a[0]));
+            Assert.True(Unsafe.IsAddressLessThan(ref a[0], ref a[1]));
+            Assert.False(Unsafe.IsAddressLessThan(ref a[1], ref a[0]));
+            Assert.False(Unsafe.IsAddressLessThan(ref a[1], ref a[1]));
+
+            // The following tests ensure that we're using unsigned comparison logic
+
+            Assert.True(Unsafe.IsAddressLessThan(ref Unsafe.AsRef<byte>((void*)(1)), ref Unsafe.AsRef<byte>((void*)(-1))));
+            Assert.False(Unsafe.IsAddressLessThan(ref Unsafe.AsRef<byte>((void*)(-1)), ref Unsafe.AsRef<byte>((void*)(1))));
+            Assert.False(Unsafe.IsAddressLessThan(ref Unsafe.AsRef<byte>((void*)(int.MinValue)), ref Unsafe.AsRef<byte>((void*)(int.MaxValue))));
+            Assert.True(Unsafe.IsAddressLessThan(ref Unsafe.AsRef<byte>((void*)(int.MaxValue)), ref Unsafe.AsRef<byte>((void*)(int.MinValue))));
+            Assert.False(Unsafe.IsAddressLessThan(ref Unsafe.AsRef<byte>(null), ref Unsafe.AsRef<byte>(null)));
+        }
+
+        [Fact]
         public static unsafe void ReadUnaligned_ByRef_Int32()
         {
             byte[] unaligned = Int32Double.Unaligned(123456789, 3.42);
@@ -755,6 +793,42 @@ namespace System.Runtime.CompilerServices
             Assert.Equal(123456789, actual.Int32);
             Assert.Equal(3.42, actual.Double);
         }
+
+        [Fact]
+        public static void Unbox_Int32()
+        {
+            object box = 42;
+
+            Assert.True(Unsafe.AreSame(ref Unsafe.Unbox<int>(box), ref Unsafe.Unbox<int>(box)));
+
+            Assert.Equal(42, (int)box);
+            Assert.Equal(42, Unsafe.Unbox<int>(box));
+
+            ref int value = ref Unsafe.Unbox<int>(box);
+            value = 84;
+            Assert.Equal(84, (int)box);
+            Assert.Equal(84, Unsafe.Unbox<int>(box));
+
+            Assert.Throws<InvalidCastException>(() => Unsafe.Unbox<Byte4>(box));
+        }
+
+        [Fact]
+        public static void Unbox_CustomValueType()
+        {
+            object box = new Int32Double();
+
+            Assert.Equal(0, ((Int32Double)box).Double);
+            Assert.Equal(0, ((Int32Double)box).Int32);
+
+            ref Int32Double value = ref Unsafe.Unbox<Int32Double>(box);
+            value.Double = 42;
+            value.Int32 = 84;
+
+            Assert.Equal(42, ((Int32Double)box).Double);
+            Assert.Equal(84, ((Int32Double)box).Int32);
+
+            Assert.Throws<InvalidCastException>(() => Unsafe.Unbox<bool>(box));
+        }
     }
 
     [StructLayout(LayoutKind.Explicit)]
@@ -792,9 +866,12 @@ namespace System.Runtime.CompilerServices
         public fixed byte Bytes[512];
     }
 
+    [StructLayout(LayoutKind.Explicit, Size=16)]
     public unsafe struct Int32Double
     {
+        [FieldOffset(0)]
         public int Int32;
+        [FieldOffset(8)]
         public double Double;
 
         public static unsafe byte[] Unaligned(int i, double d)

@@ -2,21 +2,19 @@
 
 usage()
 {
-    echo "Usage: clean [options]"
-    echo "Cleans the local dev environment."
     echo
-    echo "  -b         Delete the binary output directory."
-    echo "  -p         Delete the repo-local NuGet package directory."
-    echo "  -c         Delete the user-local NuGet package caches."
-    echo "  -all       Cleans the root directory."
-    echo
-    echo "If no option is specified, then \"clean.sh -b\" is implied."
+    echo "Usage: clean [-all]"
+    echo "Deletes the binary output directory."
+    echo "Options:"
+    echo "    -all   - Cleans repository and restores it to pristine state."
     exit 1
 }
 
 if [ "$1" == "-?" ] || [ "$1" == "-h" ]; then
     usage
 fi
+
+# Implement VBCSCompiler.exe kill logic once VBCSCompiler.exe is ported to unixes
 
 __working_tree_root="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -27,9 +25,5 @@ then
    exit $?
 fi
 
-if [ $# == 0 ]; then
-    __args=-b
-fi
-
-$__working_tree_root/run.sh clean $__args $*
+$__working_tree_root/eng/common/msbuild.sh $__working_tree_root/build.proj /t:Clean "$@"
 exit $?

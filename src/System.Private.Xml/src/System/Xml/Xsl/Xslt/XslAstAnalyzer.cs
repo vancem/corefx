@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Globalization;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Xml.XPath;
 using System.Xml.Xsl.Qil;
 using System.Xml.Xsl.Runtime;
@@ -938,7 +938,7 @@ namespace System.Xml.Xsl.Xslt
         // ------------------------------- XPathAnalyzer --------------------------------
 
         // Ignores all errors and warnings
-        internal struct NullErrorHelper : IErrorHelper
+        internal readonly struct NullErrorHelper : IErrorHelper
         {
             public void ReportError(string res, params string[] args) { }
             public void ReportWarning(string res, params string[] args) { }

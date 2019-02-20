@@ -6,7 +6,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Security.Cryptography;
+using System.Security.Cryptography.Asn1;
 using System.Security.Cryptography.X509Certificates;
+using System.Security.Cryptography.X509Certificates.Asn1;
 using Microsoft.Win32.SafeHandles;
 
 namespace Internal.Cryptography.Pal
@@ -380,16 +382,19 @@ namespace Internal.Cryptography.Pal
             using (var systemIntermediateStore = new X509Store(StoreName.CertificateAuthority, StoreLocation.LocalMachine))
             using (var userRootStore = new X509Store(StoreName.Root, StoreLocation.CurrentUser))
             using (var userIntermediateStore = new X509Store(StoreName.CertificateAuthority, StoreLocation.CurrentUser))
+            using (var userMyStore = new X509Store(StoreName.My, StoreLocation.CurrentUser))
             {
                 systemRootStore.Open(OpenFlags.ReadOnly);
                 systemIntermediateStore.Open(OpenFlags.ReadOnly);
                 userRootStore.Open(OpenFlags.ReadOnly);
                 userIntermediateStore.Open(OpenFlags.ReadOnly);
+                userMyStore.Open(OpenFlags.ReadOnly);
 
                 X509Certificate2Collection systemRootCerts = systemRootStore.Certificates;
                 X509Certificate2Collection systemIntermediateCerts = systemIntermediateStore.Certificates;
                 X509Certificate2Collection userRootCerts = userRootStore.Certificates;
                 X509Certificate2Collection userIntermediateCerts = userIntermediateStore.Certificates;
+                X509Certificate2Collection userMyCerts = userMyStore.Certificates;
 
                 // fill the system trusted collection
                 foreach (X509Certificate2 userRootCert in userRootCerts)
@@ -413,14 +418,30 @@ namespace Internal.Cryptography.Pal
                     }
                 }
 
-                X509Certificate2Collection[] storesToCheck =
+                X509Certificate2Collection[] storesToCheck;
+                if (extraStore != null && extraStore.Count > 0)
                 {
-                    extraStore,
-                    userIntermediateCerts,
-                    systemIntermediateCerts,
-                    userRootCerts,
-                    systemRootCerts,
-                };
+                    storesToCheck = new[]
+                    {
+                        extraStore,
+                        userMyCerts,
+                        userIntermediateCerts,
+                        systemIntermediateCerts,
+                        userRootCerts,
+                        systemRootCerts,
+                    };
+                }
+                else
+                {
+                    storesToCheck = new[]
+                    {
+                        userMyCerts,
+                        userIntermediateCerts,
+                        systemIntermediateCerts,
+                        userRootCerts,
+                        systemRootCerts,
+                    };
+                }
 
                 while (toProcess.Count > 0)
                 {
@@ -452,7 +473,7 @@ namespace Internal.Cryptography.Pal
                     candidates,
                     ReferenceEqualityComparer<X509Certificate2>.Instance);
 
-                // Certificates come from 5 sources:
+                // Certificates come from 6 sources:
                 //  1) extraStore.
                 //     These are cert objects that are provided by the user, we shouldn't dispose them.
                 //  2) the machine root store
@@ -463,8 +484,11 @@ namespace Internal.Cryptography.Pal
                 //     These certs were either path candidates, or not. If they were, don't dispose them. Otherwise do.
                 //  5) the user intermediate store
                 //     These certs were either path candidates, or not. If they were, don't dispose them. Otherwise do.
+                //  6) the user my store
+                //     These certs were either path candidates, or not. If they were, don't dispose them. Otherwise do.
                 DisposeUnreferenced(candidatesByReference, systemIntermediateCerts);
                 DisposeUnreferenced(candidatesByReference, userIntermediateCerts);
+                DisposeUnreferenced(candidatesByReference, userMyCerts);
             }
 
             return candidates;
@@ -588,36 +612,22 @@ namespace Internal.Cryptography.Pal
 
         internal static string FindHttpAiaRecord(byte[] authorityInformationAccess, string recordTypeOid)
         {
-            DerSequenceReader reader = new DerSequenceReader(authorityInformationAccess);
+            AsnReader reader = new AsnReader(authorityInformationAccess, AsnEncodingRules.DER);
+            AsnReader sequenceReader = reader.ReadSequence();
+            reader.ThrowIfNotEmpty();
 
-            while (reader.HasData)
+            while (sequenceReader.HasData)
             {
-                DerSequenceReader innerReader = reader.ReadSequence();
-
-                // If the sequence's first element is a sequence, unwrap it.
-                if (innerReader.PeekTag() == ConstructedSequenceTagId)
+                AccessDescriptionAsn.Decode(sequenceReader, out AccessDescriptionAsn description);
+                if (StringComparer.Ordinal.Equals(description.AccessMethod, recordTypeOid))
                 {
-                    innerReader = innerReader.ReadSequence();
-                }
-
-                Oid oid = innerReader.ReadOid();
-
-                if (StringComparer.Ordinal.Equals(oid.Value, recordTypeOid))
-                {
-                    string uri = innerReader.ReadIA5String();
-
-                    Uri parsedUri;
-                    if (!Uri.TryCreate(uri, UriKind.Absolute, out parsedUri))
+                    GeneralNameAsn name = description.AccessLocation;
+                    if (name.Uri != null &&
+                        Uri.TryCreate(name.Uri, UriKind.Absolute, out Uri uri) &&
+                        uri.Scheme == "http")
                     {
-                        continue;
+                        return name.Uri;
                     }
-
-                    if (!StringComparer.Ordinal.Equals(parsedUri.Scheme, "http"))
-                    {
-                        continue;
-                    }
-
-                    return uri;
                 }
             }
 

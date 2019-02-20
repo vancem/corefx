@@ -2,14 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Collections.Generic;
+using System.Xml;
+
 namespace System.ServiceModel.Syndication
 {
-    using System;
-    using System.Collections.ObjectModel;
-    using System.Collections.Generic;
-    using System.Xml;
-    using System.Threading.Tasks;
-
     // NOTE: This class implements Clone so if you add any members, please update the copy ctor
     internal struct ExtensibleSyndicationObject : IExtensibleSyndicationObject
     {
@@ -42,26 +39,12 @@ namespace System.ServiceModel.Syndication
 
         public Dictionary<XmlQualifiedName, string> AttributeExtensions
         {
-            get
-            {
-                if (_attributeExtensions == null)
-                {
-                    _attributeExtensions = new Dictionary<XmlQualifiedName, string>();
-                }
-                return _attributeExtensions;
-            }
+            get => _attributeExtensions ?? (_attributeExtensions = new Dictionary<XmlQualifiedName, string>());
         }
 
         public SyndicationElementExtensionCollection ElementExtensions
         {
-            get
-            {
-                if (_elementExtensions == null)
-                {
-                    _elementExtensions = new SyndicationElementExtensionCollection();
-                }
-                return _elementExtensions;
-            }
+            get => _elementExtensions ?? (_elementExtensions = new SyndicationElementExtensionCollection());
         }
 
         private static XmlBuffer CreateXmlBuffer(XmlDictionaryReader unparsedExtensionsReader, int maxExtensionSize)
@@ -87,11 +70,11 @@ namespace System.ServiceModel.Syndication
             {
                 throw new ArgumentNullException(nameof(readerOverUnparsedExtensions));
             }
-
             if (maxExtensionSize < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(maxExtensionSize));
             }
+
             XmlDictionaryReader r = XmlDictionaryReader.CreateDictionaryReader(readerOverUnparsedExtensions);
             _elementExtensions = new SyndicationElementExtensionCollection(CreateXmlBuffer(r, maxExtensionSize));
         }
@@ -102,26 +85,24 @@ namespace System.ServiceModel.Syndication
             _elementExtensions = new SyndicationElementExtensionCollection(buffer);
         }
 
-        internal async Task WriteAttributeExtensionsAsync(XmlWriter writer)
+        internal void WriteAttributeExtensions(XmlWriter writer)
         {
             if (writer == null)
             {
                 throw new ArgumentNullException(nameof(writer));
             }
 
-            writer = XmlWriterWrapper.CreateFromWriter(writer);
-
             if (_attributeExtensions != null)
             {
                 foreach (XmlQualifiedName qname in _attributeExtensions.Keys)
                 {
                     string value = _attributeExtensions[qname];
-                    await writer.WriteAttributeStringAsync(qname.Name, qname.Namespace, value);
+                    writer.WriteAttributeString(qname.Name, qname.Namespace, value);
                 }
             }
         }
 
-        internal async Task WriteElementExtensionsAsync(XmlWriter writer)
+        internal void WriteElementExtensions(XmlWriter writer, Func<string, string, bool> shouldSkipElement = null)
         {
             if (writer == null)
             {
@@ -130,13 +111,10 @@ namespace System.ServiceModel.Syndication
 
             if (_elementExtensions != null)
             {
-                await _elementExtensions.WriteToAsync(writer);
+                _elementExtensions.WriteTo(writer, shouldSkipElement);
             }
         }
 
-        public ExtensibleSyndicationObject Clone()
-        {
-            return new ExtensibleSyndicationObject(this);
-        }
+        public ExtensibleSyndicationObject Clone() => new ExtensibleSyndicationObject(this);
     }
 }

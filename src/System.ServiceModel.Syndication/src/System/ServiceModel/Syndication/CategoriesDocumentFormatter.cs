@@ -2,14 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Runtime.Serialization;
+using System.Xml;
+
 namespace System.ServiceModel.Syndication
 {
-    using System;
-    using System.Runtime.CompilerServices;
-    using System.Runtime.Serialization;
-    using System.Threading.Tasks;
-    using System.Xml;
-
+    [DataContract]
     public abstract class CategoriesDocumentFormatter
     {
         private CategoriesDocument _document;
@@ -17,26 +15,19 @@ namespace System.ServiceModel.Syndication
         protected CategoriesDocumentFormatter()
         {
         }
+
         protected CategoriesDocumentFormatter(CategoriesDocument documentToWrite)
         {
-            if (documentToWrite == null)
-            {
-                throw new ArgumentNullException(nameof(documentToWrite));
-            }
-            _document = documentToWrite;
+            _document = documentToWrite ?? throw new ArgumentNullException(nameof(documentToWrite));
         }
 
-        public CategoriesDocument Document
-        {
-            get { return _document; }
-        }
+        public CategoriesDocument Document => _document;
 
-        public abstract string Version
-        { get; }
+        public abstract string Version { get; }
 
-        public abstract Task<bool> CanReadAsync(XmlReader reader);
-        public abstract Task ReadFromAsync(XmlReader reader);
-        public abstract Task WriteTo(XmlWriter writer);
+        public abstract bool CanRead(XmlReader reader);
+        public abstract void ReadFrom(XmlReader reader);
+        public abstract void WriteTo(XmlWriter writer);
 
         protected virtual InlineCategoriesDocument CreateInlineCategoriesDocument()
         {
@@ -48,9 +39,6 @@ namespace System.ServiceModel.Syndication
             return new ReferencedCategoriesDocument();
         }
 
-        protected virtual void SetDocument(CategoriesDocument document)
-        {
-            _document = document;
-        }
+        protected virtual void SetDocument(CategoriesDocument document) => _document = document;
     }
 }

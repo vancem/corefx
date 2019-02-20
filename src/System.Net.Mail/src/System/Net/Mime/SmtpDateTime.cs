@@ -228,9 +228,9 @@ namespace System.Net.Mime
             // time zones must all be alphabetical characters
             for (int i = 0; i < value.Length; i++)
             {
-                if (!Char.IsLetter(value, i))
+                if (!char.IsLetter(value, i))
                 {
-                    throw new FormatException(SR.MailHeaderFieldInvalidCharacter);
+                    throw new FormatException(SR.Format(SR.MailHeaderFieldInvalidCharacter, value));
                 }
             }
         }
@@ -258,7 +258,7 @@ namespace System.Net.Mime
             // no ':' means invalid value
             if (indexOfHourSeparator == -1)
             {
-                throw new FormatException(SR.MailHeaderFieldInvalidCharacter);
+                throw new FormatException(SR.Format(SR.MailHeaderFieldInvalidCharacter, data));
             }
 
             // now we know where hours and minutes are separated.  The first whitespace after 
@@ -269,7 +269,7 @@ namespace System.Net.Mime
 
             if (indexOfTimeZoneSeparator == -1)
             {
-                throw new FormatException(SR.MailHeaderFieldInvalidCharacter);
+                throw new FormatException(SR.Format(SR.MailHeaderFieldInvalidCharacter, data));
             }
 
             // extract the time portion and remove all leading and trailing whitespace

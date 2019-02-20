@@ -10,7 +10,7 @@ namespace System.Collections.Generic
     /// Represents a reserved region within a <see cref="SparseArrayBuilder{T}"/>.
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    internal struct Marker
+    internal readonly struct Marker
     {
         /// <summary>
         /// Constructs a new marker.
@@ -109,7 +109,7 @@ namespace System.Collections.Generic
         /// Copies the contents of this builder to the specified array.
         /// </summary>
         /// <param name="array">The destination array.</param>
-        /// <param name="arrayIndex">The index in <see cref="array"/> to start copying to.</param>
+        /// <param name="arrayIndex">The index in <paramref name="array"/> to start copying to.</param>
         /// <param name="count">The number of items to copy.</param>
         public void CopyTo(T[] array, int arrayIndex, int count)
         {

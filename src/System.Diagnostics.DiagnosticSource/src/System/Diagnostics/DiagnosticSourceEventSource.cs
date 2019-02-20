@@ -441,7 +441,7 @@ namespace System.Diagnostics
                 for (;;)
                 {
                     // Skip trailing whitespace.
-                    while (0 < endIdx && Char.IsWhiteSpace(filterAndPayloadSpecs[endIdx - 1]))
+                    while (0 < endIdx && char.IsWhiteSpace(filterAndPayloadSpecs[endIdx - 1]))
                         --endIdx;
 
                     int newlineIdx = filterAndPayloadSpecs.LastIndexOf('\n', endIdx - 1, endIdx);
@@ -450,7 +450,7 @@ namespace System.Diagnostics
                         startIdx = newlineIdx + 1;  // starts after the newline, or zero if we don't find one.   
 
                     // Skip leading whitespace
-                    while (startIdx < endIdx && Char.IsWhiteSpace(filterAndPayloadSpecs[startIdx]))
+                    while (startIdx < endIdx && char.IsWhiteSpace(filterAndPayloadSpecs[startIdx]))
                         startIdx++;
 
                     specList = new FilterAndTransform(filterAndPayloadSpecs, startIdx, endIdx, eventSource, specList);
@@ -800,13 +800,13 @@ namespace System.Diagnostics
                 public object Fetch(object obj)
                 {
                     Type objType = obj.GetType();
-                    if (objType != _expectedType)
+                    PropertyFetch fetch = _fetchForExpectedType;
+                    if (fetch == null || fetch.Type != objType)
                     {
-                        var typeInfo = objType.GetTypeInfo();
-                        _fetchForExpectedType = PropertyFetch.FetcherForProperty(typeInfo.GetDeclaredProperty(_propertyName));
-                        _expectedType = objType;
+                        _fetchForExpectedType = fetch = PropertyFetch.FetcherForProperty(
+                            objType, objType.GetTypeInfo().GetDeclaredProperty(_propertyName));
                     }
-                    return _fetchForExpectedType.Fetch(obj);
+                    return fetch.Fetch(obj);
                 }
 
                 /// <summary>
@@ -820,21 +820,29 @@ namespace System.Diagnostics
                 /// to efficiently fetch that property from a .NET object (See Fetch method).  
                 /// It hides some slightly complex generic code.  
                 /// </summary>
-                class PropertyFetch
+                private class PropertyFetch
                 {
+                    protected PropertyFetch(Type type)
+                    {
+                        Debug.Assert(type != null);
+                        Type = type;
+                    }
+
+                    internal Type Type { get; }
+
                     /// <summary>
                     /// Create a property fetcher from a .NET Reflection PropertyInfo class that
                     /// represents a property of a particular type.  
                     /// </summary>
-                    public static PropertyFetch FetcherForProperty(PropertyInfo propertyInfo)
+                    public static PropertyFetch FetcherForProperty(Type type, PropertyInfo propertyInfo)
                     {
                         if (propertyInfo == null)
-                            return new PropertyFetch();     // returns null on any fetch.
+                            return new PropertyFetch(type);     // returns null on any fetch.
 
                         var typedPropertyFetcher = typeof(TypedFetchProperty<,>);
                         var instantiatedTypedPropertyFetcher = typedPropertyFetcher.GetTypeInfo().MakeGenericType(
                             propertyInfo.DeclaringType, propertyInfo.PropertyType);
-                        return (PropertyFetch)Activator.CreateInstance(instantiatedTypedPropertyFetcher, propertyInfo);
+                        return (PropertyFetch)Activator.CreateInstance(instantiatedTypedPropertyFetcher, type, propertyInfo);
                     }
 
                     /// <summary>
@@ -844,9 +852,9 @@ namespace System.Diagnostics
 
                     #region private 
 
-                    private class TypedFetchProperty<TObject, TProperty> : PropertyFetch
+                    private sealed class TypedFetchProperty<TObject, TProperty> : PropertyFetch
                     {
-                        public TypedFetchProperty(PropertyInfo property)
+                        public TypedFetchProperty(Type type, PropertyInfo property) : base(type)
                         {
                             _propertyFetch = (Func<TObject, TProperty>)property.GetMethod.CreateDelegate(typeof(Func<TObject, TProperty>));
                         }
@@ -860,8 +868,7 @@ namespace System.Diagnostics
                 }
 
                 private string _propertyName;
-                private Type _expectedType;
-                private PropertyFetch _fetchForExpectedType;
+                private volatile PropertyFetch _fetchForExpectedType;
                 #endregion
             }
 

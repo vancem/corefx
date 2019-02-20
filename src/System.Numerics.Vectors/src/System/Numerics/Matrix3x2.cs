@@ -11,6 +11,8 @@ namespace System.Numerics
     /// </summary>
     public struct Matrix3x2 : IEquatable<Matrix3x2>
     {
+        private const float RotationEpsilon = 0.001f * MathF.PI / 180f;     // 0.1% of a degree
+
         #region Public Fields
         /// <summary>
         /// The first element of the first row
@@ -331,27 +333,25 @@ namespace System.Numerics
 
             float c, s;
 
-            const float epsilon = 0.001f * MathF.PI / 180f;     // 0.1% of a degree
-
-            if (radians > -epsilon && radians < epsilon)
+            if (radians > -RotationEpsilon && radians < RotationEpsilon)
             {
                 // Exact case for zero rotation.
                 c = 1;
                 s = 0;
             }
-            else if (radians > MathF.PI / 2 - epsilon && radians < MathF.PI / 2 + epsilon)
+            else if (radians > MathF.PI / 2 - RotationEpsilon && radians < MathF.PI / 2 + RotationEpsilon)
             {
                 // Exact case for 90 degree rotation.
                 c = 0;
                 s = 1;
             }
-            else if (radians < -MathF.PI + epsilon || radians > MathF.PI - epsilon)
+            else if (radians < -MathF.PI + RotationEpsilon || radians > MathF.PI - RotationEpsilon)
             {
                 // Exact case for 180 degree rotation.
                 c = -1;
                 s = 0;
             }
-            else if (radians > -MathF.PI / 2 - epsilon && radians < -MathF.PI / 2 + epsilon)
+            else if (radians > -MathF.PI / 2 - RotationEpsilon && radians < -MathF.PI / 2 + RotationEpsilon)
             {
                 // Exact case for 270 degree rotation.
                 c = 0;
@@ -391,27 +391,25 @@ namespace System.Numerics
 
             float c, s;
 
-            const float epsilon = 0.001f * MathF.PI / 180f;     // 0.1% of a degree
-
-            if (radians > -epsilon && radians < epsilon)
+            if (radians > -RotationEpsilon && radians < RotationEpsilon)
             {
                 // Exact case for zero rotation.
                 c = 1;
                 s = 0;
             }
-            else if (radians > MathF.PI / 2 - epsilon && radians < MathF.PI / 2 + epsilon)
+            else if (radians > MathF.PI / 2 - RotationEpsilon && radians < MathF.PI / 2 + RotationEpsilon)
             {
                 // Exact case for 90 degree rotation.
                 c = 0;
                 s = 1;
             }
-            else if (radians < -MathF.PI + epsilon || radians > MathF.PI - epsilon)
+            else if (radians < -MathF.PI + RotationEpsilon || radians > MathF.PI - RotationEpsilon)
             {
                 // Exact case for 180 degree rotation.
                 c = -1;
                 s = 0;
             }
-            else if (radians > -MathF.PI / 2 - epsilon && radians < -MathF.PI / 2 + epsilon)
+            else if (radians > -MathF.PI / 2 - RotationEpsilon && radians < -MathF.PI / 2 + RotationEpsilon)
             {
                 // Exact case for 270 degree rotation.
                 c = 0;
@@ -790,7 +788,7 @@ namespace System.Numerics
         public override string ToString()
         {
             CultureInfo ci = CultureInfo.CurrentCulture;
-            return String.Format(ci, "{{ {{M11:{0} M12:{1}}} {{M21:{2} M22:{3}}} {{M31:{4} M32:{5}}} }}",
+            return string.Format(ci, "{{ {{M11:{0} M12:{1}}} {{M21:{2} M22:{3}}} {{M31:{4} M32:{5}}} }}",
                                  M11.ToString(ci), M12.ToString(ci),
                                  M21.ToString(ci), M22.ToString(ci),
                                  M31.ToString(ci), M32.ToString(ci));

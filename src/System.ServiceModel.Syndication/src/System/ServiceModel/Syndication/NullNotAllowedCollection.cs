@@ -2,16 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Collections.ObjectModel;
+
 namespace System.ServiceModel.Syndication
 {
-    using System;
-    using System.Collections.ObjectModel;
-
-    internal class NullNotAllowedCollection<TCollectionItem> : Collection<TCollectionItem>
-        where TCollectionItem : class
+    internal class NullNotAllowedCollection<TCollectionItem> : Collection<TCollectionItem> where TCollectionItem : class
     {
-        public NullNotAllowedCollection()
-            : base()
+        public NullNotAllowedCollection() : base()
         {
         }
 
@@ -21,6 +18,7 @@ namespace System.ServiceModel.Syndication
             {
                 throw new ArgumentNullException(nameof(item));
             }
+
             base.InsertItem(index, item);
         }
 
@@ -30,6 +28,7 @@ namespace System.ServiceModel.Syndication
             {
                 throw new ArgumentNullException(nameof(item));
             }
+
             base.SetItem(index, item);
         }
     }

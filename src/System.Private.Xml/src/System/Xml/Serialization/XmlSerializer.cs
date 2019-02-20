@@ -2,11 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#if XMLSERIALIZERGENERATOR
-namespace Microsoft.XmlSerializer.Generator
-#else
 namespace System.Xml.Serialization
-#endif
 {
     using System.Reflection;
     using System.Collections;
@@ -24,25 +20,14 @@ namespace System.Xml.Serialization
     using System.Xml;
     using System.Xml.Serialization;
 
-    /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlDeserializationEvents"]/*' />
-    /// <devdoc>
-    ///    <para>[To be supplied.]</para>
-    /// </devdoc>
-#if XMLSERIALIZERGENERATOR
-    internal struct XmlDeserializationEvents
-#else
     public struct XmlDeserializationEvents
-#endif
     {
         private XmlNodeEventHandler _onUnknownNode;
         private XmlAttributeEventHandler _onUnknownAttribute;
         private XmlElementEventHandler _onUnknownElement;
         private UnreferencedObjectEventHandler _onUnreferencedObject;
-#if !XMLSERIALIZERGENERATOR
         internal object sender;
-#endif
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlDeserializationEvents.OnUnknownNode"]/*' />
         public XmlNodeEventHandler OnUnknownNode
         {
             get
@@ -56,7 +41,6 @@ namespace System.Xml.Serialization
             }
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlDeserializationEvents.OnUnknownAttribute"]/*' />
         public XmlAttributeEventHandler OnUnknownAttribute
         {
             get
@@ -69,7 +53,6 @@ namespace System.Xml.Serialization
             }
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlDeserializationEvents.OnUnknownElement"]/*' />
         public XmlElementEventHandler OnUnknownElement
         {
             get
@@ -82,7 +65,6 @@ namespace System.Xml.Serialization
             }
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlDeserializationEvents.OnUnreferencedObject"]/*' />
         public UnreferencedObjectEventHandler OnUnreferencedObject
         {
             get
@@ -96,30 +78,20 @@ namespace System.Xml.Serialization
         }
     }
 
-    /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializerImplementation"]/*' />
-    ///<internalonly/>
-    /// <devdoc>
-    ///    <para>[To be supplied.]</para>
-    /// </devdoc>
-#if XMLSERIALIZERGENERATOR
-    internal abstract class XmlSerializerImplementation
-#else
     public abstract class XmlSerializerImplementation
-#endif
     {
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializerImplementation.Reader"]/*' />
         public virtual XmlSerializationReader Reader { get { throw new NotSupportedException(); } }
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializerImplementation.Writer"]/*' />
+
         public virtual XmlSerializationWriter Writer { get { throw new NotSupportedException(); } }
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializerImplementation.ReadMethods"]/*' />
+
         public virtual Hashtable ReadMethods { get { throw new NotSupportedException(); } }
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializerImplementation.WriteMethods"]/*' />
+
         public virtual Hashtable WriteMethods { get { throw new NotSupportedException(); } }
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializerImplementation.TypedSerializers"]/*' />
+
         public virtual Hashtable TypedSerializers { get { throw new NotSupportedException(); } }
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializerImplementation.CanSerialize"]/*' />
+
         public virtual bool CanSerialize(Type type) { throw new NotSupportedException(); }
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializerImplementation.GetSerializer"]/*' />
+
         public virtual XmlSerializer GetSerializer(Type type) { throw new NotSupportedException(); }
     }
 
@@ -139,15 +111,7 @@ namespace System.Xml.Serialization
         PreGenOnly
     }
 
-    /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer"]/*' />
-    /// <devdoc>
-    ///    <para>[To be supplied.]</para>
-    /// </devdoc>
-#if XMLSERIALIZERGENERATOR
-    internal class XmlSerializer
-#else
     public class XmlSerializer
-#endif
     {
 #if FEATURE_SERIALIZATION_UAPAOT
         public static SerializationMode Mode { get; set; } = SerializationMode.ReflectionAsBackup;
@@ -177,6 +141,7 @@ namespace System.Xml.Serialization
         internal string DefaultNamespace = null;
 #endif
         private Type _rootType;
+        private bool _isReflectionBasedSerializer = false;
 
         private static TempAssemblyCache s_cache = new TempAssemblyCache();
         private static volatile XmlSerializerNamespaces s_defaultNamespaces;
@@ -200,49 +165,27 @@ namespace System.Xml.Serialization
 
         private static readonly Dictionary<Type, Dictionary<XmlSerializerMappingKey, XmlSerializer>> s_xmlSerializerTable = new Dictionary<Type, Dictionary<XmlSerializerMappingKey, XmlSerializer>>();
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.XmlSerializer8"]/*' />
-        ///<internalonly/>
         protected XmlSerializer()
         {
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.XmlSerializer"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public XmlSerializer(Type type, XmlAttributeOverrides overrides, Type[] extraTypes, XmlRootAttribute root, string defaultNamespace) :
             this(type, overrides, extraTypes, root, defaultNamespace, null)
         {
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.XmlSerializer2"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public XmlSerializer(Type type, XmlRootAttribute root) : this(type, null, Array.Empty<Type>(), root, null, null)
         {
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.XmlSerializer3"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public XmlSerializer(Type type, Type[] extraTypes) : this(type, null, extraTypes, null, null, null)
         {
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.XmlSerializer4"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public XmlSerializer(Type type, XmlAttributeOverrides overrides) : this(type, overrides, Array.Empty<Type>(), null, null, null)
         {
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.XmlSerializer5"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public XmlSerializer(XmlTypeMapping xmlTypeMapping)
         {
             if (xmlTypeMapping == null)
@@ -254,18 +197,10 @@ namespace System.Xml.Serialization
             _mapping = xmlTypeMapping;
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.XmlSerializer6"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public XmlSerializer(Type type) : this(type, (string)null)
         {
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.XmlSerializer1"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public XmlSerializer(Type type, string defaultNamespace)
         {
             if (type == null)
@@ -332,10 +267,6 @@ namespace System.Xml.Serialization
 #endif
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.XmlSerializer7"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public XmlSerializer(Type type, XmlAttributeOverrides overrides, Type[] extraTypes, XmlRootAttribute root, string defaultNamespace, string location)
         {
             if (type == null)
@@ -387,20 +318,11 @@ namespace System.Xml.Serialization
             return new TempAssembly(new XmlMapping[] { xmlMapping }, new Type[] { type }, defaultNamespace, location);
         }
 
-#if !XMLSERIALIZERGENERATOR
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.Serialize"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public void Serialize(TextWriter textWriter, object o)
         {
             Serialize(textWriter, o, null);
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.Serialize1"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public void Serialize(TextWriter textWriter, object o, XmlSerializerNamespaces namespaces)
         {
             XmlTextWriter xmlWriter = new XmlTextWriter(textWriter);
@@ -409,19 +331,11 @@ namespace System.Xml.Serialization
             Serialize(xmlWriter, o, namespaces);
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.Serialize2"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public void Serialize(Stream stream, object o)
         {
             Serialize(stream, o, null);
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.Serialize3"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public void Serialize(Stream stream, object o, XmlSerializerNamespaces namespaces)
         {
             XmlTextWriter xmlWriter = new XmlTextWriter(stream, null);
@@ -430,30 +344,21 @@ namespace System.Xml.Serialization
             Serialize(xmlWriter, o, namespaces);
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.Serialize4"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public void Serialize(XmlWriter xmlWriter, object o)
         {
             Serialize(xmlWriter, o, null);
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.Serialize5"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public void Serialize(XmlWriter xmlWriter, object o, XmlSerializerNamespaces namespaces)
         {
             Serialize(xmlWriter, o, namespaces, null);
         }
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.Serialize6"]/*' />
+
         public void Serialize(XmlWriter xmlWriter, object o, XmlSerializerNamespaces namespaces, string encodingStyle)
         {
             Serialize(xmlWriter, o, namespaces, encodingStyle, null);
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.Serialize6"]/*' />
         public void Serialize(XmlWriter xmlWriter, object o, XmlSerializerNamespaces namespaces, string encodingStyle, string id)
         {
             try
@@ -466,7 +371,7 @@ namespace System.Xml.Serialization
                     }
                     SerializePrimitive(xmlWriter, o, namespaces);
                 }
-                else if (ShouldUseReflectionBasedSerialization(_mapping))
+                else if (ShouldUseReflectionBasedSerialization(_mapping) || _isReflectionBasedSerializer)
                 {
                     SerializeUsingReflection(xmlWriter, o, namespaces, encodingStyle, id);
                 }
@@ -545,10 +450,6 @@ namespace System.Xml.Serialization
             return _mapping;
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.Deserialize"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public object Deserialize(Stream stream)
         {
             XmlTextReader xmlReader = new XmlTextReader(stream);
@@ -558,10 +459,6 @@ namespace System.Xml.Serialization
             return Deserialize(xmlReader, null);
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.Deserialize1"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public object Deserialize(TextReader textReader)
         {
             XmlTextReader xmlReader = new XmlTextReader(textReader);
@@ -571,28 +468,21 @@ namespace System.Xml.Serialization
             return Deserialize(xmlReader, null);
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.Deserialize2"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public object Deserialize(XmlReader xmlReader)
         {
             return Deserialize(xmlReader, null);
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.Deserialize3"]/*' />
         public object Deserialize(XmlReader xmlReader, XmlDeserializationEvents events)
         {
             return Deserialize(xmlReader, null, events);
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.Deserialize4"]/*' />
         public object Deserialize(XmlReader xmlReader, string encodingStyle)
         {
             return Deserialize(xmlReader, encodingStyle, _events);
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.Deserialize5"]/*' />
         public object Deserialize(XmlReader xmlReader, string encodingStyle, XmlDeserializationEvents events)
         {
             events.sender = this;
@@ -606,7 +496,7 @@ namespace System.Xml.Serialization
                     }
                     return DeserializePrimitive(xmlReader, events);
                 }
-                else if (ShouldUseReflectionBasedSerialization(_mapping))
+                else if (ShouldUseReflectionBasedSerialization(_mapping) || _isReflectionBasedSerializer)
                 {
                     return DeserializeUsingReflection(xmlReader, encodingStyle, events);
                 }
@@ -684,7 +574,6 @@ namespace System.Xml.Serialization
             var reader = new ReflectionXmlSerializationReader(mapping, xmlReader, events, encodingStyle);
             return reader.ReadObject();
         }
-#endif
 
         private static bool ShouldUseReflectionBasedSerialization(XmlMapping mapping)
         {
@@ -692,10 +581,6 @@ namespace System.Xml.Serialization
                 || (mapping != null && mapping.IsSoap);
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.CanDeserialize"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public virtual bool CanDeserialize(XmlReader xmlReader)
         {
             if (_primitiveType != null)
@@ -724,19 +609,11 @@ namespace System.Xml.Serialization
 #endif
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.FromMappings"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public static XmlSerializer[] FromMappings(XmlMapping[] mappings)
         {
             return FromMappings(mappings, (Type)null);
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.FromMappings1"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public static XmlSerializer[] FromMappings(XmlMapping[] mappings, Type type)
         {
             if (mappings == null || mappings.Length == 0) return Array.Empty<XmlSerializer>();
@@ -764,6 +641,13 @@ namespace System.Xml.Serialization
             TempAssembly tempAssembly = null;
             if (assembly == null)
             {
+                if (Mode == SerializationMode.PreGenOnly)
+                {
+                    AssemblyName name = type.Assembly.GetName();
+                    string serializerName = Compiler.GetTempAssemblyName(name, null);
+                    throw new FileLoadException(SR.Format(SR.FailLoadAssemblyUnderPregenMode, serializerName));
+                }
+
                 if (XmlMapping.IsShallow(mappings))
                 {
                     return Array.Empty<XmlSerializer>();
@@ -810,15 +694,14 @@ namespace System.Xml.Serialization
                 serializers[i] = new XmlSerializer();
                 serializers[i]._rootType = type;
                 serializers[i]._mapping = mappings[i];
+                serializers[i]._isReflectionBasedSerializer = true;
             }
 
             return serializers;
         }
 
-#if XMLSERIALIZERGENERATOR
-        [ResourceConsumption(ResourceScope.Machine, ResourceScope.Machine)]
-        [ResourceExposure(ResourceScope.None)]
-        public static bool GenerateSerializer(Type[] types, XmlMapping[] mappings, Stream stream)
+#if !FEATURE_SERIALIZATION_UAPAOT
+        internal static bool GenerateSerializer(Type[] types, XmlMapping[] mappings, Stream stream)
         {
             if (types == null || types.Length == 0)
                 return false;
@@ -849,7 +732,7 @@ namespace System.Xml.Serialization
                 }
                 else if (type.Assembly != assembly)
                 {
-                    throw new ArgumentException(SR.Format(SR.XmlPregenOrphanType, type.FullName, assembly.Location), "types");
+                    throw new ArgumentException(SR.Format(SR.XmlPregenOrphanType, type.FullName, assembly.Location), nameof(types));
                 }
             }
 
@@ -909,10 +792,6 @@ namespace System.Xml.Serialization
             return serializers;
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.FromTypes"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public static XmlSerializer[] FromTypes(Type[] types)
         {
             if (types == null)
@@ -960,19 +839,11 @@ namespace System.Xml.Serialization
         }
 #endif
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.GetXmlSerializerAssemblyName"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public static string GetXmlSerializerAssemblyName(Type type)
         {
             return GetXmlSerializerAssemblyName(type, null);
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.GetXmlSerializerAssemblyName"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public static string GetXmlSerializerAssemblyName(Type type, string defaultNamespace)
         {
             if (type == null)
@@ -982,10 +853,6 @@ namespace System.Xml.Serialization
             return Compiler.GetTempAssemblyName(type.Assembly.GetName(), defaultNamespace);
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.UnknownNode"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public event XmlNodeEventHandler UnknownNode
         {
             add
@@ -998,10 +865,6 @@ namespace System.Xml.Serialization
             }
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.UnknownAttribute"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public event XmlAttributeEventHandler UnknownAttribute
         {
             add
@@ -1014,7 +877,6 @@ namespace System.Xml.Serialization
             }
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.UnknownElement"]/*' />
         public event XmlElementEventHandler UnknownElement
         {
             add
@@ -1027,7 +889,6 @@ namespace System.Xml.Serialization
             }
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.UnreferencedObject"]/*' />
         public event UnreferencedObjectEventHandler UnreferencedObject
         {
             add
@@ -1040,17 +901,12 @@ namespace System.Xml.Serialization
             }
         }
 
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.CreateReader"]/*' />
-        ///<internalonly/>
         protected virtual XmlSerializationReader CreateReader() { throw new NotImplementedException(); }
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.Deserialize4"]/*' />
-        ///<internalonly/>
+
         protected virtual object Deserialize(XmlSerializationReader reader) { throw new NotImplementedException(); }
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.CreateWriter"]/*' />
-        ///<internalonly/>
+
         protected virtual XmlSerializationWriter CreateWriter() { throw new NotImplementedException(); }
-        /// <include file='doc\XmlSerializer.uex' path='docs/doc[@for="XmlSerializer.Serialize7"]/*' />
-        ///<internalonly/>
+
         protected virtual void Serialize(object o, XmlSerializationWriter writer) { throw new NotImplementedException(); }
 
         internal void SetTempAssembly(TempAssembly tempAssembly, XmlMapping mapping)
@@ -1074,7 +930,6 @@ namespace System.Xml.Serialization
             return mapping;
         }
 
-#if !XMLSERIALIZERGENERATOR
         private void SerializePrimitive(XmlWriter xmlWriter, object o, XmlSerializerNamespaces namespaces)
         {
             XmlSerializationPrimitiveWriter writer = new XmlSerializationPrimitiveWriter();
@@ -1231,7 +1086,6 @@ namespace System.Xml.Serialization
             return o;
         }
 
-#endif
         private class XmlSerializerMappingKey
         {
             public XmlMapping Mapping;

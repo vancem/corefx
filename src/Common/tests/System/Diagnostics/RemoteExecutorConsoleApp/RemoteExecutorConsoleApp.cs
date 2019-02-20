@@ -43,7 +43,7 @@ namespace RemoteExecutorConsoleApp
             Type t = null;
             MethodInfo mi = null;
             object instance = null;
-            int exitCode = int.MaxValue;
+            int exitCode = 0;
             try
             {
                 // Create the test class if necessary
@@ -57,9 +57,15 @@ namespace RemoteExecutorConsoleApp
 
                 // Invoke the test
                 object result = mi.Invoke(instance, additionalArgs);
-                exitCode = result is Task<int> task ?
-                    task.GetAwaiter().GetResult() :
-                    (int)result;
+
+                if (result is Task<int> task)
+                {
+                    exitCode = task.GetAwaiter().GetResult();
+                }
+                else if (result is int exit)
+                {
+                    exitCode = exit;
+                }
             }
             catch (Exception exc)
             {
@@ -72,7 +78,7 @@ namespace RemoteExecutorConsoleApp
                 output.AppendLine("  " + exc);
                 output.AppendLine();
                 output.AppendLine("Child process:");
-                output.AppendLine(String.Format("  {0} {1} {2}", a, t, mi));
+                output.AppendLine(string.Format("  {0} {1} {2}", a, t, mi));
                 output.AppendLine();
 
                 if (additionalArgs.Length > 0)

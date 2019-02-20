@@ -4,36 +4,19 @@
 
 namespace System.ServiceModel.Syndication
 {
-    using System;
-    using System.Runtime.CompilerServices;
-
     public class ReferencedCategoriesDocument : CategoriesDocument
     {
-        private Uri _link;
-
         public ReferencedCategoriesDocument()
         {
         }
 
-        public ReferencedCategoriesDocument(Uri link)
-            : base()
+        public ReferencedCategoriesDocument(Uri link) : base()
         {
-            if (link == null)
-            {
-                throw new ArgumentNullException(nameof(link));
-            }
-            _link = link;
+            Link = link ?? throw new ArgumentNullException(nameof(link));
         }
 
-        public Uri Link
-        {
-            get { return _link; }
-            set { _link = value; }
-        }
+        public Uri Link { get; set; }
 
-        internal override bool IsInline
-        {
-            get { return false; }
-        }
+        internal override bool IsInline => false;
     }
 }

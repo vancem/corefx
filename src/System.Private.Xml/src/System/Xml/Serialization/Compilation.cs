@@ -2,11 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#if XMLSERIALIZERGENERATOR
-namespace Microsoft.XmlSerializer.Generator
-#else
 namespace System.Xml.Serialization
-#endif
 {
     using System.Configuration;
     using System.Reflection;
@@ -77,7 +73,6 @@ namespace System.Xml.Serialization
 
             if (!containsSoapMapping && !TempAssembly.UseLegacySerializerGeneration)
             {
-#if !XMLSERIALIZERGENERATOR
                 try
                 {
                     _assembly = GenerateRefEmitAssembly(xmlMappings, types, defaultNamespace);
@@ -89,7 +84,6 @@ namespace System.Xml.Serialization
                 }
                 // Add other known exceptions here...
                 //
-#endif
             }
             else
             {
@@ -104,7 +98,8 @@ namespace System.Xml.Serialization
 
 #if DEBUG
             // use exception in the place of Debug.Assert to avoid throwing asserts from a server process such as aspnet_ewp.exe
-            if (_assembly == null) throw new InvalidOperationException(SR.Format(SR.XmlInternalErrorDetails, "Failed to generate XmlSerializer assembly, but did not throw"));
+            if (_assembly == null)
+                throw new InvalidOperationException(SR.Format(SR.XmlInternalErrorDetails, "Failed to generate XmlSerializer assembly, but did not throw"));
 #endif
             InitAssemblyMethods(xmlMappings);
         }
@@ -172,14 +167,29 @@ namespace System.Xml.Serialization
                 name.Name = serializerName;
                 name.CodeBase = null;
                 name.CultureInfo = CultureInfo.InvariantCulture;
-                string serializerPath = Path.Combine(Path.GetDirectoryName(type.Assembly.Location), serializerName + ".dll");
+
+                string serializerPath = null;
+
                 try
                 {
-                    serializer = Assembly.LoadFile(serializerPath);
+                    if (!string.IsNullOrEmpty(type.Assembly.Location))
+                    {
+                        serializerPath = Path.Combine(Path.GetDirectoryName(type.Assembly.Location), serializerName + ".dll");
+                    }
+
+                    if ((string.IsNullOrEmpty(serializerPath) || !File.Exists(serializerPath)) && !string.IsNullOrEmpty(Assembly.GetEntryAssembly().Location))
+                    {
+                        serializerPath = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), serializerName + ".dll");
+                    }
+
+                    if (!string.IsNullOrEmpty(serializerPath))
+                    {
+                        serializer = Assembly.LoadFile(serializerPath);
+                    }
                 }
                 catch (Exception e)
                 {
-                    if (e is OutOfMemoryException)
+                    if (e is ThreadAbortException || e is StackOverflowException || e is OutOfMemoryException)
                     {
                         throw;
                     }
@@ -190,10 +200,24 @@ namespace System.Xml.Serialization
                         return null;
                     }
                 }
+
                 if (serializer == null)
                 {
+                    if (XmlSerializer.Mode == SerializationMode.PreGenOnly)
+                    {
+                        throw new Exception(SR.Format(SR.FailLoadAssemblyUnderPregenMode, serializerName));
+                    }
+
                     return null;
                 }
+
+#if !FEATURE_SERIALIZATION_UAPAOT
+                if (!IsSerializerVersionMatch(serializer, type, defaultNamespace))
+                {
+                    XmlSerializationEventSource.Log.XmlSerializerExpired(serializerName, type.FullName);
+                    return null;
+                }
+#endif
             }
             else
             {
@@ -232,7 +256,21 @@ namespace System.Xml.Serialization
             return null;
         }
 
-#if XMLSERIALIZERGENERATOR
+#if !FEATURE_SERIALIZATION_UAPAOT
+        private static bool IsSerializerVersionMatch(Assembly serializer, Type type, string defaultNamespace)
+        {
+            if (serializer == null)
+                return false;
+            object[] attrs = serializer.GetCustomAttributes(typeof(XmlSerializerVersionAttribute), false);
+            if (attrs.Length != 1)
+                return false;
+
+            XmlSerializerVersionAttribute assemblyInfo = (XmlSerializerVersionAttribute)attrs[0];
+            if (assemblyInfo.ParentAssemblyId == GenerateAssemblyId(type) && assemblyInfo.Namespace == defaultNamespace)
+                return true;
+            return false;
+        }
+
         private static string GenerateAssemblyId(Type type)
         {
             Module[] modules = type.Assembly.GetModules();
@@ -390,7 +428,7 @@ namespace System.Xml.Serialization
                 writer.WriteLine("}");
 
                 string codecontent = compiler.Source.ToString();
-                Byte[] info = new UTF8Encoding(true).GetBytes(codecontent);
+                byte[] info = new UTF8Encoding(true).GetBytes(codecontent);
                 stream.Write(info, 0, info.Length);
                 stream.Flush();
                 return true;
@@ -401,9 +439,6 @@ namespace System.Xml.Serialization
             }
         }
 
-#endif
-#if !XMLSERIALIZERGENERATOR
-#if !FEATURE_SERIALIZATION_UAPAOT
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Security", "CA2106:SecureAsserts", Justification = "It is safe because the serialization assembly is generated by the framework code, not by the user.")]
         internal static Assembly GenerateRefEmitAssembly(XmlMapping[] xmlMappings, Type[] types, string defaultNamespace)
         {
@@ -419,10 +454,10 @@ namespace System.Xml.Serialization
             if (types != null && types.Length > 0 && types[0] != null)
             {
                 ConstructorInfo AssemblyVersionAttribute_ctor = typeof(AssemblyVersionAttribute).GetConstructor(
-                    new Type[] { typeof(String) }
+                    new Type[] { typeof(string) }
                     );
                 string assemblyVersion = types[0].Assembly.GetName().Version.ToString();
-                assemblyBuilder.SetCustomAttribute(new CustomAttributeBuilder(AssemblyVersionAttribute_ctor, new Object[] { assemblyVersion }));
+                assemblyBuilder.SetCustomAttribute(new CustomAttributeBuilder(AssemblyVersionAttribute_ctor, new object[] { assemblyVersion }));
             }
             CodeIdentifiers classes = new CodeIdentifiers();
             classes.AddUnique("XmlSerializationWriter", "XmlSerializationWriter");
@@ -482,7 +517,6 @@ namespace System.Xml.Serialization
             return writerType.Assembly;
         }
 #endif
-#endif
 
         private static MethodInfo GetMethodFromType(Type type, string methodName)
         {
@@ -499,7 +533,8 @@ namespace System.Xml.Serialization
         {
             typeName = GeneratedAssemblyNamespace + "." + typeName;
             Type type = assembly.GetType(typeName);
-            if (type == null) throw new InvalidOperationException(SR.Format(SR.XmlMissingType, typeName, assembly.FullName));
+            if (type == null)
+                throw new InvalidOperationException(SR.Format(SR.XmlMissingType, typeName, assembly.FullName));
             return type;
         }
 
@@ -629,7 +664,8 @@ namespace System.Xml.Serialization
         public override bool Equals(object o)
         {
             TempAssemblyCacheKey key = o as TempAssemblyCacheKey;
-            if (key == null) return false;
+            if (key == null)
+                return false;
             return (key._type == _type && key._ns == _ns);
         }
 
@@ -659,11 +695,19 @@ namespace System.Xml.Serialization
             lock (this)
             {
                 TempAssembly tempAssembly;
-                if (_cache.TryGetValue(key, out tempAssembly) && tempAssembly == assembly) return;
-                _cache = new Dictionary<TempAssemblyCacheKey, TempAssembly>(_cache); // clone
-                _cache[key] = assembly;
+                if (_cache.TryGetValue(key, out tempAssembly) && tempAssembly == assembly)
+                    return;
+                Dictionary<TempAssemblyCacheKey, TempAssembly> _copy = new Dictionary<TempAssemblyCacheKey, TempAssembly>(_cache); // clone
+                _copy[key] = assembly;
+                _cache = _copy;
             }
         }
+    }
+
+    internal static class ThisAssembly
+    {
+        internal const string Version = "1.0.0.0";
+        internal const string InformationalVersion = "1.0.0.0";
     }
 }
 

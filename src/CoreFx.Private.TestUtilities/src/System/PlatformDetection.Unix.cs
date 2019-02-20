@@ -14,43 +14,82 @@ namespace System
     public static partial class PlatformDetection
     {
         public static bool IsWindowsIoTCore => false;
+        public static bool IsWindowsHomeEdition => false;
         public static bool IsWindows => false;
         public static bool IsWindows7 => false;
         public static bool IsWindows8x => false;
+        public static bool IsWindows8xOrLater => false;
         public static bool IsWindows10Version1607OrGreater => false;
         public static bool IsWindows10Version1703OrGreater => false;
-        public static bool IsWindows10InsiderPreviewBuild16215OrGreater => false;
-        public static bool IsWindows10Version16251OrGreater => false;
+        public static bool IsWindows10Version1709OrGreater => false;
+        public static bool IsWindows10Version1803OrGreater => false;
         public static bool IsNotOneCoreUAP =>  true;
-        public static bool IsNetfx462OrNewer() { return false; }
-        public static bool IsNetfx470OrNewer() { return false; }
-        public static bool IsNetfx471OrNewer() { return false; }
         public static bool IsInAppContainer => false;
         public static int WindowsVersion => -1;
 
+        public static bool IsCentos6 => IsDistroAndVersion("centos", 6);
+        public static bool IsAlpine => IsDistroAndVersion("alpine");
         public static bool IsOpenSUSE => IsDistroAndVersion("opensuse");
         public static bool IsUbuntu => IsDistroAndVersion("ubuntu");
         public static bool IsDebian => IsDistroAndVersion("debian");
-        public static bool IsDebian8 => IsDistroAndVersion("debian", "8");
-        public static bool IsUbuntu1404 => IsDistroAndVersion("ubuntu", "14.04");
-        public static bool IsUbuntu1604 => IsDistroAndVersion("ubuntu", "16.04");
-        public static bool IsUbuntu1704 => IsDistroAndVersion("ubuntu", "17.04");
-        public static bool IsUbuntu1710 => IsDistroAndVersion("ubuntu", "17.10");
-        public static bool IsCentos7 => IsDistroAndVersion("centos", "7");
+        public static bool IsDebian8 => IsDistroAndVersion("debian", 8);
+        public static bool IsUbuntu1404 => IsDistroAndVersion("ubuntu", 14, 4);
+        public static bool IsUbuntu1604 => IsDistroAndVersion("ubuntu", 16, 4);
+        public static bool IsUbuntu1704 => IsDistroAndVersion("ubuntu", 17, 4);
+        public static bool IsUbuntu1710 => IsDistroAndVersion("ubuntu", 17, 10);
+        public static bool IsUbuntu1710OrHigher => IsDistroAndVersionOrHigher("ubuntu", 17, 10);
+        public static bool IsUbuntu1804 => IsDistroAndVersion("ubuntu", 18, 04);
+        public static bool IsUbuntu1810OrHigher => IsDistroAndVersionOrHigher("ubuntu", 18, 10);
         public static bool IsTizen => IsDistroAndVersion("tizen");
-        public static bool IsNotFedoraOrRedHatOrCentos => !IsDistroAndVersion("fedora") && !IsDistroAndVersion("rhel") && !IsDistroAndVersion("centos");
         public static bool IsFedora => IsDistroAndVersion("fedora");
         public static bool IsWindowsNanoServer => false;
         public static bool IsWindowsServerCore => false;
         public static bool IsWindowsAndElevated => false;
-        public static bool IsWindowsRedStone2 => false; 
 
-        public static bool IsRedHat => IsDistroAndVersion("rhel") || IsDistroAndVersion("rhl");
-        public static bool IsNotRedHat => !IsRedHat;
-        public static bool IsRedHat69 => IsDistroAndVersion("rhel", "6.9") || IsDistroAndVersion("rhl", "6.9");
-        public static bool IsNotRedHat69 => !IsRedHat69;
+        // RedHat family covers RedHat and CentOS
+        public static bool IsRedHatFamily => IsRedHatFamilyAndVersion();
+        public static bool IsNotRedHatFamily => !IsRedHatFamily;
+        public static bool IsRedHatFamily6 => IsRedHatFamilyAndVersion(6);
+        public static bool IsNotRedHatFamily6 => !IsRedHatFamily6;
+        public static bool IsRedHatFamily7 => IsRedHatFamilyAndVersion(7);
+        public static bool IsNotFedoraOrRedHatFamily => !IsFedora && !IsRedHatFamily;
 
-        public static Version OSXKernelVersion { get; } = GetOSXKernelVersion();
+        public static bool TargetsNetFx452OrLower => false;
+        public static bool IsNetfx462OrNewer => false;
+        public static bool IsNetfx470OrNewer => false;
+        public static bool IsNetfx471OrNewer => false;
+        public static bool IsNetfx472OrNewer => false;
+
+        public static bool IsDrawingSupported { get; } = GetGdiplusIsAvailable();
+        public static bool IsSoundPlaySupported { get; } = false;
+
+        [DllImport("libdl")]
+        private static extern IntPtr dlopen(string libName, int flags);
+        public const int RTLD_NOW = 0x002;
+
+        private static bool GetGdiplusIsAvailable()
+        {
+            IntPtr nativeLib;
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                nativeLib = dlopen("libgdiplus.dylib", RTLD_NOW);
+            }
+            else
+            {
+                nativeLib = dlopen("libgdiplus.so", RTLD_NOW);
+                if (nativeLib == IntPtr.Zero)
+                {
+                    nativeLib = dlopen("libgdiplus.so.0", RTLD_NOW);
+                }
+            }
+
+            return nativeLib != IntPtr.Zero;
+        }
+
+        public static Version OSXVersion { get; } = ToVersion(Microsoft.DotNet.PlatformAbstractions.RuntimeEnvironment.OperatingSystemVersion);
+
+        public static Version OpenSslVersion => !RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? GetOpenSslVersion() : throw new PlatformNotSupportedException();
 
         public static string GetDistroVersionString()
         {
@@ -59,9 +98,47 @@ namespace System
                 return "OSX Version=" + s_osxProductVersion.ToString();
             }
 
-            DistroInfo v = ParseOsReleaseFile();
+            DistroInfo v = GetDistroInfo();
 
-            return "Distro=" + v.Id + " VersionId=" + v.VersionId + " Pretty=" + v.PrettyName + " Version=" + v.Version;
+            return "Distro=" + v.Id + " VersionId=" + v.VersionId;
+        }
+
+        /// <summary>
+        /// If gnulibc is available, returns the release, such as "stable".
+        /// Otherwise returns "glibc_not_found".
+        /// </summary>
+        public static string LibcRelease
+        {
+            get
+            {
+                try
+                {
+                    return Marshal.PtrToStringUTF8(gnu_get_libc_release());
+                }
+                catch (Exception e) when (e is DllNotFoundException || e is EntryPointNotFoundException)
+                {
+                    return "glibc_not_found";
+                }
+            }
+        }
+
+        /// <summary>
+        /// If gnulibc is available, returns the version, such as "2.22".
+        /// Otherwise returns "glibc_not_found". (In future could run "ldd -version" for musl)
+        /// </summary>
+        public static string LibcVersion
+        {
+            get
+            {
+                try
+                {
+                    return Marshal.PtrToStringUTF8(gnu_get_libc_version());
+                }
+                catch (Exception e) when (e is DllNotFoundException || e is EntryPointNotFoundException)
+                {
+                    return "glibc_not_found";
+                }
+            }
         }
 
         private static readonly Version s_osxProductVersion = GetOSXProductVersion();
@@ -81,145 +158,61 @@ namespace System
                                 ver >> 24);
         }
 
-        private static DistroInfo ParseOsReleaseFile()
+        static Version ToVersion(string versionString)
         {
-            Debug.Assert(RuntimeInformation.IsOSPlatform(OSPlatform.Linux));
+            if (versionString.IndexOf('.') != -1)
+                return new Version(versionString);
 
-            DistroInfo ret = new DistroInfo();
-            ret.Id = "";
-            ret.VersionId = "";
-            ret.Version = "";
-            ret.PrettyName = "";
-
-            if (File.Exists("/etc/os-release"))
-            {
-                foreach (string line in File.ReadLines("/etc/os-release"))
-                {
-                    if (line.StartsWith("ID=", System.StringComparison.Ordinal))
-                    {
-                        ret.Id = RemoveQuotes(line.Substring("ID=".Length));
-                    }
-                    else if (line.StartsWith("VERSION_ID=", System.StringComparison.Ordinal))
-                    {
-                        ret.VersionId = RemoveQuotes(line.Substring("VERSION_ID=".Length));
-                    }
-                    else if (line.StartsWith("VERSION=", System.StringComparison.Ordinal))
-                    {
-                        ret.Version = RemoveQuotes(line.Substring("VERSION=".Length));
-                    }
-                    else if (line.StartsWith("PRETTY_NAME=", System.StringComparison.Ordinal))
-                    {
-                        ret.PrettyName = RemoveQuotes(line.Substring("PRETTY_NAME=".Length));
-                    }
-                }
-            }
-            else 
-            {
-                string fileName = null;
-                if (File.Exists("/etc/redhat-release"))
-                    fileName = "/etc/redhat-release";
-
-                if (fileName == null && File.Exists("/etc/system-release"))
-                    fileName = "/etc/system-release";
-                
-                if (fileName != null)
-                {
-                    // Parse the format like the following line:
-                    // Red Hat Enterprise Linux Server release 7.3 (Maipo)
-                    using (StreamReader file = new StreamReader(fileName))
-                    {
-                        string line = file.ReadLine();
-                        if (!String.IsNullOrEmpty(line))
-                        {
-                            if (line.StartsWith("Red Hat Enterprise Linux", StringComparison.OrdinalIgnoreCase))
-                            {
-                                ret.Id = "rhel";
-                            }
-                            else if (line.StartsWith("Centos", StringComparison.OrdinalIgnoreCase))
-                            {
-                                ret.Id = "centos";
-                            }
-                            else if (line.StartsWith("Red Hat", StringComparison.OrdinalIgnoreCase))
-                            {
-                                ret.Id = "rhl";
-                            }
-                            else 
-                            {
-                                // automatically generate the distro label
-                                string [] words = line.Split(' ');
-                                StringBuilder sb = new StringBuilder();
-
-                                foreach (string word in words)
-                                {
-                                    if (word.Length > 0)
-                                    {
-                                        if (Char.IsNumber(word[0]) || 
-                                            word.Equals("release", StringComparison.OrdinalIgnoreCase) ||
-                                            word.Equals("server", StringComparison.OrdinalIgnoreCase))
-                                            {
-                                                break;
-                                            }
-                                        sb.Append(Char.ToLower(word[0]));
-                                    }
-                                }
-                                ret.Id = sb.ToString();
-                            }
-
-                            int i = 0;
-                            while (i < line.Length && !Char.IsNumber(line[i])) // stop at first number
-                                i++;
-
-                            if (i < line.Length)
-                            {
-                                int j = i + 1;
-                                while (j < line.Length && (Char.IsNumber(line[j]) || line[j] == '.'))
-                                    j++;
-
-                                ret.VersionId = line.Substring(i, j - i);
-                                ret.Version = line.Substring(i, line.Length - i);
-                            }
-
-                            ret.PrettyName = line;
-                        }
-                    }
-                }
-            }
-
-            return ret;
+            // minor version is required by Version
+            // let's default it to 0
+            return new Version(int.Parse(versionString), 0);
         }
 
-        private static string RemoveQuotes(string s)
+        private static DistroInfo GetDistroInfo() => new DistroInfo()
         {
-            s = s.Trim();
-            if (s.Length >= 2 && s[0] == '"' && s[s.Length - 1] == '"')
-            {
-                // Remove quotes.
-                s = s.Substring(1, s.Length - 2);
-            }
+            Id = Microsoft.DotNet.PlatformAbstractions.RuntimeEnvironment.OperatingSystem,
+            VersionId = ToVersion(Microsoft.DotNet.PlatformAbstractions.RuntimeEnvironment.OperatingSystemVersion)
+        };
 
-            return s;
-        }
-
-        private struct DistroInfo
+        private static bool IsRedHatFamilyAndVersion(int major = -1, int minor = -1, int build = -1, int revision = -1)
         {
-            public string Id { get; set; }
-            public string VersionId { get; set; }
-            public string Version { get; set; }
-            public string PrettyName { get; set; }
+            return IsDistroAndVersion((distro) => distro == "rhel" || distro == "centos", major, minor, build, revision);
         }
 
         /// <summary>
         /// Get whether the OS platform matches the given Linux distro and optional version.
         /// </summary>
         /// <param name="distroId">The distribution id.</param>
-        /// <param name="versionId">The distro version.  If omitted, compares the distro only.</param>
+        /// <param name="major">The distro major version. If omitted, this portion of the version is not included in the comparison.</param>
+        /// <param name="minor">The distro minor version. If omitted, this portion of the version is not included in the comparison.</param>
+        /// <param name="build">The distro build version. If omitted, this portion of the version is not included in the comparison.</param>
+        /// <param name="revision">The distro revision version. If omitted, this portion of the version is not included in the comparison.</param>
         /// <returns>Whether the OS platform matches the given Linux distro and optional version.</returns>
-        private static bool IsDistroAndVersion(string distroId, string versionId = null)
+        private static bool IsDistroAndVersion(string distroId, int major = -1, int minor = -1, int build = -1, int revision = -1)
+        {
+            return IsDistroAndVersion(distro => (distro == distroId), major, minor, build, revision);
+        }
+
+        /// <summary>
+        /// Get whether the OS platform matches the given Linux distro and optional version is same or higher.
+        /// </summary>
+        /// <param name="distroId">The distribution id.</param>
+        /// <param name="major">The distro major version. If omitted, this portion of the version is not included in the comparison.</param>
+        /// <param name="minor">The distro minor version. If omitted, this portion of the version is not included in the comparison.</param>
+        /// <param name="build">The distro build version. If omitted, this portion of the version is not included in the comparison.</param>
+        /// <param name="revision">The distro revision version.  If omitted, this portion of the version is not included in the comparison.</param>
+        /// <returns>Whether the OS platform matches the given Linux distro and optional version is same or higher.</returns>
+        private static bool IsDistroAndVersionOrHigher(string distroId, int major = -1, int minor = -1, int build = -1, int revision = -1)
+        {
+            return IsDistroAndVersionOrHigher(distro => (distro == distroId), major, minor, build, revision);
+        }
+
+        private static bool IsDistroAndVersion(Predicate<string> distroPredicate, int major = -1, int minor = -1, int build = -1, int revision = -1)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                DistroInfo v = ParseOsReleaseFile();
-                if (v.Id == distroId && (versionId == null || v.VersionId == versionId))
+                DistroInfo v = GetDistroInfo();
+                if (distroPredicate(v.Id) && VersionEquivalentTo(major, minor, build, revision, v.VersionId))
                 {
                     return true;
                 }
@@ -228,18 +221,37 @@ namespace System
             return false;
         }
 
-        private static Version GetOSXKernelVersion()
+        private static bool IsDistroAndVersionOrHigher(Predicate<string> distroPredicate, int major = -1, int minor = -1, int build = -1, int revision = -1)
         {
-            if (IsOSX)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                byte[] bytes = new byte[256];
-                IntPtr bytesLength = new IntPtr(bytes.Length);
-                Assert.Equal(0, sysctlbyname("kern.osrelease", bytes, ref bytesLength, null, IntPtr.Zero));
-                string versionString = Encoding.UTF8.GetString(bytes);
-                return Version.Parse(versionString);
+                DistroInfo v = GetDistroInfo();
+                if (distroPredicate(v.Id) && VersionEquivalentToOrHigher(major, minor, build, revision, v.VersionId))
+                {
+                    return true;
+                }
             }
 
-            return new Version(0, 0, 0);
+            return false;
+        }
+
+        private static bool VersionEquivalentTo(int major, int minor, int build, int revision, Version actualVersionId)
+        {
+            return (major == -1 || major == actualVersionId.Major)
+                && (minor == -1 || minor == actualVersionId.Minor)
+                && (build == -1 || build == actualVersionId.Build)
+                && (revision == -1 || revision == actualVersionId.Revision);
+        }
+
+        private static bool VersionEquivalentToOrHigher(int major, int minor, int build, int revision, Version actualVersionId)
+        {
+            return
+                VersionEquivalentTo(major, minor, build, revision, actualVersionId) ||
+                    (actualVersionId.Major > major ||
+                        (actualVersionId.Major == major && (actualVersionId.Minor > minor ||
+                            (actualVersionId.Minor == minor && (actualVersionId.Build > build ||
+                                (actualVersionId.Build == build && (actualVersionId.Revision > revision ||
+                                    (actualVersionId.Revision == revision))))))));
         }
 
         private static Version GetOSXProductVersion()
@@ -292,15 +304,51 @@ namespace System
             return new Version(0, 0, 0);
         }
 
+        private static Version s_opensslVersion;
+        private static Version GetOpenSslVersion()
+        {
+            if (s_opensslVersion == null)
+            {
+                // OpenSSL version numbers are encoded as
+                // 0xMNNFFPPS: major (one nybble), minor (one byte, unaligned),
+                // "fix" (one byte, unaligned), patch (one byte, unaligned), status (one nybble)
+                //
+                // e.g. 1.0.2a final is 0x1000201F
+                //
+                // Currently they don't exceed 29-bit values, but we use long here to account
+                // for the expanded range on their 64-bit C-long return value.
+                long versionNumber = Interop.OpenSsl.OpenSslVersionNumber();
+                int major = (int)((versionNumber >> 28) & 0xF);
+                int minor = (int)((versionNumber >> 20) & 0xFF);
+                int fix = (int)((versionNumber >> 12) & 0xFF);
+
+                s_opensslVersion = new Version(major, minor, fix);
+            }
+
+            return s_opensslVersion;
+        }
+
         [DllImport("libc", SetLastError = true)]
         private static extern int sysctlbyname(string ctlName, byte[] oldp, ref IntPtr oldpLen, byte[] newp, IntPtr newpLen);
 
         [DllImport("libc", SetLastError = true)]
         internal static extern unsafe uint geteuid();
 
+        [DllImport("libc", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr gnu_get_libc_release();
+
+        [DllImport("libc", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr gnu_get_libc_version();
+
         [DllImport("System.Globalization.Native", SetLastError = true)]
         private static extern int GlobalizationNative_GetICUVersion();
 
         public static bool IsSuperUser => geteuid() == 0;
+
+        private struct DistroInfo
+        {
+            public string Id { get; set; }
+            public Version VersionId { get; set; }
+        }
     }
 }

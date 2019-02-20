@@ -2,20 +2,17 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Diagnostics;
+using System.Runtime.Serialization;
+using System.Xml;
+using System.Xml.Serialization;
+
 namespace System.ServiceModel.Syndication
 {
-    using System;
-    using System.Diagnostics;
-    using System.Runtime.CompilerServices;
-    using System.Runtime.Serialization;
-    using System.Threading.Tasks;
-    using System.Xml;
-    using System.Xml.Serialization;
-
+    // NOTE: This class implements Clone so if you add any members, please update the copy ctor
     public class XmlSyndicationContent : SyndicationContent
     {
         private XmlBuffer _contentBuffer;
-        private SyndicationElementExtension _extension;
         private string _type;
 
         // Saves the element in the reader to the buffer (attributes preserved)
@@ -27,6 +24,7 @@ namespace System.ServiceModel.Syndication
             {
                 throw new ArgumentNullException(nameof(reader));
             }
+
             SyndicationFeedFormatter.MoveToStartElement(reader);
             if (reader.HasAttributes)
             {
@@ -41,7 +39,7 @@ namespace System.ServiceModel.Syndication
                     }
                     else if (!FeedUtils.IsXmlns(name, ns))
                     {
-                        base.AttributeExtensions.Add(new XmlQualifiedName(name, ns), value);
+                        AttributeExtensions.Add(new XmlQualifiedName(name, ns), value);
                     }
                 }
                 reader.MoveToElement();
@@ -59,75 +57,52 @@ namespace System.ServiceModel.Syndication
         public XmlSyndicationContent(string type, object dataContractExtension, XmlObjectSerializer dataContractSerializer)
         {
             _type = string.IsNullOrEmpty(type) ? Atom10Constants.XmlMediaType : type;
-            _extension = new SyndicationElementExtension(dataContractExtension, dataContractSerializer);
+            Extension = new SyndicationElementExtension(dataContractExtension, dataContractSerializer);
         }
 
         public XmlSyndicationContent(string type, object xmlSerializerExtension, XmlSerializer serializer)
         {
             _type = string.IsNullOrEmpty(type) ? Atom10Constants.XmlMediaType : type;
-            _extension = new SyndicationElementExtension(xmlSerializerExtension, serializer);
+            Extension = new SyndicationElementExtension(xmlSerializerExtension, serializer);
         }
 
         public XmlSyndicationContent(string type, SyndicationElementExtension extension)
         {
-            if (extension == null)
-            {
-                throw new ArgumentNullException(nameof(extension));
-            }
             _type = string.IsNullOrEmpty(type) ? Atom10Constants.XmlMediaType : type;
-            _extension = extension;
+            Extension = extension ?? throw new ArgumentNullException(nameof(extension));
         }
 
-        protected XmlSyndicationContent(XmlSyndicationContent source)
-            : base(source)
+        protected XmlSyndicationContent(XmlSyndicationContent source) : base(source)
         {
-            if (source == null)
-            {
-                throw new ArgumentNullException(nameof(source));
-            }
+            Debug.Assert(source != null, "The base constructor already checks if source is valid.");
             _contentBuffer = source._contentBuffer;
-            _extension = source._extension;
+            Extension = source.Extension;
             _type = source._type;
         }
 
-        public SyndicationElementExtension Extension
-        {
-            get
-            {
-                return _extension;
-            }
-        }
+        public SyndicationElementExtension Extension { get; }
 
-        public override string Type
-        {
-            get { return _type; }
-        }
+        public override string Type => _type;
 
-        public override SyndicationContent Clone()
-        {
-            return new XmlSyndicationContent(this);
-        }
+        public override SyndicationContent Clone() => new XmlSyndicationContent(this);
 
-        public async Task<XmlDictionaryReader> GetReaderAtContent()
+        public XmlDictionaryReader GetReaderAtContent()
         {
-            await EnsureContentBufferAsync();
+            EnsureContentBuffer();
             return _contentBuffer.GetReader(0);
         }
 
-        public Task<TContent> ReadContent<TContent>()
-        {
-            return ReadContent<TContent>((DataContractSerializer)null);
-        }
+        public TContent ReadContent<TContent>() => ReadContent<TContent>((DataContractSerializer)null);
 
-        public async Task<TContent> ReadContent<TContent>(XmlObjectSerializer dataContractSerializer)
+        public TContent ReadContent<TContent>(XmlObjectSerializer dataContractSerializer)
         {
             if (dataContractSerializer == null)
             {
                 dataContractSerializer = new DataContractSerializer(typeof(TContent));
             }
-            if (_extension != null)
+            if (Extension != null)
             {
-                return await _extension.GetObject<TContent>(dataContractSerializer);
+                return Extension.GetObject<TContent>(dataContractSerializer);
             }
             else
             {
@@ -141,15 +116,15 @@ namespace System.ServiceModel.Syndication
             }
         }
 
-        public Task<TContent> ReadContent<TContent>(XmlSerializer serializer)
+        public TContent ReadContent<TContent>(XmlSerializer serializer)
         {
             if (serializer == null)
             {
                 serializer = new XmlSerializer(typeof(TContent));
             }
-            if (_extension != null)
+            if (Extension != null)
             {
-                return _extension.GetObject<TContent>(serializer);
+                return Extension.GetObject<TContent>(serializer);
             }
             else
             {
@@ -158,8 +133,7 @@ namespace System.ServiceModel.Syndication
                 {
                     // skip past the content element
                     reader.ReadStartElement();
-                    return Task.FromResult((TContent)serializer.Deserialize(reader));
-                    //return (TContent)serializer.Deserialize(reader);
+                    return (TContent)serializer.Deserialize(reader);
                 }
             }
         }
@@ -171,12 +145,14 @@ namespace System.ServiceModel.Syndication
             {
                 throw new ArgumentNullException(nameof(writer));
             }
-            if (_extension != null)
+
+            if (Extension != null)
             {
-                _extension.WriteToAsync(writer).GetAwaiter().GetResult();
+                Extension.WriteTo(writer);
             }
-            else if (_contentBuffer != null)
+            else
             {
+                Debug.Assert(_contentBuffer != null, "contentBuffer cannot be null");
                 using (XmlDictionaryReader reader = _contentBuffer.GetReader(0))
                 {
                     reader.MoveToStartElement();
@@ -192,14 +168,14 @@ namespace System.ServiceModel.Syndication
             }
         }
 
-        private async Task EnsureContentBufferAsync()
+        private void EnsureContentBuffer()
         {
             if (_contentBuffer == null)
             {
                 XmlBuffer tmp = new XmlBuffer(int.MaxValue);
                 using (XmlDictionaryWriter writer = tmp.OpenSection(XmlDictionaryReaderQuotas.Max))
                 {
-                    await this.WriteToAsync(writer, Atom10Constants.ContentTag, Atom10Constants.Atom10Namespace);
+                    WriteTo(writer, Atom10Constants.ContentTag, Atom10Constants.Atom10Namespace);
                 }
                 tmp.CloseSection();
                 tmp.Close();

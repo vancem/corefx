@@ -16,9 +16,9 @@ namespace System.ComponentModel.Tests
         {
             ConvertFrom_WithContext(new object[3, 3]
                 {
-                    { "1  ", (UInt32)1, null },
-                    { "#2", (UInt32)2, null },
-                    { "+7", (UInt32)7, CultureInfo.InvariantCulture }
+                    { "1  ", (uint)1, null },
+                    { "#2", (uint)2, null },
+                    { "+7", (uint)7, CultureInfo.InvariantCulture }
                 },
                 UInt32ConverterTests.s_converter);
         }
@@ -26,7 +26,7 @@ namespace System.ComponentModel.Tests
         [Fact]
         public static void ConvertFrom_WithContext_Negative()
         {
-            Assert.Throws<Exception>(
+            AssertExtensions.Throws<ArgumentException, Exception>(
                 () => UInt32ConverterTests.s_converter.ConvertFrom(TypeConverterTests.s_context, null, "-8"));
         }
 
@@ -35,9 +35,9 @@ namespace System.ComponentModel.Tests
         {
             ConvertTo_WithContext(new object[3, 3]
                 {
-                    { (UInt32)1, "1", null },
-                    { (UInt32)2, (UInt32)2, CultureInfo.InvariantCulture },
-                    { (UInt32)3, (Single)3.0, null }
+                    { (uint)1, "1", null },
+                    { (uint)2, (uint)2, CultureInfo.InvariantCulture },
+                    { (uint)3, (float)3.0, null }
                 },
                 UInt32ConverterTests.s_converter);
         }

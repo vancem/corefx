@@ -12,7 +12,7 @@ using System.Diagnostics;
 
 namespace System.Threading.Tasks.Tests
 {
-    public class AsyncTaskMethodBuilderTests
+    public partial class AsyncTaskMethodBuilderTests
     {
         // Test captured sync context with successful completion (SetResult)
         [Fact]
@@ -375,6 +375,16 @@ namespace System.Threading.Tasks.Tests
             TaskMethodBuilderT_UsesCompletedCache(result, shouldBeCached);
         }
 
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "https://github.com/dotnet/coreclr/pull/16588")]
+        [Fact]
+        [ActiveIssue("TFS 450361 - Codegen optimization issue", TargetFrameworkMonikers.UapAot)]
+        public static void TaskMethodBuilderDecimal_DoesntUseCompletedCache()
+        {
+            TaskMethodBuilderT_UsesCompletedCache(0m, shouldBeCached: false);
+            TaskMethodBuilderT_UsesCompletedCache(0.0m, shouldBeCached: false);
+            TaskMethodBuilderT_UsesCompletedCache(42m, shouldBeCached: false);
+        }
+
         [Theory]
         [InlineData((string)null, true)]
         [InlineData("test", false)]
@@ -393,6 +403,11 @@ namespace System.Threading.Tasks.Tests
             atmb2.SetResult(result);
 
             Assert.Equal(shouldBeCached, object.ReferenceEquals(atmb1.Task, atmb2.Task));
+            if (result != null)
+            {
+                Assert.Equal(result.ToString(), atmb1.Task.Result.ToString());
+                Assert.Equal(result.ToString(), atmb2.Task.Result.ToString());
+            }
         }
 
         [Fact]
@@ -512,6 +527,45 @@ namespace System.Threading.Tasks.Tests
             TaskScheduler.UnobservedTaskException -= handler;
         }
 
+        [Fact]
+        public static async Task AsyncMethodsDropsStateMachineAndExecutionContextUponCompletion()
+        {
+            // Create a finalizable object that'll be referenced by both an async method's
+            // captured ExecutionContext and its state machine, invoke the method, wait for it,
+            // and then hold on to the resulting task while forcing GCs and finalizers.
+            // We want to make sure that holding on to the resulting Task doesn't keep
+            // that finalizable object alive.
+
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            Task t = null;
+            await Task.Run(delegate // avoid any issues with the stack keeping the object alive, and escape xunit sync ctx
+            {
+                async Task YieldOnceAsync(object s)
+                {
+                    await Task.Yield();
+                    GC.KeepAlive(s); // keep s referenced by the state machine
+                }
+
+                var state = new InvokeActionOnFinalization { Action = () => tcs.SetResult(true) };
+                var al = new AsyncLocal<object> { Value = state }; // ensure the object is stored in ExecutionContext
+                t = YieldOnceAsync(state); // ensure the object is stored in the state machine
+                al.Value = null;
+            });
+
+            await t; // wait for the async method to complete and clear out its state
+            await Task.Yield(); // ensure associated state is not still on the stack as part of the antecedent's execution
+
+            for (int i = 0; i < 2; i++)
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+            }
+            await tcs.Task.TimeoutAfter(60_000);
+
+            GC.KeepAlive(t); // ensure the object is stored in the state machine
+        }
+
         #region Helper Methods / Classes
 
         private static void ValidateFaultedTask(Task t)
@@ -529,7 +583,7 @@ namespace System.Threading.Tasks.Tests
         {
             Assert.NotNull(e);
             Assert.NotNull(e.StackTrace);
-            Assert.Contains("End of stack trace", e.StackTrace);
+            Assert.Matches(@"---.+---", e.StackTrace);
         }
 
         private class TrackOperationsSynchronizationContext : SynchronizationContext

@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.DirectoryServices.ActiveDirectory;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -64,13 +65,11 @@ namespace System.Diagnostics.Tests
             CreateDefaultProcess();
 
             ProcessPriorityClass originalPriority = _process.PriorityClass;
-
-            var expected = PlatformDetection.IsWindowsNanoServer ? ProcessPriorityClass.BelowNormal : ProcessPriorityClass.Normal; // For some reason we're BelowNormal initially on Nano
-            Assert.Equal(expected, originalPriority);
+            Assert.Equal(ProcessPriorityClass.Normal, originalPriority);
 
             try
             {
-                // We are not checking for RealTime case here, as RealTime priority process can 
+                // We are not checking for RealTime case here, as RealTime priority process can
                 // preempt the threads of all other processes, including operating system processes
                 // performing important tasks, which may cause the machine to be unresponsive.
 
@@ -87,6 +86,7 @@ namespace System.Diagnostics.Tests
         }
 
         [Theory]
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
         [InlineData(true)]
         [InlineData(false)]
         [InlineData(null)]
@@ -121,31 +121,66 @@ namespace System.Diagnostics.Tests
         [Fact]
         public void ProcessStart_TryExitCommandAsFileName_ThrowsWin32Exception()
         {
-            Win32Exception e = Assert.Throws<Win32Exception>(() => Process.Start(new ProcessStartInfo { UseShellExecute = false, FileName = "exit", Arguments = "42" }));
+            Assert.Throws<Win32Exception>(() => Process.Start(new ProcessStartInfo { UseShellExecute = false, FileName = "exit", Arguments = "42" }));
         }
 
         [Fact]
         public void ProcessStart_UseShellExecuteFalse_FilenameIsUrl_ThrowsWin32Exception()
         {
-            Win32Exception e = Assert.Throws<Win32Exception>(() => Process.Start(new ProcessStartInfo { UseShellExecute = false, FileName = "https://www.github.com/corefx" }));
+            Assert.Throws<Win32Exception>(() => Process.Start(new ProcessStartInfo { UseShellExecute = false, FileName = "https://www.github.com/corefx" }));
         }
 
         [Fact]
         public void ProcessStart_TryOpenFolder_UseShellExecuteIsFalse_ThrowsWin32Exception()
         {
-            Win32Exception e = Assert.Throws<Win32Exception>(() => Process.Start(new ProcessStartInfo { UseShellExecute = false, FileName = Path.GetTempPath() }));
+            Assert.Throws<Win32Exception>(() => Process.Start(new ProcessStartInfo { UseShellExecute = false, FileName = Path.GetTempPath() }));
         }
-        
+
+        [Fact]
+        [PlatformSpecific(~TestPlatforms.OSX)] // OSX doesn't support throwing on Process.Start
+        [SkipOnTargetFramework(TargetFrameworkMonikers.Uap)] // UWP overrides WorkingDirectory (https://github.com/dotnet/corefx/pull/25266#issuecomment-347719832).
+        public void TestStartWithBadWorkingDirectory()
+        {
+            string program;
+            string workingDirectory;
+            if (PlatformDetection.IsWindows)
+            {
+                program = "powershell.exe";
+                workingDirectory = @"C:\does-not-exist";
+            }
+            else
+            {
+                program = "uname";
+                workingDirectory = "/does-not-exist";
+            }
+
+            if (IsProgramInstalled(program))
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = program,
+                    UseShellExecute = false,
+                    WorkingDirectory = workingDirectory
+                };
+
+                Win32Exception e = Assert.Throws<Win32Exception>(() => Process.Start(psi));
+                Assert.NotEqual(0, e.NativeErrorCode);
+            }
+            else
+            {
+                Console.WriteLine($"Program {program} is not installed on this machine.");
+            }
+        }
+
         [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.HasWindowsShell))]
         [SkipOnTargetFramework(TargetFrameworkMonikers.Uap, "not supported on UAP")]
         [OuterLoop("Launches File Explorer")]
-        public void ProcessStart_UseShellExecuteTrue_OpenMissingFile_Throws()
+        public void ProcessStart_UseShellExecute_OnWindows_OpenMissingFile_Throws()
         {
             string fileToOpen = Path.Combine(Environment.CurrentDirectory, "_no_such_file.TXT");
-            Win32Exception e = Assert.Throws<Win32Exception>(() => Process.Start(new ProcessStartInfo { UseShellExecute = true, FileName = fileToOpen }));
+            Assert.Throws<Win32Exception>(() => Process.Start(new ProcessStartInfo { UseShellExecute = true, FileName = fileToOpen }));
         }
 
-        [PlatformSpecific(TestPlatforms.Windows)]
         [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.HasWindowsShell))]
         [InlineData(true)]
         [InlineData(false)]
@@ -183,7 +218,94 @@ namespace System.Diagnostics.Tests
             }
         }
 
+        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindowsServerCore),
+            nameof(PlatformDetection.IsNotWindowsNanoServer), nameof(PlatformDetection.IsNotWindowsIoTCore))]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.Uap, "not supported on UAP")]
+        [InlineData(true), InlineData(false)]
+        public void ProcessStart_UseShellExecute_Executes(bool filenameAsUrl)
+        {
+            string filename = WriteScriptFile(TestDirectory, GetTestFileName(), returnValue: 42);
+
+            if (filenameAsUrl)
+            {
+                filename = new Uri(filename).ToString();
+            }
+
+            using (var process = Process.Start(new ProcessStartInfo { UseShellExecute = true, FileName = filename }))
+            {
+                process.WaitForExit();
+                Assert.Equal(42, process.ExitCode);
+            }
+        }
+
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindowsServerCore),
+            nameof(PlatformDetection.IsNotWindowsNanoServer), nameof(PlatformDetection.IsNotWindowsIoTCore))]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.Uap, "not supported on UAP")]
+        public void ProcessStart_UseShellExecute_ExecuteOrder()
+        {
+            // Create a directory that we will use as PATH
+            string path = Path.Combine(TestDirectory, "Path");
+            Directory.CreateDirectory(path);
+            // Create a directory that will be our working directory
+            string wd = Path.Combine(TestDirectory, "WorkingDirectory");
+            Directory.CreateDirectory(wd);
+
+            RemoteInvokeOptions options = new RemoteInvokeOptions();
+            options.StartInfo.EnvironmentVariables["PATH"] = path;
+            options.StartInfo.WorkingDirectory = wd;
+            RemoteInvoke(pathDirectory =>
+            {
+                // Create two identically named scripts, one in the working directory and one on PATH.
+                const int workingDirReturnValue = 1;
+                const int pathDirReturnValue = 2;
+                string pathScriptFile = WriteScriptFile(pathDirectory,                 "script", returnValue: pathDirReturnValue);
+                string wdScriptFile = WriteScriptFile(Directory.GetCurrentDirectory(), "script", returnValue: workingDirReturnValue);
+                string scriptFilename = Path.GetFileName(pathScriptFile);
+                Assert.Equal(scriptFilename, Path.GetFileName(wdScriptFile));
+
+                // Execute the script and verify we prefer the one in the working directory.
+                using (var process = Process.Start(new ProcessStartInfo { UseShellExecute = true, FileName = scriptFilename }))
+                {
+                    process.WaitForExit();
+                    Assert.Equal(workingDirReturnValue, process.ExitCode);
+                }
+
+                // Remove the script in the working directory and verify we now use the one on PATH.
+                File.Delete(scriptFilename);
+                using (var process = Process.Start(new ProcessStartInfo { UseShellExecute = true, FileName = scriptFilename }))
+                {
+                    process.WaitForExit();
+                    Assert.Equal(pathDirReturnValue, process.ExitCode);
+                }
+
+                return SuccessExitCode;
+            }, path, options).Dispose();
+        }
+
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindowsServerCore),
+            nameof(PlatformDetection.IsNotWindowsNanoServer), nameof(PlatformDetection.IsNotWindowsIoTCore))]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.Uap, "not supported on UAP")]
+        public void ProcessStart_UseShellExecute_WorkingDirectory()
+        {
+            // Create a directory that will ProcessStartInfo.WorkingDirectory
+            // and add a script.
+            string wd = Path.Combine(TestDirectory, "WorkingDirectory");
+            Directory.CreateDirectory(wd);
+            string filename = Path.GetFileName(WriteScriptFile(wd, GetTestFileName(), returnValue: 42));
+
+            // Verify UseShellExecute finds the script in the WorkingDirectory.
+            Assert.False(Path.IsPathRooted(filename));
+            using (var process = Process.Start(new ProcessStartInfo { UseShellExecute = true,
+                                                                      FileName = filename,
+                                                                      WorkingDirectory = wd }))
+            {
+                process.WaitForExit();
+                Assert.Equal(42, process.ExitCode);
+            }
+        }
+
         [Fact]
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
         public void TestExitCode()
         {
             {
@@ -201,6 +323,7 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
         public void TestExitTime()
         {
             // Try twice, since it's possible that the system clock could be adjusted backwards between when we snapshot it
@@ -239,10 +362,11 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
         public void TestId()
         {
             CreateDefaultProcess();
-            
+
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 Assert.Equal(_process.Id, Interop.GetProcessId(_process.SafeHandle));
@@ -255,6 +379,7 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
         public void TestHasExited()
         {
             {
@@ -296,10 +421,11 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
         public void TestMachineName()
         {
             CreateDefaultProcess();
-            
+
             // Checking that the MachineName returns some value.
             Assert.NotNull(_process.MachineName);
         }
@@ -328,18 +454,20 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
         public void TestMaxWorkingSet()
         {
             CreateDefaultProcess();
-            
+
             using (Process p = Process.GetCurrentProcess())
             {
                 Assert.True((long)p.MaxWorkingSet > 0);
                 Assert.True((long)p.MinWorkingSet >= 0);
             }
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || RuntimeInformation.IsOSPlatform(OSPlatform.Create("FREEBSD"))) {
                 return; // doesn't support getting/setting working set for other processes
+            }
 
             long curValue = (long)_process.MaxWorkingSet;
             Assert.True(curValue >= 0);
@@ -365,7 +493,7 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
-        [PlatformSpecific(~TestPlatforms.OSX)] // Getting MaxWorkingSet is not supported on OSX.
+        [PlatformSpecific(~(TestPlatforms.OSX | TestPlatforms.FreeBSD))] // Getting MaxWorkingSet is not supported on OSX and BSD.
         public void MaxWorkingSet_GetNotStarted_ThrowsInvalidOperationException()
         {
             var process = new Process();
@@ -373,7 +501,7 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
-        [PlatformSpecific(TestPlatforms.OSX)]
+        [PlatformSpecific(TestPlatforms.OSX | TestPlatforms.FreeBSD)]
         public void MaxValueWorkingSet_GetSetMacos_ThrowsPlatformSupportedException()
         {
             var process = new Process();
@@ -382,18 +510,20 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
         public void TestMinWorkingSet()
         {
             CreateDefaultProcess();
-            
+
             using (Process p = Process.GetCurrentProcess())
             {
                 Assert.True((long)p.MaxWorkingSet > 0);
                 Assert.True((long)p.MinWorkingSet >= 0);
             }
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || RuntimeInformation.IsOSPlatform(OSPlatform.Create("FREEBSD"))) {
                 return; // doesn't support getting/setting working set for other processes
+            }
 
             long curValue = (long)_process.MinWorkingSet;
             Assert.True(curValue >= 0);
@@ -419,7 +549,7 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
-        [PlatformSpecific(~TestPlatforms.OSX)] // Getting MinWorkingSet is not supported on OSX.
+        [PlatformSpecific(~(TestPlatforms.OSX | TestPlatforms.FreeBSD))] // Getting MinWorkingSet is not supported on OSX and BSD.
         public void MinWorkingSet_GetNotStarted_ThrowsInvalidOperationException()
         {
             var process = new Process();
@@ -427,7 +557,7 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
-        [PlatformSpecific(TestPlatforms.OSX)]
+        [PlatformSpecific(TestPlatforms.OSX | TestPlatforms.FreeBSD)]
         public void MinWorkingSet_GetMacos_ThrowsPlatformSupportedException()
         {
             var process = new Process();
@@ -457,7 +587,7 @@ namespace System.Diagnostics.Tests
         public void TestNonpagedSystemMemorySize64()
         {
             CreateDefaultProcess();
-            
+
             AssertNonZeroWindowsZeroUnix(_process.NonpagedSystemMemorySize64);
         }
 
@@ -604,10 +734,11 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
         public void TestProcessorTime()
         {
             CreateDefaultProcess();
-            
+
             Assert.True(_process.UserProcessorTime.TotalSeconds >= 0);
             Assert.True(_process.PrivilegedProcessorTime.TotalSeconds >= 0);
 
@@ -649,7 +780,7 @@ namespace System.Diagnostics.Tests
         [Fact]
         public void TestProcessStartTime()
         {
-            TimeSpan allowedWindow = TimeSpan.FromSeconds(1);
+            TimeSpan allowedWindow = TimeSpan.FromSeconds(3);
 
             for (int i = 0; i < 2; i++)
             {
@@ -680,6 +811,21 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
+        [PlatformSpecific(~TestPlatforms.OSX)]
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
+        public void ProcessStartTime_Deterministic_Across_Instances()
+        {
+            CreateDefaultProcess();
+            for (int i = 0; i < 10; ++i)
+            {
+                using (var p = Process.GetProcessById(_process.Id))
+                {
+                    Assert.Equal(_process.StartTime, p.StartTime);
+                }
+            }
+        }
+
+        [Fact]
         public void ExitTime_GetNotStarted_ThrowsInvalidOperationException()
         {
             var process = new Process();
@@ -687,11 +833,12 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
-        [PlatformSpecific(~TestPlatforms.OSX)] // getting/setting affinity not supported on OSX
+        [PlatformSpecific(~(TestPlatforms.OSX | TestPlatforms.FreeBSD))] // getting/setting affinity not supported on OSX and BSD
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
         public void TestProcessorAffinity()
         {
             CreateDefaultProcess();
-            
+
             IntPtr curProcessorAffinity = _process.ProcessorAffinity;
             try
             {
@@ -706,6 +853,7 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
         public void TestPriorityBoostEnabled()
         {
             CreateDefaultProcess();
@@ -735,6 +883,7 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact, PlatformSpecific(TestPlatforms.Windows)]  // Expected behavior varies on Windows and Unix
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
         public void TestPriorityClassWindows()
         {
             CreateDefaultProcess();
@@ -788,6 +937,7 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
         public void TestSafeHandle()
         {
             CreateDefaultProcess();
@@ -885,6 +1035,35 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
+        public void GetProcesses_InvalidMachineName_ThrowsInvalidOperationException()
+        {
+            Type exceptionType = PlatformDetection.IsWindows ? typeof(InvalidOperationException) : typeof(PlatformNotSupportedException);
+            Assert.Throws(exceptionType, () => Process.GetProcesses(Guid.NewGuid().ToString()));
+        }
+
+        [Fact]
+        public void GetProcesses_RemoteMachinePath_ReturnsExpected()
+        {
+            try
+            {
+                Process[] processes = Process.GetProcesses(Environment.MachineName + "." + Domain.GetComputerDomain());
+                Assert.NotEmpty(processes);
+            }
+            catch (ActiveDirectoryObjectNotFoundException)
+            {
+                //This will be thrown when the executing machine is not domain-joined, i.e. in CI
+            }
+            catch (TypeInitializationException tie) when (tie.InnerException is ActiveDirectoryOperationException)
+            {
+                //Thrown if the ActiveDirectory module is unavailable
+            }
+            catch (PlatformNotSupportedException)
+            {
+                //System.DirectoryServices is not supported on all platforms
+            }
+        }
+
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindowsNanoServer))] // ActiveIssue: https://github.com/dotnet/corefx/issues/32780
         [SkipOnTargetFramework(TargetFrameworkMonikers.Uap, "Retrieving information about local processes is not supported on uap")]
         public void GetProcessesByName_ProcessName_ReturnsExpected()
         {
@@ -922,6 +1101,8 @@ namespace System.Diagnostics.Tests
             Assert.All(processes, process => Assert.Equal(machineName, process.MachineName));
         }
 
+        [Theory]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.Uap, "Retrieving information about local processes is not supported on uap")]
         [MemberData(nameof(MachineName_Remote_TestData))]
         [PlatformSpecific(TestPlatforms.Windows)] // Accessing processes on remote machines is only supported on Windows.
         public void GetProcessesByName_RemoteMachineNameWindows_ReturnsExpected(string machineName)
@@ -932,7 +1113,7 @@ namespace System.Diagnostics.Tests
             }
             catch (InvalidOperationException)
             {
-                // As we can't detect reliably if performance counters are enabled 
+                // As we can't detect reliably if performance counters are enabled
                 // we let possible InvalidOperationExceptions pass silently.
             }
         }
@@ -985,12 +1166,13 @@ namespace System.Diagnostics.Tests
             }
             catch (InvalidOperationException)
             {
-                // As we can't detect reliably if performance counters are enabled 
+                // As we can't detect reliably if performance counters are enabled
                 // we let possible InvalidOperationExceptions pass silently.
             }
         }
 
         [Fact]
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
         public void StartInfo_GetFileName_ReturnsExpected()
         {
             Process process = CreateProcessLong();
@@ -1003,8 +1185,9 @@ namespace System.Diagnostics.Tests
             process.Kill();
             Assert.True(process.WaitForExit(WaitInMS));
         }
-        
+
         [Fact]
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
         public void StartInfo_SetOnRunningProcess_ThrowsInvalidOperationException()
         {
             Process process = CreateProcessLong();
@@ -1061,7 +1244,6 @@ namespace System.Diagnostics.Tests
         }
 
         [Theory]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.UapNotUapAot, "Non applicable for uap - RemoteInvoke works differently")]
         [InlineData(@"""abc"" d e", @"abc,d,e")]
         [InlineData(@"""abc""      d e", @"abc,d,e")]
         [InlineData("\"abc\"\t\td\te", @"abc,d,e")]
@@ -1112,6 +1294,7 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.Mono, "GC has different behavior on Mono")]
         public void CanBeFinalized()
         {
             FinalizingProcess.CreateAndRelease();
@@ -1187,6 +1370,24 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
+        public void Start_RedirectStandardOutput_StartAgain_DoesntThrow()
+        {
+            using (Process process = CreateProcess(() =>
+            {
+                Console.WriteLine("hello world");
+                return SuccessExitCode;
+            }))
+            {
+                process.StartInfo.RedirectStandardOutput = true;
+
+                Assert.True(process.Start());
+                process.BeginOutputReadLine();
+
+                Assert.True(process.Start());
+            }
+        }
+
+        [Fact]
         public void Start_Disposed_ThrowsObjectDisposedException()
         {
             var process = new Process();
@@ -1251,6 +1452,7 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
         [PlatformSpecific(TestPlatforms.Windows)] // MainWindowHandle is not supported on Unix.
         public void MainWindowHandle_NoWindow_ReturnsEmptyHandle()
         {
@@ -1270,6 +1472,7 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
         public void MainWindowTitle_NoWindow_ReturnsEmpty()
         {
             CreateDefaultProcess();
@@ -1288,6 +1491,7 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
         public void CloseMainWindow_NoWindow_ReturnsFalse()
         {
             CreateDefaultProcess();
@@ -1547,19 +1751,20 @@ namespace System.Diagnostics.Tests
         [SkipOnTargetFramework(TargetFrameworkMonikers.Uap, "Retrieving information about local processes is not supported on uap")]
         public void Process_StartTest()
         {
-            string currentProcessName = GetCurrentProcessName();
+            string name = "xcopy.exe";
             string userName = string.Empty;
             string domain = "thisDomain";
             SecureString password = AsSecureString("Value");
 
-            Process p = Process.Start(currentProcessName, userName, password, domain); // This writes junk to the Console but with this overload, we can't prevent that.
-            Assert.NotNull(p);
-            Assert.Equal(currentProcessName, p.StartInfo.FileName);
-            Assert.Equal(userName, p.StartInfo.UserName);
-            Assert.Same(password, p.StartInfo.Password);
-            Assert.Equal(domain, p.StartInfo.Domain);
-
-            Assert.True(p.WaitForExit(WaitInMS));
+            using (Process p = Process.Start(name, userName, password, domain)) // This writes junk to the Console but with this overload, we can't prevent that.
+            {
+                Assert.NotNull(p);
+                Assert.Equal(name, p.StartInfo.FileName);
+                Assert.Equal(userName, p.StartInfo.UserName);
+                Assert.Same(password, p.StartInfo.Password);
+                Assert.Equal(domain, p.StartInfo.Domain);
+                Assert.True(p.WaitForExit(WaitInMS));
+            }
             password.Dispose();
         }
 
@@ -1573,15 +1778,16 @@ namespace System.Diagnostics.Tests
             string domain = Environment.UserDomainName;
             string arguments = "-xml testResults.xml";
             SecureString password = AsSecureString("Value");
-
-            Process p = Process.Start(currentProcessName, arguments, userName, password, domain);
-            Assert.NotNull(p);
-            Assert.Equal(currentProcessName, p.StartInfo.FileName);
-            Assert.Equal(arguments, p.StartInfo.Arguments);
-            Assert.Equal(userName, p.StartInfo.UserName);
-            Assert.Same(password, p.StartInfo.Password);
-            Assert.Equal(domain, p.StartInfo.Domain);
-            p.Kill();
+            using (Process p = Process.Start(currentProcessName, arguments, userName, password, domain))
+            {
+                Assert.NotNull(p);
+                Assert.Equal(currentProcessName, p.StartInfo.FileName);
+                Assert.Equal(arguments, p.StartInfo.Arguments);
+                Assert.Equal(userName, p.StartInfo.UserName);
+                Assert.Same(password, p.StartInfo.Password);
+                Assert.Equal(domain, p.StartInfo.Domain);
+                p.Kill();
+            }
             password.Dispose();
         }
 
@@ -1603,6 +1809,7 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
+        [ActiveIssue(31908, TargetFrameworkMonikers.Uap)]
         public void TestLongProcessIsWorking()
         {
             // Sanity check for CreateProcessLong

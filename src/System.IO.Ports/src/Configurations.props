@@ -3,12 +3,15 @@
   <PropertyGroup>
     <PackageConfigurations>
       netstandard-Windows_NT;
+      netstandard-Linux;
+      netstandard-OSX;
       netstandard;
-      netfx;
+      net461;
     </PackageConfigurations>
     <BuildConfigurations>
       $(PackageConfigurations)
       uap-Windows_NT;
+      netfx;
     </BuildConfigurations>
   </PropertyGroup>
 </Project>

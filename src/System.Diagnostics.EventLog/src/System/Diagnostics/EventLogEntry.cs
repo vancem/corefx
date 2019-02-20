@@ -32,12 +32,9 @@ namespace System.Diagnostics
             GC.SuppressFinalize(this);
         }
 
-        private EventLogEntry(SerializationInfo info, StreamingContext context)
-        {
-            throw new PlatformNotSupportedException();
-        }
-
-        [MonitoringDescription("The machine on which this event log resides.")]
+        /// <summary>
+        /// The machine on which this event log resides.
+        /// </summary>
         public string MachineName
         {
             get
@@ -60,7 +57,9 @@ namespace System.Diagnostics
             }
         }
 
-        [MonitoringDescription("The binary data associated with this entry in the event log.")]
+        /// <summary>
+        /// The binary data associated with this entry in the event log.
+        /// </summary>
         public byte[] Data
         {
             get
@@ -73,7 +72,9 @@ namespace System.Diagnostics
             }
         }
 
-        [MonitoringDescription("The sequence of this entry in the event log.")]
+        /// <summary>
+        /// The sequence of this entry in the event log.
+        /// </summary>
         public int Index
         {
             get
@@ -82,7 +83,9 @@ namespace System.Diagnostics
             }
         }
 
-        [MonitoringDescription("The category for this message.")]
+        /// <summary>
+        /// The category for this message.
+        /// </summary>
         public string Category
         {
             get
@@ -101,7 +104,9 @@ namespace System.Diagnostics
             }
         }
 
-        [MonitoringDescription("An application-specific category number assigned to this entry.")]
+        /// <summary>
+        /// An application-specific category number assigned to this entry.
+        /// </summary>
         public short CategoryNumber
         {
             get
@@ -110,10 +115,10 @@ namespace System.Diagnostics
             }
         }
 
-        [
-        MonitoringDescription("The number identifying the message for this source."),
-        Obsolete("This property has been deprecated.  Please use System.Diagnostics.EventLogEntry.InstanceId instead.  http://go.microsoft.com/fwlink/?linkid=14202")
-        ]
+        /// <summary>
+        /// The number identifying the message for this source.
+        /// </summary>
+        [Obsolete("This property has been deprecated.  Please use System.Diagnostics.EventLogEntry.InstanceId instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public int EventID
         {
             get
@@ -122,7 +127,9 @@ namespace System.Diagnostics
             }
         }
 
-        [MonitoringDescription("The type of entry - Information, Warning, etc.")]
+        /// <summary>
+        /// The type of entry - Information, Warning, etc.
+        /// </summary>
         public EventLogEntryType EntryType
         {
             get
@@ -131,7 +138,9 @@ namespace System.Diagnostics
             }
         }
 
-        [MonitoringDescription("The text of the message for this entry.")]
+        /// <summary>
+        /// The text of the message for this entry.
+        /// </summary>
         public string Message
         {
             get
@@ -143,7 +152,7 @@ namespace System.Diagnostics
                     string msg = owner.FormatMessageWrapper(dllNames, (uint)msgId, ReplacementStrings);
                     if (msg == null)
                     {
-                        StringBuilder msgBuf = new StringBuilder(SR.MessageNotFormatted + msgId + Source);
+                        StringBuilder msgBuf = new StringBuilder(SR.Format(SR.MessageNotFormatted, msgId, Source));
                         string[] strings = ReplacementStrings;
                         for (int i = 0; i < strings.Length; i++)
                         {
@@ -166,7 +175,9 @@ namespace System.Diagnostics
             }
         }
 
-        [MonitoringDescription("The name of the application that wrote this entry.")]
+        /// <summary>
+        /// The name of the application that wrote this entry.
+        /// </summary>
         public string Source
         {
             get
@@ -186,7 +197,9 @@ namespace System.Diagnostics
             }
         }
 
-        [MonitoringDescription("The application-supplied strings used in the message.")]
+        /// <summary>
+        /// The application-supplied strings used in the message.
+        /// </summary>
         public string[] ReplacementStrings
         {
             get
@@ -214,19 +227,20 @@ namespace System.Diagnostics
             }
         }
 
-        [
-            MonitoringDescription("The full number identifying the message in the event message dll."),
-            ComVisible(false)
-        ]
-        public Int64 InstanceId
+        /// <summary>
+        /// The full number identifying the message in the event message dll.
+        /// </summary>
+        public long InstanceId
         {
             get
             {
-                return (UInt32)IntFrom(dataBuf, bufOffset + FieldOffsets.EVENTID);
+                return (uint)IntFrom(dataBuf, bufOffset + FieldOffsets.EVENTID);
             }
         }
 
-        [MonitoringDescription("The time at which the application logged this entry.")]
+        /// <summary>
+        /// The time at which the application logged this entry.
+        /// </summary>
         public DateTime TimeGenerated
         {
             get
@@ -235,7 +249,9 @@ namespace System.Diagnostics
             }
         }
 
-        [MonitoringDescription("The time at which the system logged this entry to the event log.")]
+        /// <summary>
+        /// The time at which the system logged this entry to the event log.
+        /// </summary>
         public DateTime TimeWritten
         {
             get
@@ -244,7 +260,9 @@ namespace System.Diagnostics
             }
         }
 
-        [MonitoringDescription("The username of the account associated with this entry by the writing application.")]
+        /// <summary>
+        /// The username of the account associated with this entry by the writing application.
+        /// </summary>
         public string UserName
         {
             get
@@ -258,19 +276,19 @@ namespace System.Diagnostics
 
                 int userNameLen = 256;
                 int domainNameLen = 256;
-                int sidNameUse = 0;
-                StringBuilder bufUserName = new StringBuilder(userNameLen);
-                StringBuilder bufDomainName = new StringBuilder(domainNameLen);
-                StringBuilder retUserName = new StringBuilder();
-
-                if (Interop.Kernel32.LookupAccountSid(MachineName, sid, bufUserName, ref userNameLen, bufDomainName, ref domainNameLen, ref sidNameUse) != 0)
+                unsafe
                 {
-                    retUserName.Append(bufDomainName.ToString());
-                    retUserName.Append("\\");
-                    retUserName.Append(bufUserName.ToString());
+                    fixed (char* bufUserName = new char[userNameLen])
+                    fixed (char* bufDomainName = new char[domainNameLen])
+                    {
+                        if (Interop.Advapi32.LookupAccountSid(MachineName, sid, bufUserName, ref userNameLen, bufDomainName, ref domainNameLen, out int sidNameUse) != 0)
+                        {
+                            return new string(bufDomainName) + "\\" + new string(bufUserName);
+                        }
+                    }
                 }
 
-                return retUserName.ToString();
+                return string.Empty;
             }
         }
 
@@ -308,7 +326,7 @@ namespace System.Diagnostics
             (0xFF00 & (buf[offset + 1] << 8)) | (0xFF & (buf[offset]));
         }
 
-        internal string ReplaceMessageParameters(String msg, string[] insertionStrings)
+        internal string ReplaceMessageParameters(string msg, string[] insertionStrings)
         {
             int percentIdx = msg.IndexOf('%');
             if (percentIdx < 0)
@@ -323,13 +341,13 @@ namespace System.Diagnostics
             {
                 string param = null;
                 int lasNumIdx = percentIdx + 1;
-                while (lasNumIdx < msgLength && Char.IsDigit(msg, lasNumIdx))
+                while (lasNumIdx < msgLength && char.IsDigit(msg, lasNumIdx))
                     lasNumIdx++;
 
                 uint paramMsgID = 0;
 
                 if (lasNumIdx != percentIdx + 1)
-                    UInt32.TryParse(msg.Substring(percentIdx + 1, lasNumIdx - percentIdx - 1), out paramMsgID);
+                    uint.TryParse(msg.Substring(percentIdx + 1, lasNumIdx - percentIdx - 1), out paramMsgID);
 
                 if (paramMsgID != 0)
                     param = owner.FormatMessageWrapper(paramDLLNames, paramMsgID, insertionStrings);

@@ -25,9 +25,9 @@ namespace System.Diagnostics
 
         private static ConcurrentDictionary<(string machineName, string lcidString), PerformanceCounterLib> s_libraryTable;
         private Dictionary<int, string> _nameTable;
-        private readonly object _nameTableLock = new Object();
+        private readonly object _nameTableLock = new object();
 
-        private static Object s_internalSyncObject;
+        private static object s_internalSyncObject;
 
         internal PerformanceCounterLib(string machineName, string lcid)
         {
@@ -205,7 +205,14 @@ namespace System.Diagnostics
             private void Init()
             {
 #if FEATURE_REGISTRY
-                _perfDataKey = Registry.PerformanceData;
+                if (ProcessManager.IsRemoteMachine(_machineName))
+                {
+                    _perfDataKey = RegistryKey.OpenRemoteBaseKey(RegistryHive.PerformanceData, _machineName);
+                }
+                else
+                {
+                    _perfDataKey = Registry.PerformanceData;
+                }
 #endif
             }
 
@@ -242,9 +249,9 @@ namespace System.Diagnostics
                             case Interop.Errors.ERROR_INVALID_HANDLE:
                             case Interop.Advapi32.RPCStatus.RPC_S_SERVER_UNAVAILABLE:
                                 Init();
-                                goto case Interop.Advapi32.WaitOptions.WAIT_TIMEOUT;
+                                goto case Interop.Kernel32.WAIT_TIMEOUT;
 
-                            case Interop.Advapi32.WaitOptions.WAIT_TIMEOUT:
+                            case Interop.Kernel32.WAIT_TIMEOUT:
                             case Interop.Errors.ERROR_NOT_READY:
                             case Interop.Errors.ERROR_LOCK_FAILED:
                             case Interop.Errors.ERROR_BUSY:

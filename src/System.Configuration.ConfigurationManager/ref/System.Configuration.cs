@@ -88,7 +88,6 @@ namespace System.Configuration
         public virtual string Filename { get { throw null; } }
         public virtual int Line { get { throw null; } }
         public override string Message { get { throw null; } }
-        [System.Security.Permissions.SecurityPermissionAttribute(System.Security.Permissions.SecurityAction.Demand, SerializationFormatter = true)]
         public override void GetObjectData(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) { }
         [System.ObsoleteAttribute("This class is obsolete, use System.Configuration!System.Configuration.ConfigurationErrorsException.GetFilename instead")]
         public static string GetXmlNodeFilename(System.Xml.XmlNode node) { throw null; }
@@ -714,7 +713,6 @@ namespace System.Configuration
         public static string GetFilename(System.Xml.XmlReader reader) { throw null; }
         public static int GetLineNumber(System.Xml.XmlNode node) { throw null; }
         public static int GetLineNumber(System.Xml.XmlReader reader) { throw null; }
-        [System.Security.Permissions.SecurityPermissionAttribute(System.Security.Permissions.SecurityAction.Demand, SerializationFormatter = true)]
         public override void GetObjectData(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) { }
     }
     public partial class ConfigurationFileMap : System.ICloneable
@@ -857,7 +855,6 @@ namespace System.Configuration
         public System.Configuration.ConfigurationSection Get(string name) { throw null; }
         public override System.Collections.IEnumerator GetEnumerator() { throw null; }
         public string GetKey(int index) { throw null; }
-        [System.Security.Permissions.SecurityPermissionAttribute(System.Security.Permissions.SecurityAction.Demand, SerializationFormatter = true)]
         public override void GetObjectData(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) { }
         public void Remove(string name) { }
         public void RemoveAt(int index) { }
@@ -890,7 +887,6 @@ namespace System.Configuration
         public System.Configuration.ConfigurationSectionGroup Get(string name) { throw null; }
         public override System.Collections.IEnumerator GetEnumerator() { throw null; }
         public string GetKey(int index) { throw null; }
-        [System.Security.Permissions.SecurityPermissionAttribute(System.Security.Permissions.SecurityAction.Demand, SerializationFormatter = true)]
         public override void GetObjectData(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) { }
         public void Remove(string name) { }
         public void RemoveAt(int index) { }
@@ -1165,7 +1161,6 @@ namespace System.Configuration
         public System.Configuration.PropertyInformation this[string propertyName] { get { throw null; } }
         public void CopyTo(System.Configuration.PropertyInformation[] array, int index) { }
         public override System.Collections.IEnumerator GetEnumerator() { throw null; }
-        [System.Security.Permissions.SecurityPermissionAttribute(System.Security.Permissions.SecurityAction.Demand, SerializationFormatter = true)]
         public override void GetObjectData(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) { }
     }
     public enum PropertyValueOrigin
@@ -1408,9 +1403,13 @@ namespace System.Configuration.Internal
         public virtual string GetConfigPathFromLocationSubPath(string configPath, string locationSubPath) { throw null; }
         public virtual System.Type GetConfigType(string typeName, bool throwOnError) { throw null; }
         public virtual string GetConfigTypeName(System.Type t) { throw null; }
+        public virtual void GetRestrictedPermissions(IInternalConfigRecord configRecord, out System.Security.PermissionSet permissionSet, out bool isHostReady) { throw null; }
         public virtual string GetStreamName(string configPath) { throw null; }
         public virtual string GetStreamNameForConfigSource(string streamName, string configSource) { throw null; }
         public virtual object GetStreamVersion(string streamName) { throw null; }
+        public virtual bool HasLocalConfig { get; }
+        public virtual bool HasRoamingConfig { get; }
+        public virtual bool IsAppConfigHttp { get; }
         public virtual System.IDisposable Impersonate() { throw null; }
         public virtual void Init(System.Configuration.Internal.IInternalConfigRoot configRoot, params object[] hostInitParams) { }
         public virtual void InitForConfiguration(ref string locationSubPath, out string configPath, out string locationConfigPath, System.Configuration.Internal.IInternalConfigRoot configRoot, params object[] hostInitConfigurationParams) { configPath = default(string); locationConfigPath = default(string); }
@@ -1430,6 +1429,7 @@ namespace System.Configuration.Internal
         public virtual bool PrefetchAll(string configPath, string streamName) { throw null; }
         public virtual bool PrefetchSection(string sectionGroupName, string sectionName) { throw null; }
         public virtual void RequireCompleteInit(System.Configuration.Internal.IInternalConfigRecord configRecord) { }
+        public virtual void RefreshConfigPaths() { }
         public virtual object StartMonitoringStreamForChanges(string streamName, System.Configuration.Internal.StreamChangeCallback callback) { throw null; }
         public virtual void StopMonitoringStreamForChanges(string streamName, System.Configuration.Internal.StreamChangeCallback callback) { }
         public virtual void VerifyDefinitionAllowed(string configPath, System.Configuration.ConfigurationAllowDefinition allowDefinition, System.Configuration.ConfigurationAllowExeDefinition allowExeDefinition, System.Configuration.Internal.IConfigErrorInfo errorInfo) { }
@@ -1494,6 +1494,7 @@ namespace System.Configuration.Internal
         string GetConfigPathFromLocationSubPath(string configPath, string locationSubPath);
         System.Type GetConfigType(string typeName, bool throwOnError);
         string GetConfigTypeName(System.Type t);
+        void GetRestrictedPermissions(IInternalConfigRecord configRecord, out System.Security.PermissionSet permissionSet, out bool isHostReady);
         string GetStreamName(string configPath);
         string GetStreamNameForConfigSource(string streamName, string configSource);
         object GetStreamVersion(string streamName);

@@ -21,6 +21,38 @@ internal static partial class Interop
             out SafeSecKeyRefHandle pPrivateKey,
             out int pOSStatus);
 
+        [DllImport(Libraries.AppleCryptoNative)]
+        private static extern int AppleCryptoNative_RsaSignaturePrimitive(
+            SafeSecKeyRefHandle privateKey,
+            ref byte pbData,
+            int cbData,
+            out SafeCFDataHandle pDataOut,
+            out SafeCFErrorHandle pErrorOut);
+
+        [DllImport(Libraries.AppleCryptoNative)]
+        private static extern int AppleCryptoNative_RsaVerificationPrimitive(
+            SafeSecKeyRefHandle publicKey,
+            ref byte pbData,
+            int cbData,
+            out SafeCFDataHandle pDataOut,
+            out SafeCFErrorHandle pErrorOut);
+
+        [DllImport(Libraries.AppleCryptoNative)]
+        private static extern int AppleCryptoNative_RsaDecryptionPrimitive(
+            SafeSecKeyRefHandle privateKey,
+            ref byte pbData,
+            int cbData,
+            out SafeCFDataHandle pDataOut,
+            out SafeCFErrorHandle pErrorOut);
+
+        [DllImport(Libraries.AppleCryptoNative)]
+        private static extern int AppleCryptoNative_RsaEncryptionPrimitive(
+            SafeSecKeyRefHandle publicKey,
+            ref byte pbData,
+            int cbData,
+            out SafeCFDataHandle pDataOut,
+            out SafeCFErrorHandle pErrorOut);
+
         private static int RsaEncryptOaep(
             SafeSecKeyRefHandle publicKey,
             ReadOnlySpan<byte> pbData,
@@ -28,7 +60,7 @@ internal static partial class Interop
             PAL_HashAlgorithm mgfAlgorithm,
             out SafeCFDataHandle pEncryptedOut,
             out SafeCFErrorHandle pErrorOut) =>
-            RsaEncryptOaep(publicKey, ref pbData.DangerousGetPinnableReference(), cbData, mgfAlgorithm, out pEncryptedOut, out pErrorOut);
+            RsaEncryptOaep(publicKey, ref MemoryMarshal.GetReference(pbData), cbData, mgfAlgorithm, out pEncryptedOut, out pErrorOut);
 
         [DllImport(Libraries.AppleCryptoNative, EntryPoint = "AppleCryptoNative_RsaEncryptOaep")]
         private static extern int RsaEncryptOaep(
@@ -45,7 +77,7 @@ internal static partial class Interop
             int cbData,
             out SafeCFDataHandle pEncryptedOut,
             out SafeCFErrorHandle pErrorOut) =>
-            RsaEncryptPkcs(publicKey, ref pbData.DangerousGetPinnableReference(), cbData, out pEncryptedOut, out pErrorOut);
+            RsaEncryptPkcs(publicKey, ref MemoryMarshal.GetReference(pbData), cbData, out pEncryptedOut, out pErrorOut);
 
         [DllImport(Libraries.AppleCryptoNative, EntryPoint = "AppleCryptoNative_RsaEncryptPkcs")]
         private static extern int RsaEncryptPkcs(
@@ -62,7 +94,7 @@ internal static partial class Interop
             PAL_HashAlgorithm mgfAlgorithm,
             out SafeCFDataHandle pEncryptedOut,
             out SafeCFErrorHandle pErrorOut) =>
-            RsaDecryptOaep(publicKey, ref pbData.DangerousGetPinnableReference(), cbData, mgfAlgorithm, out pEncryptedOut, out pErrorOut);
+            RsaDecryptOaep(publicKey, ref MemoryMarshal.GetReference(pbData), cbData, mgfAlgorithm, out pEncryptedOut, out pErrorOut);
 
         [DllImport(Libraries.AppleCryptoNative, EntryPoint = "AppleCryptoNative_RsaDecryptOaep")]
         private static extern int RsaDecryptOaep(
@@ -79,7 +111,7 @@ internal static partial class Interop
             int cbData,
             out SafeCFDataHandle pEncryptedOut,
             out SafeCFErrorHandle pErrorOut) =>
-            RsaDecryptPkcs(publicKey, ref pbData.DangerousGetPinnableReference(), cbData, out pEncryptedOut, out pErrorOut);
+            RsaDecryptPkcs(publicKey, ref MemoryMarshal.GetReference(pbData), cbData, out pEncryptedOut, out pErrorOut);
 
         [DllImport(Libraries.AppleCryptoNative, EntryPoint = "AppleCryptoNative_RsaDecryptPkcs")]
         private static extern int RsaDecryptPkcs(
@@ -218,6 +250,94 @@ internal static partial class Interop
                         RsaDecryptPkcs(privateKey, innerSource, innerSource.Length, out outputHandle, out errorHandle) :
                         RsaDecryptOaep(privateKey, innerSource, innerSource.Length, PalAlgorithmFromAlgorithmName(padding.OaepHashAlgorithm), out outputHandle, out errorHandle);
                 });
+        }
+
+        private static bool ProcessPrimitiveResponse(
+            int returnValue,
+            SafeCFDataHandle cfData,
+            SafeCFErrorHandle cfError,
+            Span<byte> destination,
+            out int bytesWritten)
+        {
+            const int kErrorSeeError = -2;
+            const int kSuccess = 1;
+
+            if (returnValue == kErrorSeeError)
+            {
+                throw CreateExceptionForCFError(cfError);
+            }
+
+            if (returnValue == kSuccess && !cfData.IsInvalid)
+            {
+                return CoreFoundation.TryCFWriteData(cfData, destination, out bytesWritten);
+            }
+
+            Debug.Fail($"Unknown return value ({returnValue}) or no data object returned");
+            throw new CryptographicException();
+        }
+
+        internal static bool TryRsaDecryptionPrimitive(
+            SafeSecKeyRefHandle privateKey,
+            ReadOnlySpan<byte> source,
+            Span<byte> destination,
+            out int bytesWritten)
+        {
+            int returnValue = AppleCryptoNative_RsaDecryptionPrimitive(
+                privateKey,
+                ref MemoryMarshal.GetReference(source),
+                source.Length,
+                out SafeCFDataHandle cfData,
+                out SafeCFErrorHandle cfError);
+
+            return ProcessPrimitiveResponse(returnValue, cfData, cfError, destination, out bytesWritten);
+        }
+
+        internal static bool TryRsaEncryptionPrimitive(
+            SafeSecKeyRefHandle publicKey,
+            ReadOnlySpan<byte> source,
+            Span<byte> destination,
+            out int bytesWritten)
+        {
+            int returnValue = AppleCryptoNative_RsaEncryptionPrimitive(
+                publicKey,
+                ref MemoryMarshal.GetReference(source),
+                source.Length,
+                out SafeCFDataHandle cfData,
+                out SafeCFErrorHandle cfError);
+
+            return ProcessPrimitiveResponse(returnValue, cfData, cfError, destination, out bytesWritten);
+        }
+
+        internal static bool TryRsaSignaturePrimitive(
+            SafeSecKeyRefHandle privateKey,
+            ReadOnlySpan<byte> source,
+            Span<byte> destination,
+            out int bytesWritten)
+        {
+            int returnValue = AppleCryptoNative_RsaSignaturePrimitive(
+                privateKey,
+                ref MemoryMarshal.GetReference(source),
+                source.Length,
+                out SafeCFDataHandle cfData,
+                out SafeCFErrorHandle cfError);
+
+            return ProcessPrimitiveResponse(returnValue, cfData, cfError, destination, out bytesWritten);
+        }
+
+        internal static bool TryRsaVerificationPrimitive(
+            SafeSecKeyRefHandle publicKey,
+            ReadOnlySpan<byte> source,
+            Span<byte> destination,
+            out int bytesWritten)
+        {
+            int returnValue = AppleCryptoNative_RsaVerificationPrimitive(
+                publicKey,
+                ref MemoryMarshal.GetReference(source),
+                source.Length,
+                out SafeCFDataHandle cfData,
+                out SafeCFErrorHandle cfError);
+
+            return ProcessPrimitiveResponse(returnValue, cfData, cfError, destination, out bytesWritten);
         }
 
         private static PAL_HashAlgorithm PalAlgorithmFromAlgorithmName(HashAlgorithmName hashAlgorithmName) =>

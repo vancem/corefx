@@ -12,7 +12,7 @@ namespace System.Diagnostics
     /// <summary>
     ///     Performance Counter component.
     ///     This class provides support for NT Performance counters.
-    ///     It handles both the existing counters (accesible by Perf Registry Interface)
+    ///     It handles both the existing counters (accessible by Perf Registry Interface)
     ///     and user defined (extensible) counters.
     ///     This class is a part of a larger framework, that includes the perf dll object and
     ///     perf service.
@@ -39,14 +39,14 @@ namespace System.Diagnostics
         [ObsoleteAttribute("This field has been deprecated and is not used.  Use machine.config or an application configuration file to set the size of the PerformanceCounter file mapping.")]
         public static int DefaultFileMappingSize = 524288;
 
-        private Object _instanceLockObject;
-        private Object InstanceLockObject
+        private object _instanceLockObject;
+        private object InstanceLockObject
         {
             get
             {
                 if (_instanceLockObject == null)
                 {
-                    Object o = new Object();
+                    object o = new object();
                     Interlocked.CompareExchange(ref _instanceLockObject, o, null);
                 }
                 return _instanceLockObject;
@@ -147,7 +147,7 @@ namespace System.Diagnostics
                 if (value == null)
                     throw new ArgumentNullException(nameof(value));
 
-                if (_categoryName == null || string.Compare(_categoryName, value, StringComparison.OrdinalIgnoreCase) != 0)
+                if (_categoryName == null || !string.Equals(_categoryName, value, StringComparison.OrdinalIgnoreCase))
                 {
                     _categoryName = value;
                     Close();
@@ -165,8 +165,6 @@ namespace System.Diagnostics
                 string currentCategoryName = _categoryName;
                 string currentMachineName = _machineName;
 
-                PerformanceCounterPermission permission = new PerformanceCounterPermission(PerformanceCounterPermissionAccess.Read, currentMachineName, currentCategoryName);
-                permission.Demand();
                 Initialize();
 
                 if (_helpMsg == null)
@@ -190,7 +188,7 @@ namespace System.Diagnostics
                 if (value == null)
                     throw new ArgumentNullException(nameof(value));
 
-                if (_counterName == null || string.Compare(_counterName, value, StringComparison.OrdinalIgnoreCase) != 0)
+                if (_counterName == null || !string.Equals(_counterName, value, StringComparison.OrdinalIgnoreCase))
                 {
                     _counterName = value;
                     Close();
@@ -212,13 +210,12 @@ namespace System.Diagnostics
 
                     // This is the same thing that NextSample does, except that it doesn't try to get the actual counter
                     // value.  If we wanted the counter value, we would need to have an instance name. 
-                    PerformanceCounterPermission permission = new PerformanceCounterPermission(PerformanceCounterPermissionAccess.Read, currentMachineName, currentCategoryName);
-                    permission.Demand();
-
                     Initialize();
-                    CategorySample categorySample = PerformanceCounterLib.GetCategorySample(currentMachineName, currentCategoryName);
-                    CounterDefinitionSample counterSample = categorySample.GetCounterDefinitionSample(_counterName);
-                    _counterType = counterSample._counterType;
+                    using (CategorySample categorySample = PerformanceCounterLib.GetCategorySample(currentMachineName, currentCategoryName))
+                    {
+                        CounterDefinitionSample counterSample = categorySample.GetCounterDefinitionSample(_counterName);
+                        _counterType = counterSample._counterType;
+                    }
                 }
 
                 return (PerformanceCounterType)_counterType;
@@ -256,7 +253,7 @@ namespace System.Diagnostics
 
                 if ((value == null && _instanceName != null) ||
                       (value != null && _instanceName == null) ||
-                      string.Compare(_instanceName, value, StringComparison.OrdinalIgnoreCase) != 0)
+                      !string.Equals(_instanceName, value, StringComparison.OrdinalIgnoreCase))
                 {
                     _instanceName = value;
                     Close();
@@ -300,7 +297,7 @@ namespace System.Diagnostics
             set
             {
                 if (!SyntaxCheck.CheckMachineName(value))
-                    throw new ArgumentException(SR.Format(SR.InvalidParameter, "machineName", value));
+                    throw new ArgumentException(SR.Format(SR.InvalidProperty, nameof(MachineName), value), nameof(value));
 
                 if (_machineName != value)
                 {
@@ -369,8 +366,6 @@ namespace System.Diagnostics
         /// </summary>
         public static void CloseSharedResources()
         {
-            PerformanceCounterPermission permission = new PerformanceCounterPermission(PerformanceCounterPermissionAccess.Read, ".", "*");
-            permission.Demand();
             PerformanceCounterLib.CloseAllLibraries();
         }
 
@@ -466,7 +461,6 @@ namespace System.Diagnostics
         private void InitializeImpl()
         {
             bool tookLock = false;
-            RuntimeHelpers.PrepareConstrainedRegions();
             try
             {
                 Monitor.Enter(InstanceLockObject, ref tookLock);
@@ -483,10 +477,6 @@ namespace System.Diagnostics
 
                     if (ReadOnly)
                     {
-                        PerformanceCounterPermission permission = new PerformanceCounterPermission(PerformanceCounterPermissionAccess.Read, currentMachineName, currentCategoryName);
-
-                        permission.Demand();
-
                         if (!PerformanceCounterLib.CounterExists(currentMachineName, currentCategoryName, _counterName))
                             throw new InvalidOperationException(SR.Format(SR.CounterExists, currentCategoryName, _counterName));
 
@@ -509,10 +499,7 @@ namespace System.Diagnostics
                     }
                     else
                     {
-                        PerformanceCounterPermission permission = new PerformanceCounterPermission(PerformanceCounterPermissionAccess.Write, currentMachineName, currentCategoryName);
-                        permission.Demand();
-
-                        if (currentMachineName != "." && string.Compare(currentMachineName, PerformanceCounterLib.ComputerName, StringComparison.OrdinalIgnoreCase) != 0)
+                        if (currentMachineName != "." && !string.Equals(currentMachineName, PerformanceCounterLib.ComputerName, StringComparison.OrdinalIgnoreCase))
                             throw new InvalidOperationException(SR.Format(SR.RemoteWriting));
 
                         if (!PerformanceCounterLib.IsCustomCategory(currentMachineName, currentCategoryName))
@@ -556,26 +543,27 @@ namespace System.Diagnostics
             string currentCategoryName = _categoryName;
             string currentMachineName = _machineName;
 
-            PerformanceCounterPermission permission = new PerformanceCounterPermission(PerformanceCounterPermissionAccess.Read, currentMachineName, currentCategoryName);
-            permission.Demand();
-
             Initialize();
-            CategorySample categorySample = PerformanceCounterLib.GetCategorySample(currentMachineName, currentCategoryName);
-            CounterDefinitionSample counterSample = categorySample.GetCounterDefinitionSample(_counterName);
-            _counterType = counterSample._counterType;
-            if (!categorySample._isMultiInstance)
-            {
-                if (_instanceName != null && _instanceName.Length != 0)
-                    throw new InvalidOperationException(SR.Format(SR.InstanceNameProhibited, _instanceName));
 
-                return counterSample.GetSingleValue();
-            }
-            else
-            {
-                if (_instanceName == null || _instanceName.Length == 0)
-                    throw new InvalidOperationException(SR.Format(SR.InstanceNameRequired));
 
-                return counterSample.GetInstanceValue(_instanceName);
+            using (CategorySample categorySample = PerformanceCounterLib.GetCategorySample(currentMachineName, currentCategoryName))
+            {
+                CounterDefinitionSample counterSample = categorySample.GetCounterDefinitionSample(_counterName);
+                _counterType = counterSample._counterType;
+                if (!categorySample._isMultiInstance)
+                {
+                    if (_instanceName != null && _instanceName.Length != 0)
+                        throw new InvalidOperationException(SR.Format(SR.InstanceNameProhibited, _instanceName));
+
+                    return counterSample.GetSingleValue();
+                }
+                else
+                {
+                    if (_instanceName == null || _instanceName.Length == 0)
+                        throw new InvalidOperationException(SR.Format(SR.InstanceNameRequired));
+
+                    return counterSample.GetInstanceValue(_instanceName);
+                }
             }
         }
 

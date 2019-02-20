@@ -31,8 +31,6 @@ namespace System.Collections.Generic
         private int _tail;       // The index at which to enqueue if the queue isn't full.
         private int _size;       // Number of elements.
         private int _version;
-        [NonSerialized]
-        private object _syncRoot;
 
         private const int MinimumGrow = 4;
         private const int GrowFactor = 200;  // double each time
@@ -74,17 +72,7 @@ namespace System.Collections.Generic
             get { return false; }
         }
 
-        object ICollection.SyncRoot
-        {
-            get
-            {
-                if (_syncRoot == null)
-                {
-                    Threading.Interlocked.CompareExchange<object>(ref _syncRoot, new object(), null);
-                }
-                return _syncRoot;
-            }
-        }
+        object ICollection.SyncRoot => this;
 
         // Removes all Objects from the queue.
         public void Clear()
@@ -234,15 +222,18 @@ namespace System.Collections.Generic
         // InvalidOperationException.
         public T Dequeue()
         {
+            int head = _head;
+            T[] array = _array;
+            
             if (_size == 0)
             {
                 ThrowForEmptyQueue();
             }
 
-            T removed = _array[_head];
+            T removed = array[head];
             if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
             {
-                _array[_head] = default(T);
+                array[head] = default;
             }
             MoveNext(ref _head);
             _size--;
@@ -252,16 +243,19 @@ namespace System.Collections.Generic
 
         public bool TryDequeue(out T result)
         {
+            int head = _head;
+            T[] array = _array;
+
             if (_size == 0)
             {
-            	result = default(T);
+            	result = default;
             	return false;
             }
 
-            result = _array[_head];
+            result = array[head];
             if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
             {
-                _array[_head] = default(T);
+                array[head] = default;
             }
             MoveNext(ref _head);
             _size--;
@@ -367,10 +361,15 @@ namespace System.Collections.Generic
         // Increments the index wrapping it if necessary.
         private void MoveNext(ref int index)
         {
-            // It is tempting to use the remainder operator here but it is actually much slower 
-            // than a simple comparison and a rarely taken branch.   
+            // It is tempting to use the remainder operator here but it is actually much slower
+            // than a simple comparison and a rarely taken branch.
+            // JIT produces better code than with ternary operator ?:
             int tmp = index + 1;
-            index = (tmp == _array.Length) ? 0 : tmp;
+            if (tmp == _array.Length)
+            {
+                tmp = 0;
+            }
+            index = tmp;
         }
 
         private void ThrowForEmptyQueue()

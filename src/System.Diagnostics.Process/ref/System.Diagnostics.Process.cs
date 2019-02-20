@@ -11,7 +11,7 @@ namespace Microsoft.Win32.SafeHandles
     public sealed partial class SafeProcessHandle : Microsoft.Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid
     {
         public SafeProcessHandle(System.IntPtr existingHandle, bool ownsHandle) : base(default(bool)) { }
-        public override bool IsInvalid { [System.Security.SecurityCritical] get { throw null; } }
+        public override bool IsInvalid { get { throw null; } }
         protected override bool ReleaseHandle() { throw null; }
     }
 }
@@ -29,25 +29,25 @@ namespace System.Diagnostics
         public int HandleCount { get { throw null; } }
         public IntPtr MainWindowHandle { get { throw null; } }
         public string MainWindowTitle { get { throw null; } }
-        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.NonpagedSystemMemorySize64 instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.NonpagedSystemMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public int NonpagedSystemMemorySize { get { throw null; } }
-        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PagedMemorySize64 instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PagedMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public int PagedMemorySize { get { throw null; } }
-        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PagedSystemMemorySize64 instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PagedSystemMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public int PagedSystemMemorySize { get { throw null; } }
-        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PeakPagedMemorySize64 instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PeakPagedMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public int PeakPagedMemorySize { get { throw null; } }
-        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PeakVirtualMemorySize64 instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PeakVirtualMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public int PeakVirtualMemorySize { get { throw null; } }
-        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PeakWorkingSet64 instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PeakWorkingSet64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public int PeakWorkingSet { get { throw null; } }
-        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PrivateMemorySize64 instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PrivateMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public int PrivateMemorySize { get { throw null; } }
         public bool Responding { get { throw null; } }
         public System.ComponentModel.ISynchronizeInvoke SynchronizingObject { get { throw null; } set { } }
-        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.VirtualMemorySize64 instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.VirtualMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public int VirtualMemorySize { get { throw null; } }
-        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.WorkingSet64 instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.WorkingSet64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public int WorkingSet { get { throw null; } }
         public void Close() { }
         public bool CloseMainWindow() { throw null; }
@@ -109,6 +109,7 @@ namespace System.Diagnostics
         public static System.Diagnostics.Process[] GetProcessesByName(string processName) { throw null; }
         public static System.Diagnostics.Process[] GetProcessesByName(string processName, string machineName) { throw null; }
         public void Kill() { }
+        public void Kill(bool entireProcessTree) { }
         public static void LeaveDebugMode() { }
         protected void OnExited() { }
         public void Refresh() { }
@@ -158,6 +159,7 @@ namespace System.Diagnostics
         public ProcessStartInfo(string fileName) { }
         public ProcessStartInfo(string fileName, string arguments) { }
         public string Arguments { get { throw null; } set { } }
+        public System.Collections.ObjectModel.Collection<string> ArgumentList { get { throw null; } }
         public bool CreateNoWindow { get { throw null; } set { } }
         public string Domain { get { throw null; } set { } }
         [System.ComponentModel.DefaultValueAttribute(null)]
@@ -170,6 +172,7 @@ namespace System.Diagnostics
         public bool RedirectStandardInput { get { throw null; } set { } }
         public bool RedirectStandardOutput { get { throw null; } set { } }
         public System.Text.Encoding StandardErrorEncoding { get { throw null; } set { } }
+        public System.Text.Encoding StandardInputEncoding { get { throw null; } set { } }
         public System.Text.Encoding StandardOutputEncoding { get { throw null; } set { } }
         public string UserName { get { throw null; } set { } }
         public bool UseShellExecute { get { throw null; } set { } }
@@ -261,6 +264,7 @@ namespace System.Diagnostics
         Normal = 0,
     }
 
+    [System.AttributeUsage(AttributeTargets.All)]
     public class MonitoringDescriptionAttribute : System.ComponentModel.DescriptionAttribute 
     {
         public MonitoringDescriptionAttribute(string description) { throw null; }

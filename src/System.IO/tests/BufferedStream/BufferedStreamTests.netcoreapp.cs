@@ -83,8 +83,21 @@ namespace System.IO.Tests
             using (var bs = new BufferedStream(new MemoryStream()))
             {
                 Assert.Equal(TaskStatus.Canceled, bs.ReadAsync(new byte[1], new CancellationToken(true)).AsTask().Status);
-                Assert.Equal(TaskStatus.Canceled, bs.WriteAsync(new byte[1], new CancellationToken(true)).Status);
+                Assert.Equal(TaskStatus.Canceled, bs.WriteAsync(new byte[1], new CancellationToken(true)).AsTask().Status);
             }
+        }
+
+        [Fact]
+        public async Task DisposeAsync_FlushesAndClosesStream()
+        {
+            var ms = new MemoryStream();
+            var bs = new BufferedStream(ms);
+            bs.Write(new byte[1], 0, 1);
+            Assert.Equal(0, ms.Position);
+            await bs.DisposeAsync();
+            Assert.True(bs.DisposeAsync().IsCompletedSuccessfully);
+            Assert.Throws<ObjectDisposedException>(() => ms.Position);
+            Assert.Equal(1, ms.ToArray().Length);
         }
     }
 }

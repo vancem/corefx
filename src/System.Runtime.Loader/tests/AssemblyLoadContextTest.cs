@@ -13,9 +13,11 @@ using System.Threading.Tasks;
 namespace System.Runtime.Loader.Tests
 {
     [SkipOnTargetFramework(TargetFrameworkMonikers.UapAot, "AssemblyLoadContext not supported on .Net Native")]
-    public class AssemblyLoadContextTest
+    public partial class AssemblyLoadContextTest
     {
         private const string TestAssembly = "System.Runtime.Loader.Test.Assembly";
+        private const string TestAssembly2 = "System.Runtime.Loader.Test.Assembly2";
+        private const string TestAssemblyNotSupported = "System.Runtime.Loader.Test.AssemblyNotSupported";
 
         [Fact]
         public static void GetAssemblyNameTest_ValidAssembly()
@@ -118,6 +120,18 @@ namespace System.Runtime.Loader.Tests
             var context = AssemblyLoadContext.GetLoadContext(asm);
 
             Assert.NotNull(context);
+        }
+
+        [Fact]
+        public static void GetLoadContextTest_SystemPrivateCorelibAssembly()
+        {
+            // System.Private.Corelib is a special case
+            // `int` is defined in S.P.C
+            var asm = typeof(int).Assembly;
+            var context = AssemblyLoadContext.GetLoadContext(asm);
+
+            Assert.NotNull(context);
+            Assert.Same(AssemblyLoadContext.Default, context);
         }
     }
 }

@@ -11,8 +11,9 @@ using Xunit.Abstractions;
 
 namespace System.Net.Http.Functional.Tests
 {
-    [SkipOnTargetFramework(TargetFrameworkMonikers.Uap, "dotnet/corefx #20010")]
-    public class SchSendAuxRecordHttpTest : HttpClientTestBase
+    [ActiveIssue(26539)]    // Flaky test
+    [SkipOnTargetFramework(TargetFrameworkMonikers.Uap, "HttpsTestServer not compatible on UAP")]
+    public abstract class SchSendAuxRecordHttpTest : HttpClientHandlerTestBase
     {
         readonly ITestOutputHelper _output;
         
@@ -21,7 +22,6 @@ namespace System.Net.Http.Functional.Tests
             _output = output;
         }
 
-        [OuterLoop] // TODO: Issue #11345
         [Fact]
         [PlatformSpecific(TestPlatforms.Windows)]
         public async Task HttpClient_ClientUsesAuxRecord_Ok()
@@ -33,7 +33,7 @@ namespace System.Net.Http.Functional.Tests
             using (HttpClientHandler handler = CreateHttpClientHandler())
             using (var client = new HttpClient(handler))
             {
-                handler.ServerCertificateCustomValidationCallback = LoopbackServer.AllowAllCertificates;
+                handler.ServerCertificateCustomValidationCallback = TestHelper.AllowAllCertificates;
                 server.Start();
 
                 var tasks = new Task[2];
@@ -75,7 +75,7 @@ namespace System.Net.Http.Functional.Tests
                 string requestUriString = "https://localhost:" + server.Port.ToString();
                 tasks[1] = client.GetStringAsync(requestUriString);
 
-                await Task.WhenAll(tasks).TimeoutAfter(15 * 1000);
+                await tasks.WhenAllOrAnyFailed(15 * 1000);
 
                 if (serverAuxRecordDetectedInconclusive)
                 {

@@ -1,3 +1,7 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -243,14 +247,14 @@ namespace SerializationTestTypes
                         if (!genericNameProvider.ParametersFromBuiltInNamespaces)
                         {
                             if (digest == null)
-                                digest = GetNamespacesDigest(String.Format(CultureInfo.InvariantCulture, " {0}{1}", genericNameProvider.GetParameterCount(), genericNameProvider.GetNamespaces()));
+                                digest = GetNamespacesDigest(string.Format(CultureInfo.InvariantCulture, " {0}{1}", genericNameProvider.GetParameterCount(), genericNameProvider.GetNamespaces()));
                             typeName.Append(digest);
                         }
                     }
                     else
                     {
                         int paramIndex;
-                        if (!Int32.TryParse(format.Substring(start, i - start), out paramIndex) || paramIndex < 0 || paramIndex >= genericNameProvider.GetParameterCount())
+                        if (!int.TryParse(format.Substring(start, i - start), out paramIndex) || paramIndex < 0 || paramIndex >= genericNameProvider.GetParameterCount())
                             throw new ArgumentException("GenericParameterNotValid");
                         typeName.Append(genericNameProvider.GetParameterName(paramIndex));
                     }
@@ -428,7 +432,7 @@ namespace SerializationTestTypes
                     {
                         string clrNs = type.Namespace;
                         if (clrNs == null)
-                            clrNs = String.Empty;
+                            clrNs = string.Empty;
                         ns = GetGlobalContractNamespace(clrNs, type.Module);
                         if (ns == null)
                             ns = GetGlobalContractNamespace(clrNs, type.Assembly);
@@ -481,7 +485,7 @@ namespace SerializationTestTypes
                         {
                             string clrNs = type.Namespace;
                             if (clrNs == null)
-                                clrNs = String.Empty;
+                                clrNs = string.Empty;
                             ns = GetGlobalContractNamespace(clrNs, type.Module);
                             if (ns == null)
                                 ns = GetGlobalContractNamespace(clrNs, type.Assembly);
@@ -526,7 +530,7 @@ namespace SerializationTestTypes
 
         public static string GetDefaultStableNamespace(string clrNs)
         {
-            if (clrNs == null) clrNs = String.Empty;
+            if (clrNs == null) clrNs = string.Empty;
             return Globals.DefaultNamespace + clrNs.Replace('.', '/');
         }
 
@@ -539,7 +543,7 @@ namespace SerializationTestTypes
                 ContractNamespaceAttribute nsAttribute = (ContractNamespaceAttribute)nsAttributes[i];
                 string clrNsInAttribute = nsAttribute.ClrNamespace;
                 if (clrNsInAttribute == null)
-                    clrNsInAttribute = String.Empty;
+                    clrNsInAttribute = string.Empty;
                 if (clrNsInAttribute == clrNs)
                 {
                     if (nsAttribute.ContractNamespace == null)
@@ -665,7 +669,7 @@ namespace SerializationTestTypes
 
         static bool IsAsciiLocalName(string localName)
         {
-            if (String.IsNullOrEmpty(localName) || localName.Length == 0)
+            if (string.IsNullOrEmpty(localName) || localName.Length == 0)
                 return false;
             if (!IsAlpha(localName[0]))
                 return false;
@@ -966,7 +970,7 @@ namespace SerializationTestTypes
                     return -1;
                 if (x.Order > y.Order)
                     return 1;
-                return String.Compare(x.Name, y.Name, StringComparison.InvariantCulture);
+                return string.Compare(x.Name, y.Name, StringComparison.InvariantCulture);
             }
 
             public bool Equals(DataMember x, DataMember y)
@@ -1564,13 +1568,13 @@ namespace SerializationTestTypes
         public CollectionKind Kind;
         public Type ItemType;
         public string ItemName;
-        public String CollectionItemName;
+        public string CollectionItemName;
         public string KeyName;
         public string ValueName;
 
         public bool IsDictionary
         {
-            get { return !String.IsNullOrEmpty(KeyName); }
+            get { return !string.IsNullOrEmpty(KeyName); }
         }
 
         public MethodInfo GetEnumeratorMethod;
@@ -1630,15 +1634,15 @@ namespace SerializationTestTypes
                 string itemName = null, keyName = null, valueName = null;
                 if (collectionContractAttribute != null)
                 {
-                    if (!String.IsNullOrEmpty(collectionContractAttribute.ItemName))
+                    if (!string.IsNullOrEmpty(collectionContractAttribute.ItemName))
                     {
                         itemName = DataContract.EncodeLocalName(collectionContractAttribute.ItemName);
                     }
-                    if (!String.IsNullOrEmpty(collectionContractAttribute.KeyName))
+                    if (!string.IsNullOrEmpty(collectionContractAttribute.KeyName))
                     {
                         keyName = DataContract.EncodeLocalName(collectionContractAttribute.KeyName);
                     }
-                    if (!String.IsNullOrEmpty(collectionContractAttribute.ValueName))
+                    if (!string.IsNullOrEmpty(collectionContractAttribute.ValueName))
                     {
                         valueName = DataContract.EncodeLocalName(collectionContractAttribute.ValueName);
                     }

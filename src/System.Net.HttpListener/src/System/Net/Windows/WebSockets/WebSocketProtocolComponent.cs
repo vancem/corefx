@@ -72,7 +72,6 @@ namespace System.Net.WebSockets
             Receive = 2,
         }
 
-        [SecuritySafeCritical]
         static WebSocketProtocolComponent()
         {
             s_webSocketDllHandle = Interop.Kernel32.LoadLibraryExW(Interop.Libraries.WebSocket, IntPtr.Zero, 0);
@@ -181,9 +180,9 @@ namespace System.Net.WebSockets
                 string version = null;
                 foreach (Interop.WebSocket.HttpHeader header in additionalHeaders)
                 {
-                    if (string.Compare(header.Name,
+                    if (string.Equals(header.Name,
                             HttpKnownHeaderNames.SecWebSocketVersion,
-                            StringComparison.OrdinalIgnoreCase) == 0)
+                            StringComparison.OrdinalIgnoreCase))
                     {
                         version = header.Value;
                         break;

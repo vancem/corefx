@@ -2,57 +2,29 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Xml;
+using System.Collections.ObjectModel;
+using System.Collections.Generic;
+
 namespace System.ServiceModel.Syndication
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Collections.ObjectModel;
-    using System.Runtime.CompilerServices;
-    using System.Threading.Tasks;
-    using System.Xml;
-
     public abstract class CategoriesDocument : IExtensibleSyndicationObject
     {
-        private Uri _baseUri;
         private ExtensibleSyndicationObject _extensions = new ExtensibleSyndicationObject();
-        private string _language;
 
         internal CategoriesDocument()
         {
         }
 
-        public Dictionary<XmlQualifiedName, string> AttributeExtensions
-        {
-            get
-            {
-                return _extensions.AttributeExtensions;
-            }
-        }
+        public Dictionary<XmlQualifiedName, string> AttributeExtensions => _extensions.AttributeExtensions;
 
-        public Uri BaseUri
-        {
-            get { return _baseUri; }
-            set { _baseUri = value; }
-        }
+        public Uri BaseUri { get; set; }
 
-        public SyndicationElementExtensionCollection ElementExtensions
-        {
-            get
-            {
-                return _extensions.ElementExtensions;
-            }
-        }
+        public SyndicationElementExtensionCollection ElementExtensions => _extensions.ElementExtensions;
 
-        public string Language
-        {
-            get { return _language; }
-            set { _language = value; }
-        }
+        public string Language { get; set; }
 
-        internal abstract bool IsInline
-        {
-            get;
-        }
+        internal abstract bool IsInline { get; }
 
         public static InlineCategoriesDocument Create(Collection<SyndicationCategory> categories)
         {
@@ -69,21 +41,18 @@ namespace System.ServiceModel.Syndication
             return new ReferencedCategoriesDocument(linkToCategoriesDocument);
         }
 
-        public static async Task<CategoriesDocument> LoadAsync(XmlReader reader)
+        public static CategoriesDocument Load(XmlReader reader)
         {
             AtomPub10CategoriesDocumentFormatter formatter = new AtomPub10CategoriesDocumentFormatter();
-            await formatter.ReadFromAsync(reader);
+            formatter.ReadFrom(reader);
             return formatter.Document;
         }
 
-        public CategoriesDocumentFormatter GetFormatter()
-        {
-            return new AtomPub10CategoriesDocumentFormatter(this);
-        }
+        public CategoriesDocumentFormatter GetFormatter() => new AtomPub10CategoriesDocumentFormatter(this);
 
         public void Save(XmlWriter writer)
         {
-            this.GetFormatter().WriteTo(writer);
+            GetFormatter().WriteTo(writer);
         }
 
         protected internal virtual bool TryParseAttribute(string name, string ns, string value, string version)
@@ -96,17 +65,17 @@ namespace System.ServiceModel.Syndication
             return false;
         }
 
-        protected internal virtual Task WriteAttributeExtensionsAsync(XmlWriter writer, string version)
+        protected internal virtual void WriteAttributeExtensions(XmlWriter writer, string version)
         {
-            return _extensions.WriteAttributeExtensionsAsync(writer);
+            _extensions.WriteAttributeExtensions(writer);
         }
 
-        protected internal virtual Task WriteElementExtensionsAsync(XmlWriter writer, string version)
+        protected internal virtual void WriteElementExtensions(XmlWriter writer, string version)
         {
-            return _extensions.WriteElementExtensionsAsync(writer);
+            _extensions.WriteElementExtensions(writer);
         }
 
-        internal void LoadElementExtensions(XmlReaderWrapper readerOverUnparsedExtensions, int maxExtensionSize)
+        internal void LoadElementExtensions(XmlReader readerOverUnparsedExtensions, int maxExtensionSize)
         {
             _extensions.LoadElementExtensions(readerOverUnparsedExtensions, maxExtensionSize);
         }

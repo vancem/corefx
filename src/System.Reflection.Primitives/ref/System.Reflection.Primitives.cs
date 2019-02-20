@@ -26,14 +26,14 @@ namespace System.Reflection.Emit
         Cond_Branch = 3,
         Meta = 4,
         Next = 5,
-        [Obsolete("This API has been deprecated. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("This API has been deprecated. https://go.microsoft.com/fwlink/?linkid=14202")]
         Phi = 6,
         Return = 7,
         Throw = 8,
     }
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct OpCode
     {
+        private object _dummy;
         public System.Reflection.Emit.FlowControl FlowControl { get { throw null; } }
         public string Name { get { throw null; } }
         public System.Reflection.Emit.OpCodeType OpCodeType { get { throw null; } }
@@ -282,7 +282,7 @@ namespace System.Reflection.Emit
     }
     public enum OpCodeType
     {
-        [Obsolete("This API has been deprecated. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("This API has been deprecated. https://go.microsoft.com/fwlink/?linkid=14202")]
         Annotation = 0,
         Macro = 1,
         Nternal = 2,
@@ -298,7 +298,7 @@ namespace System.Reflection.Emit
         InlineI8 = 3,
         InlineMethod = 4,
         InlineNone = 5,
-        [Obsolete("This API has been deprecated. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("This API has been deprecated. https://go.microsoft.com/fwlink/?linkid=14202")]
         InlinePhi = 6,
         InlineR = 7,
         InlineSig = 9,

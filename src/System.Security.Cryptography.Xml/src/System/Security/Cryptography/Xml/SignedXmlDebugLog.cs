@@ -465,7 +465,8 @@ namespace System.Security.Cryptography.Xml
         ///     algorithm not being on the valid list.
         /// </summary>
         /// <param name="signedXml">SignedXml object doing the signature verification</param>
-        /// <param name="result">result of the signature format verification</param>
+        /// <param name="algorithm">Canonicalization algorithm</param>
+        /// <param name="validAlgorithms">List of valid canonicalization algorithms</param>
         internal static void LogUnsafeCanonicalizationMethod(SignedXml signedXml, string algorithm, IEnumerable<string> validAlgorithms)
         {
             Debug.Assert(signedXml != null, "signedXml != null");
@@ -666,8 +667,6 @@ namespace System.Security.Cryptography.Xml
         /// </summary>
         /// <param name="signedXml">SignedXml object calculating the signature</param>
         /// <param name="key">key the signature is created with</param>
-        /// <param name="hash">hash algorithm used to digest the output</param>
-        /// <param name="asymmetricSignatureFormatter">signature formatter used to do the signing</param>
         internal static void LogSigning(SignedXml signedXml, KeyedHashAlgorithm key)
         {
             Debug.Assert(signedXml != null, "signedXml != null");
@@ -698,6 +697,8 @@ namespace System.Security.Cryptography.Xml
 
             if (VerboseLoggingEnabled)
             {
+                HashAlgorithm hashAlgorithm = CryptoHelpers.CreateFromName<HashAlgorithm>(reference.DigestMethod);
+                string hashAlgorithmName = hashAlgorithm == null ? "null" : hashAlgorithm.GetType().Name;
                 string logMessage = string.Format(CultureInfo.InvariantCulture,
                                                   SR.Log_SigningReference,
                                                   GetObjectId(reference),
@@ -705,7 +706,7 @@ namespace System.Security.Cryptography.Xml
                                                   reference.Id,
                                                   reference.Type,
                                                   reference.DigestMethod,
-                                                  CryptoHelpers.CreateFromName(reference.DigestMethod).GetType().Name);
+                                                  hashAlgorithmName);
 
                 WriteLine(signedXml,
                           TraceEventType.Verbose,
@@ -831,11 +832,13 @@ namespace System.Security.Cryptography.Xml
 
             if (VerboseLoggingEnabled)
             {
+                HashAlgorithm hashAlgorithm = CryptoHelpers.CreateFromName<HashAlgorithm>(reference.DigestMethod);
+                string hashAlgorithmName = hashAlgorithm == null ? "null" : hashAlgorithm.GetType().Name;
                 string logMessage = string.Format(CultureInfo.InvariantCulture,
                                                   SR.Log_ReferenceHash,
                                                   GetObjectId(reference),
                                                   reference.DigestMethod,
-                                                  CryptoHelpers.CreateFromName(reference.DigestMethod).GetType().Name,
+                                                  hashAlgorithmName,
                                                   FormatBytes(actualHash),
                                                   FormatBytes(expectedHash));
 
@@ -1043,11 +1046,13 @@ namespace System.Security.Cryptography.Xml
 
             if (InformationLoggingEnabled)
             {
+                HashAlgorithm hashAlgorithm = CryptoHelpers.CreateFromName<HashAlgorithm>(reference.DigestMethod);
+                string hashAlgorithmName = hashAlgorithm == null ? "null" : hashAlgorithm.GetType().Name;
                 string logMessage = string.Format(CultureInfo.InvariantCulture,
                                                     SR.Log_SignedXmlRecursionLimit,
                                                     GetObjectId(reference),
                                                     reference.DigestMethod,
-                                                    CryptoHelpers.CreateFromName(reference.DigestMethod).GetType().Name);
+                                                    hashAlgorithmName);
 
                 WriteLine(signedXml,
                             TraceEventType.Information,

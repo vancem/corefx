@@ -17,7 +17,6 @@ namespace System.IO.MemoryMappedFiles
         private const int MaxFlushWaits = 15;  // must be <=30
         private const int MaxFlushRetriesPerWait = 20;
 
-        [SecurityCritical]
         public static unsafe MemoryMappedView CreateView(SafeMemoryMappedFileHandle memMappedFileHandle,
                                             MemoryMappedFileAccess access, long offset, long size)
         {
@@ -60,7 +59,7 @@ namespace System.IO.MemoryMappedFiles
             // but more pages may need to be committed in the region.
             // This is because, VirtualQuery function(that internally invokes VirtualQueryEx function) returns the attributes 
             // and size of the region of pages with matching attributes starting from base address.
-            // VirtualQueryEx: http://msdn.microsoft.com/en-us/library/windows/desktop/aa366907(v=vs.85).aspx
+            // VirtualQueryEx: https://msdn.microsoft.com/en-us/library/windows/desktop/aa366907(v=vs.85).aspx
             if (((viewInfo.State & Interop.Kernel32.MemOptions.MEM_RESERVE) != 0) || ((ulong)viewSize < (ulong)nativeSize))
             {
                 IntPtr tempHandle = Interop.VirtualAlloc(
@@ -97,7 +96,6 @@ namespace System.IO.MemoryMappedFiles
         // flush to the disk.
         // NOTE: This will flush all bytes before and after the view up until an offset that is a multiple
         //       of SystemPageSize.
-        [SecurityCritical]
         public void Flush(UIntPtr capacity)
         {
             unsafe
@@ -157,7 +155,6 @@ namespace System.IO.MemoryMappedFiles
         // ---- PAL layer ends here ----
         // -----------------------------
 
-        [SecurityCritical]
         private static int GetSystemPageAllocationGranularity()
         {
             Interop.Kernel32.SYSTEM_INFO info;

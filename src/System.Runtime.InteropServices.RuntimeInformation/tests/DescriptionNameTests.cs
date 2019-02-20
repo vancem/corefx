@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.IO;
 using System.Reflection;
 using Xunit;
 
@@ -21,8 +22,24 @@ namespace System.Runtime.InteropServices.RuntimeInformationTests
             string osa = RuntimeInformation.OSArchitecture.ToString();
             string pra = RuntimeInformation.ProcessArchitecture.ToString();
             string frd = RuntimeInformation.FrameworkDescription.Trim();
+            string lcr = PlatformDetection.LibcRelease;
+            string lcv = PlatformDetection.LibcVersion;
 
-            Console.WriteLine($@"{dvs} OS={osd} OSVer={osv} OSArch={osa} Arch={pra} Framework={frd}");
+            Console.WriteLine($@"### CONFIGURATION: {dvs} OS={osd} OSVer={osv} OSArch={osa} Arch={pra} Framework={frd} LibcRelease={lcr} LibcVersion={lcv}");
+
+            if (!PlatformDetection.IsNetNative)
+            {
+                string binariesLocation = Path.GetDirectoryName(typeof(object).Assembly.Location);
+                Console.WriteLine("location: " + binariesLocation);
+                string binariesLocationFormat = PlatformDetection.IsInAppContainer ? "Unknown" : new DriveInfo(binariesLocation).DriveFormat;
+                Console.WriteLine($"### BINARIES: {binariesLocation} (drive format {binariesLocationFormat})");
+            }
+
+            string tempPathLocation = Path.GetTempPath();
+            string tempPathLocationFormat = PlatformDetection.IsInAppContainer ? "Unknown" : new DriveInfo(tempPathLocation).DriveFormat;
+            Console.WriteLine($"### TEMP PATH: {tempPathLocation} (drive format {tempPathLocationFormat})");
+
+            Console.WriteLine($"### CURRENT DIRECTORY: {Environment.CurrentDirectory}");
         }
 
         [Fact]
@@ -62,6 +79,14 @@ namespace System.Runtime.InteropServices.RuntimeInformationTests
             Assert.Same(RuntimeInformation.OSDescription, RuntimeInformation.OSDescription);
         }
 
+        [Fact]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
+        [PlatformSpecific(TestPlatforms.Windows)]
+        public void VerifyWindowsDescriptionDoesNotContainTrailingWhitespace()
+        {
+            Assert.False(RuntimeInformation.OSDescription.EndsWith(" "));
+        }
+
         [Fact, PlatformSpecific(TestPlatforms.Windows)]  // Checks Windows debug name in RuntimeInformation
         public void VerifyWindowsDebugName()
         {
@@ -78,6 +103,12 @@ namespace System.Runtime.InteropServices.RuntimeInformationTests
         public void VerifyNetBSDDebugName()
         {
             Assert.Contains("netbsd", RuntimeInformation.OSDescription, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact, PlatformSpecific(TestPlatforms.FreeBSD)]  // Checks FreeBSD debug name in RuntimeInformation
+        public void VerifyFreeBSDDebugName()
+        {
+            Assert.Contains("FreeBSD", RuntimeInformation.OSDescription, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact, PlatformSpecific(TestPlatforms.OSX)]  // Checks OSX debug name in RuntimeInformation

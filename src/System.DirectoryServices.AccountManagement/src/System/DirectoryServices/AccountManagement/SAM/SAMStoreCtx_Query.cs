@@ -13,9 +13,6 @@ using System.DirectoryServices;
 
 namespace System.DirectoryServices.AccountManagement
 {
-#pragma warning disable 618    // Have not migrated to v4 transparency yet
-    [System.Security.SecurityCritical(System.Security.SecurityCriticalScope.Everything)]
-#pragma warning restore 618
     internal partial class SAMStoreCtx : StoreCtx
     {
         //
@@ -143,7 +140,7 @@ namespace System.DirectoryServices.AccountManagement
             {
                 Debug.Fail("SAMStoreCtx.GetSchemaFilter: fell off end looking for " + principalType.ToString());
                 throw new InvalidOperationException(
-                                String.Format(CultureInfo.CurrentCulture, SR.StoreCtxUnsupportedPrincipalTypeForQuery, principalType.ToString()));
+                                string.Format(CultureInfo.CurrentCulture, SR.StoreCtxUnsupportedPrincipalTypeForQuery, principalType.ToString()));
             }
 
             return schemaTypes;

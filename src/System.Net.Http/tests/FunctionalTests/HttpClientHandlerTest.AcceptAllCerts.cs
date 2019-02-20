@@ -12,9 +12,8 @@ namespace System.Net.Http.Functional.Tests
 {
     using Configuration = System.Net.Test.Common.Configuration;
 
-    public class HttpClientHandler_DangerousAcceptAllCertificatesValidator_Test : HttpClientTestBase
+    public abstract class HttpClientHandler_DangerousAcceptAllCertificatesValidator_Test : HttpClientHandlerTestBase
     {
-        // TODO: https://github.com/dotnet/corefx/issues/7812
         private static bool ClientSupportsDHECipherSuites => (!PlatformDetection.IsWindows || PlatformDetection.IsWindows10Version1607OrGreater);
 
         [Fact]
@@ -30,6 +29,8 @@ namespace System.Net.Http.Functional.Tests
         [InlineData(SslProtocols.Tls, true)]
         [InlineData(SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls, false)]
         [InlineData(SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls, true)]
+        [InlineData(SslProtocols.Tls13 | SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls, false)]
+        [InlineData(SslProtocols.Tls13 | SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls, true)]
         [InlineData(SslProtocols.None, false)]
         [InlineData(SslProtocols.None, true)]
         public async Task SetDelegate_ConnectionSucceeds(SslProtocols acceptedProtocol, bool requestOnlyThisProtocol)
@@ -52,7 +53,7 @@ namespace System.Net.Http.Functional.Tests
                 await LoopbackServer.CreateServerAsync(async (server, url) =>
                 {
                     await TestHelper.WhenAllCompletedOrAnyFailed(
-                        LoopbackServer.ReadRequestAndSendResponseAsync(server, options: options),
+                        server.AcceptConnectionSendResponseAndCloseAsync(),
                         client.GetAsync(url));
                 }, options);
             }

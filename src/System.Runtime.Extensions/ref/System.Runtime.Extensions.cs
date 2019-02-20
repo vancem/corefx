@@ -8,7 +8,7 @@
 
 namespace System
 {
-    public partial class AppDomain : System.MarshalByRefObject
+    public sealed partial class AppDomain : System.MarshalByRefObject
     {
         private AppDomain() { }
         public static AppDomain CurrentDomain { get { throw null; } }
@@ -42,7 +42,7 @@ namespace System
         public int ExecuteAssemblyByName(string assemblyName) { throw null; }
         public int ExecuteAssemblyByName(string assemblyName, params string[] args) { throw null; }
         public System.Reflection.Assembly[] GetAssemblies() { throw null; }
-        [Obsolete("AppDomain.GetCurrentThreadId has been deprecated because it does not provide a stable Id when managed threads are running on fibers (aka lightweight threads). To get a stable identifier for a managed thread, use the ManagedThreadId property on Thread.  http://go.microsoft.com/fwlink/?linkid=14202", false)]
+        [Obsolete("AppDomain.GetCurrentThreadId has been deprecated because it does not provide a stable Id when managed threads are running on fibers (aka lightweight threads). To get a stable identifier for a managed thread, use the ManagedThreadId property on Thread.  https://go.microsoft.com/fwlink/?linkid=14202", false)]
         public static int GetCurrentThreadId() { throw null; }
         public object GetData(string name) { throw null; }
         public System.Nullable<bool> IsCompatibilitySwitchSet(string value) { throw null; }
@@ -54,25 +54,46 @@ namespace System
         public System.Reflection.Assembly Load(string assemblyString) { throw null; }
         public System.Reflection.Assembly[] ReflectionOnlyGetAssemblies() { throw null; }
         public void SetData(string name, object data) { }
-        [ObsoleteAttribute("AppDomain.SetDynamicBase has been deprecated. Please investigate the use of AppDomainSetup.DynamicBase instead. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("AppDomain.SetDynamicBase has been deprecated. Please investigate the use of AppDomainSetup.DynamicBase instead. https://go.microsoft.com/fwlink/?linkid=14202")]
         public void SetDynamicBase(string path) { }
         public void SetPrincipalPolicy(System.Security.Principal.PrincipalPolicy policy) { }
         public void SetThreadPrincipal(System.Security.Principal.IPrincipal principal) { }
+        public AppDomainSetup SetupInformation { get { throw null; } }
+        public System.Security.PermissionSet PermissionSet { get { throw null; } }
         public override string ToString() { throw null; }
         public static void Unload(System.AppDomain domain) { }
         public bool ShadowCopyFiles { get { throw null; } }
-        [Obsolete("AppDomain.AppendPrivatePath has been deprecated. Please investigate the use of AppDomainSetup.PrivateBinPath instead. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("AppDomain.AppendPrivatePath has been deprecated. Please investigate the use of AppDomainSetup.PrivateBinPath instead. https://go.microsoft.com/fwlink/?linkid=14202")]
         public void AppendPrivatePath(string path) { }
-        [Obsolete("AppDomain.ClearPrivatePath has been deprecated. Please investigate the use of AppDomainSetup.PrivateBinPath instead. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("AppDomain.ClearPrivatePath has been deprecated. Please investigate the use of AppDomainSetup.PrivateBinPath instead. https://go.microsoft.com/fwlink/?linkid=14202")]
         public void ClearPrivatePath() { }
-        [Obsolete("AppDomain.ClearShadowCopyPath has been deprecated. Please investigate the use of AppDomainSetup.ShadowCopyDirectories instead. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("AppDomain.ClearShadowCopyPath has been deprecated. Please investigate the use of AppDomainSetup.ShadowCopyDirectories instead. https://go.microsoft.com/fwlink/?linkid=14202")]
         public void ClearShadowCopyPath() { }
-        [Obsolete("AppDomain.SetCachePath has been deprecated. Please investigate the use of AppDomainSetup.CachePath instead. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("AppDomain.SetCachePath has been deprecated. Please investigate the use of AppDomainSetup.CachePath instead. https://go.microsoft.com/fwlink/?linkid=14202")]
         public void SetCachePath(string path) { }
-        [Obsolete("AppDomain.SetShadowCopyFiles has been deprecated. Please investigate the use of AppDomainSetup.ShadowCopyFiles instead. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("AppDomain.SetShadowCopyFiles has been deprecated. Please investigate the use of AppDomainSetup.ShadowCopyFiles instead. https://go.microsoft.com/fwlink/?linkid=14202")]
         public void SetShadowCopyFiles() { }
-        [Obsolete("AppDomain.SetShadowCopyPath has been deprecated. Please investigate the use of AppDomainSetup.ShadowCopyDirectories instead. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("AppDomain.SetShadowCopyPath has been deprecated. Please investigate the use of AppDomainSetup.ShadowCopyDirectories instead. https://go.microsoft.com/fwlink/?linkid=14202")]
         public void SetShadowCopyPath(string path) { }
+        public System.Runtime.Remoting.ObjectHandle CreateInstance(string assemblyName, string typeName) { throw null; }
+        public System.Runtime.Remoting.ObjectHandle CreateInstance(string assemblyName, string typeName, bool ignoreCase, System.Reflection.BindingFlags bindingAttr, System.Reflection.Binder binder, object[] args, System.Globalization.CultureInfo culture, object[] activationAttributes) { throw null; }
+        public System.Runtime.Remoting.ObjectHandle CreateInstance(string assemblyName, string typeName, object[] activationAttributes) { throw null; }
+        public object CreateInstanceAndUnwrap(string assemblyName, string typeName) { throw null; }
+        public object CreateInstanceAndUnwrap(string assemblyName, string typeName, bool ignoreCase, System.Reflection.BindingFlags bindingAttr, System.Reflection.Binder binder, object[] args, System.Globalization.CultureInfo culture, object[] activationAttributes) { throw null; }
+        public object CreateInstanceAndUnwrap(string assemblyName, string typeName, object[] activationAttributes) { throw null; }
+        public System.Runtime.Remoting.ObjectHandle CreateInstanceFrom(string assemblyFile, string typeName) { throw null; }
+        public System.Runtime.Remoting.ObjectHandle CreateInstanceFrom(string assemblyFile, string typeName, bool ignoreCase, System.Reflection.BindingFlags bindingAttr, System.Reflection.Binder binder, object[] args, System.Globalization.CultureInfo culture, object[] activationAttributes) { throw null; }
+        public System.Runtime.Remoting.ObjectHandle CreateInstanceFrom(string assemblyFile, string typeName, object[] activationAttributes) { throw null; }
+        public object CreateInstanceFromAndUnwrap(string assemblyFile, string typeName) { throw null; }
+        public object CreateInstanceFromAndUnwrap(string assemblyFile, string typeName, bool ignoreCase, System.Reflection.BindingFlags bindingAttr, System.Reflection.Binder binder, object[] args, System.Globalization.CultureInfo culture, object[] activationAttributes) { throw null; }
+        public object CreateInstanceFromAndUnwrap(string assemblyFile, string typeName, object[] activationAttributes) { throw null; }
+    }
+
+    public sealed partial class AppDomainSetup
+    {
+        private AppDomainSetup() { }
+        public string ApplicationBase { get { throw null; } }
+        public string TargetFrameworkName { get { throw null; } }
     }
 
     public delegate System.Reflection.Assembly ResolveEventHandler(Object sender, ResolveEventArgs args);
@@ -191,6 +212,7 @@ namespace System
         public static int ToBase64CharArray(byte[] inArray, int offsetIn, int length, char[] outArray, int offsetOut, Base64FormattingOptions options) { throw null; }
         public static string ToBase64String(byte[] inArray, Base64FormattingOptions options) { throw null; }
         public static string ToBase64String(byte[] inArray, int offset, int length, Base64FormattingOptions options) { throw null; }
+        public static string ToBase64String(System.ReadOnlySpan<byte> bytes, Base64FormattingOptions options = Base64FormattingOptions.None) { throw null; }
         public static bool ToBoolean(char value) { throw null; }
         public static bool ToBoolean(DateTime value) { throw null; }
         public static byte ToByte(DateTime value) { throw null; }
@@ -620,6 +642,9 @@ namespace System
         public static ulong ToUInt64(uint value) { throw null; }
         [System.CLSCompliantAttribute(false)]
         public static ulong ToUInt64(ulong value) { throw null; }
+        public static bool TryToBase64Chars(System.ReadOnlySpan<byte> bytes, System.Span<char> chars, out int charsWritten, Base64FormattingOptions options = Base64FormattingOptions.None) { throw null; }
+        public static bool TryFromBase64String(string s, System.Span<byte> bytes, out int bytesWritten) { throw null; }
+        public static bool TryFromBase64Chars(System.ReadOnlySpan<char> chars, System.Span<byte> bytes, out int bytesWritten) { throw null; }
     }
     public static partial class Environment
     {
@@ -645,9 +670,7 @@ namespace System
         public static long WorkingSet { get { throw null; } }
         public static string ExpandEnvironmentVariables(string name) { throw null; }
         public static void Exit(int exitCode) { }
-        [System.Security.SecurityCriticalAttribute]
         public static void FailFast(string message) { }
-        [System.Security.SecurityCriticalAttribute]
         public static void FailFast(string message, System.Exception exception) { }
         public static string[] GetCommandLineArgs() { throw null; }
         public static string GetEnvironmentVariable(string variable) { throw null; }
@@ -724,9 +747,9 @@ namespace System
     }
     public enum LoaderOptimization
     {
-        [System.ObsoleteAttribute("This method has been deprecated. Please use Assembly.Load() instead. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [System.ObsoleteAttribute("This method has been deprecated. Please use Assembly.Load() instead. https://go.microsoft.com/fwlink/?linkid=14202")]
         DisallowBindings = 4,
-        [System.ObsoleteAttribute("This method has been deprecated. Please use Assembly.Load() instead. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [System.ObsoleteAttribute("This method has been deprecated. Please use Assembly.Load() instead. https://go.microsoft.com/fwlink/?linkid=14202")]
         DomainMask = 3,
         MultiDomain = 2,
         MultiDomainHost = 3,
@@ -751,10 +774,16 @@ namespace System
         public static sbyte Abs(sbyte value) { throw null; }
         public static float Abs(float value) { throw null; }
         public static double Acos(double d) { throw null; }
+        public static double Acosh(double d) { throw null; }
         public static double Asin(double d) { throw null; }
+        public static double Asinh(double d) { throw null; }
         public static double Atan(double d) { throw null; }
         public static double Atan2(double y, double x) { throw null; }
+        public static double Atanh(double d) { throw null; }
         public static long BigMul(int a, int b) { throw null; }
+        public static double BitDecrement(double x) { throw null; }
+        public static double BitIncrement(double x) { throw null; }
+        public static double Cbrt(double d) { throw null; }
         public static decimal Ceiling(decimal d) { throw null; }
         public static double Ceiling(double a) { throw null; }
         public static byte Clamp(byte value, byte min, byte max) { throw null; }
@@ -772,6 +801,7 @@ namespace System
         public static uint Clamp(uint value, uint min, uint max) { throw null; }
         [System.CLSCompliantAttribute(false)]
         public static ulong Clamp(ulong value, ulong min, ulong max) { throw null; }
+        public static double CopySign(double x, double y) { throw null; }
         public static double Cos(double d) { throw null; }
         public static double Cosh(double value) { throw null; }
         public static int DivRem(int a, int b, out int result) { throw null; }
@@ -779,9 +809,12 @@ namespace System
         public static double Exp(double d) { throw null; }
         public static decimal Floor(decimal d) { throw null; }
         public static double Floor(double d) { throw null; }
+        public static double FusedMultiplyAdd(double x, double y, double z) { throw null; }
         public static double IEEERemainder(double x, double y) { throw null; }
+        public static int ILogB(double x) { throw null; }
         public static double Log(double d) { throw null; }
         public static double Log(double a, double newBase) { throw null; }
+        public static double Log2(double x) { throw null; }
         public static double Log10(double d) { throw null; }
         public static byte Max(byte val1, byte val2) { throw null; }
         public static decimal Max(decimal val1, decimal val2) { throw null; }
@@ -798,6 +831,7 @@ namespace System
         public static uint Max(uint val1, uint val2) { throw null; }
         [System.CLSCompliantAttribute(false)]
         public static ulong Max(ulong val1, ulong val2) { throw null; }
+        public static double MaxMagnitude(double x, double y) { throw null; }
         public static byte Min(byte val1, byte val2) { throw null; }
         public static decimal Min(decimal val1, decimal val2) { throw null; }
         public static double Min(double val1, double val2) { throw null; }
@@ -813,6 +847,7 @@ namespace System
         public static uint Min(uint val1, uint val2) { throw null; }
         [System.CLSCompliantAttribute(false)]
         public static ulong Min(ulong val1, ulong val2) { throw null; }
+        public static double MinMagnitude(double x, double y) { throw null; }
         public static double Pow(double x, double y) { throw null; }
         public static decimal Round(decimal d) { throw null; }
         public static decimal Round(decimal d, int decimals) { throw null; }
@@ -822,6 +857,7 @@ namespace System
         public static double Round(double value, int digits) { throw null; }
         public static double Round(double value, int digits, System.MidpointRounding mode) { throw null; }
         public static double Round(double value, System.MidpointRounding mode) { throw null; }
+        public static double ScaleB(double x, int n) { throw null; }
         public static int Sign(decimal value) { throw null; }
         public static int Sign(double value) { throw null; }
         public static int Sign(short value) { throw null; }
@@ -842,25 +878,38 @@ namespace System
     {
         public static float Abs(float x) { throw null; }
         public static float Acos(float x) { throw null; }
+        public static float Acosh(float x) { throw null; }
         public static float Asin(float x) { throw null; }
+        public static float Asinh(float x) { throw null; }
         public static float Atan(float x) { throw null; }
+        public static float Atanh(float x) { throw null; }
         public static float Atan2(float y, float x) { throw null; }
+        public static float BitDecrement(float x) { throw null; }
+        public static float BitIncrement(float x) { throw null; }
+        public static float Cbrt(float x) { throw null; }
         public static float Ceiling(float x) { throw null; }
+        public static float CopySign(float x, float y) { throw null; }
         public static float Cos(float x) { throw null; }
         public static float Cosh(float x) { throw null; }
         public static float Exp(float x) { throw null; }
         public static float Floor(float x) { throw null; }
+        public static float FusedMultiplyAdd(float x, float y, float z) { throw null; }
         public static float IEEERemainder(float x, float y) { throw null; }
+        public static int ILogB(float x) { throw null; }
         public static float Log(float x) { throw null; }
         public static float Log(float x, float y) { throw null; }
+        public static float Log2(float x) { throw null; }
         public static float Log10(float x) { throw null; }        
         public static float Max(float x, float y) { throw null; }
+        public static float MaxMagnitude(float x, float y) { throw null; }
         public static float Min(float x, float y) { throw null; }
+        public static float MinMagnitude(float x, float y) { throw null; }
         public static float Pow(float x, float y) { throw null; }
         public static float Round(float x) { throw null; }
         public static float Round(float x, int digits) { throw null; }
         public static float Round(float x, int digits, System.MidpointRounding mode) { throw null; }
         public static float Round(float x, System.MidpointRounding mode) { throw null; }
+        public static float ScaleB(float x, int n) { throw null; }
         public static int Sign(float x) { throw null; }
         public static float Sin(float x) { throw null; }
         public static float Sinh(float x) { throw null; }
@@ -923,6 +972,7 @@ namespace System
         public static System.StringComparer FromComparison(System.StringComparison comparisonType) { throw null; }
         public abstract int Compare(string x, string y);
         public static System.StringComparer Create(System.Globalization.CultureInfo culture, bool ignoreCase) { throw null; }
+        public static System.StringComparer Create(System.Globalization.CultureInfo culture, System.Globalization.CompareOptions options) { throw null; }
         public new bool Equals(object x, object y) { throw null; }
         public abstract bool Equals(string x, string y);
         public int GetHashCode(object obj) { throw null; }
@@ -964,6 +1014,7 @@ namespace System
         public ContextMarshalException(string message) { }
         public ContextMarshalException(string message, System.Exception inner) { }
     }
+    [System.AttributeUsage(AttributeTargets.Field, Inherited = false)]
     public partial class ContextStaticAttribute : System.Attribute
     {
         public ContextStaticAttribute() { }
@@ -971,10 +1022,8 @@ namespace System
     public static class StringNormalizationExtensions
     {
         public static bool IsNormalized(this string value) { throw null; }
-        [System.Security.SecurityCritical]
         public static bool IsNormalized(this string value, System.Text.NormalizationForm normalizationForm) { throw null; }
         public static String Normalize(this string value) { throw null; }
-        [System.Security.SecurityCritical]
         public static String Normalize(this string value, System.Text.NormalizationForm normalizationForm) { throw null; }
     }
 }
@@ -1193,20 +1242,35 @@ namespace System.IO
         public static string Combine(string path1, string path2, string path3, string path4) { throw null; }
         public static string Combine(params string[] paths) { throw null; }
         public static string GetDirectoryName(string path) { throw null; }
+        public static ReadOnlySpan<char> GetDirectoryName(ReadOnlySpan<char> path) { throw null; }
         public static string GetExtension(string path) { throw null; }
+        public static ReadOnlySpan<char> GetExtension(ReadOnlySpan<char> path) { throw null; }
         public static string GetFileName(string path) { throw null; }
+        public static ReadOnlySpan<char> GetFileName(ReadOnlySpan<char> path) { throw null; }
         public static string GetFileNameWithoutExtension(string path) { throw null; }
+        public static ReadOnlySpan<char> GetFileNameWithoutExtension(ReadOnlySpan<char> path) { throw null; }
         public static string GetFullPath(string path) { throw null; }
+        public static string GetFullPath(string path, string basePath) { throw null; }
         public static char[] GetInvalidFileNameChars() { throw null; }
         public static char[] GetInvalidPathChars() { throw null; }
         public static string GetPathRoot(string path) { throw null; }
+        public static ReadOnlySpan<char> GetPathRoot(ReadOnlySpan<char> path) { throw null; }
         public static string GetRandomFileName() { throw null; }
         public static string GetTempFileName() { throw null; }
         public static string GetTempPath() { throw null; }
         public static bool HasExtension(string path) { throw null; }
+        public static bool HasExtension(ReadOnlySpan<char> path) { throw null; }
         public static bool IsPathRooted(string path) { throw null; }
+        public static bool IsPathRooted(ReadOnlySpan<char> path) { throw null; }
         public static bool IsPathFullyQualified(string path) { throw null; }
+        public static bool IsPathFullyQualified(ReadOnlySpan<char> path) { throw null; }
         public static string GetRelativePath(string relativeTo, string path) { throw null; }
+        public static string Join(ReadOnlySpan<char> path1, ReadOnlySpan<char> path2) { throw null; }
+        public static string Join(ReadOnlySpan<char> path1, ReadOnlySpan<char> path2, ReadOnlySpan<char> path3) { throw null; }
+        public static bool TryJoin(ReadOnlySpan<char> path1, ReadOnlySpan<char> path2, Span<char> destination, out int charsWritten) { throw null; }
+        public static bool TryJoin(ReadOnlySpan<char> path1, ReadOnlySpan<char> path2, ReadOnlySpan<char> path3, Span<char> destination, out int charsWritten) { throw null; }
+        public static string Join(string path1, string path2) { throw null; }
+        public static string Join(string path1, string path2, string path3) { throw null; }
     }
 
     public partial class BinaryReader : System.IDisposable
@@ -1223,8 +1287,8 @@ namespace System.IO
         public virtual int Read() { throw null; }
         public virtual int Read(byte[] buffer, int index, int count) { throw null; }
         public virtual int Read(char[] buffer, int index, int count) { throw null; }
-        public virtual int Read(System.Span<byte> destination) { throw null; }
-        public virtual int Read(System.Span<char> destination) { throw null; }
+        public virtual int Read(System.Span<byte> buffer) { throw null; }
+        public virtual int Read(System.Span<char> buffer) { throw null; }
         protected internal int Read7BitEncodedInt() { throw null; }
         public virtual bool ReadBoolean() { throw null; }
         public virtual byte ReadByte() { throw null; }
@@ -1247,7 +1311,7 @@ namespace System.IO
         [System.CLSCompliantAttribute(false)]
         public virtual ulong ReadUInt64() { throw null; }
     }
-    public partial class BinaryWriter : System.IDisposable
+    public partial class BinaryWriter : System.IDisposable, System.IAsyncDisposable
     {
         public static readonly System.IO.BinaryWriter Null;
         protected System.IO.Stream OutStream;
@@ -1258,6 +1322,7 @@ namespace System.IO
         public virtual System.IO.Stream BaseStream { get { throw null; } }
         public virtual void Close() { }
         public void Dispose() { }
+        public virtual System.Threading.Tasks.ValueTask DisposeAsync() { throw null; }
         protected virtual void Dispose(bool disposing) { }
         public virtual void Flush() { }
         public virtual long Seek(int offset, System.IO.SeekOrigin origin) { throw null; }
@@ -1283,8 +1348,8 @@ namespace System.IO
         public virtual void Write(uint value) { }
         [System.CLSCompliantAttribute(false)]
         public virtual void Write(ulong value) { }
-        public virtual void Write(System.ReadOnlySpan<byte> span) { }
-        public virtual void Write(System.ReadOnlySpan<char> span) { }
+        public virtual void Write(System.ReadOnlySpan<byte> buffer) { }
+        public virtual void Write(System.ReadOnlySpan<char> chars) { }
         protected void Write7BitEncodedInt(int value) { }
     }
     public sealed partial class BufferedStream : System.IO.Stream
@@ -1299,6 +1364,7 @@ namespace System.IO
         public override System.IAsyncResult BeginRead(byte[] buffer, int offset, int count, System.AsyncCallback callback, object state) { throw null; }
         public override System.IAsyncResult BeginWrite(byte[] buffer, int offset, int count, System.AsyncCallback callback, object state) { throw null; }
         protected override void Dispose(bool disposing) { }
+        public override System.Threading.Tasks.ValueTask DisposeAsync() { throw null; }
         public override int EndRead(System.IAsyncResult asyncResult) { throw null; }
         public override void EndWrite(System.IAsyncResult asyncResult) { throw null; }
         public override void Flush() { }
@@ -1364,7 +1430,7 @@ namespace System.IO
         public override void Write(byte[] buffer, int offset, int count) { }
         public override void Write(System.ReadOnlySpan<byte> source) { }
         public override System.Threading.Tasks.Task WriteAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken) { throw null; }
-        public override System.Threading.Tasks.Task WriteAsync(System.ReadOnlyMemory<byte> source, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
+        public override System.Threading.Tasks.ValueTask WriteAsync(System.ReadOnlyMemory<byte> source, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
         public override void WriteByte(byte value) { }
         public virtual void WriteTo(System.IO.Stream stream) { }
     }
@@ -1391,9 +1457,13 @@ namespace System.IO
         public override int Peek() { throw null; }
         public override int Read() { throw null; }
         public override int Read(char[] buffer, int index, int count) { throw null; }
+        public override int Read(System.Span<char> buffer) { throw null; }
+        public override int ReadBlock(System.Span<char> buffer) { throw null; }
         public override System.Threading.Tasks.Task<int> ReadAsync(char[] buffer, int index, int count) { throw null; }
+        public override System.Threading.Tasks.ValueTask<int> ReadAsync(System.Memory<char> buffer, System.Threading.CancellationToken cancellationToken = default) { throw null; }
         public override int ReadBlock(char[] buffer, int index, int count) { throw null; }
         public override System.Threading.Tasks.Task<int> ReadBlockAsync(char[] buffer, int index, int count) { throw null; }
+        public override System.Threading.Tasks.ValueTask<int> ReadBlockAsync(System.Memory<char> buffer, System.Threading.CancellationToken cancellationToken = default) { throw null; }
         public override string ReadLine() { throw null; }
         public override System.Threading.Tasks.Task<string> ReadLineAsync() { throw null; }
         public override string ReadToEnd() { throw null; }
@@ -1415,18 +1485,24 @@ namespace System.IO
         public override System.Text.Encoding Encoding { get { throw null; } }
         public override void Close() { }
         protected override void Dispose(bool disposing) { }
+        public override System.Threading.Tasks.ValueTask DisposeAsync() { throw null; }
         public override void Flush() { }
         public override System.Threading.Tasks.Task FlushAsync() { throw null; }
         public override void Write(char value) { }
         public override void Write(char[] buffer) { }
         public override void Write(char[] buffer, int index, int count) { }
+        public override void Write(System.ReadOnlySpan<char> buffer) { }
         public override void Write(string value) { }
+        public override void WriteLine(string value) { }
+        public override void WriteLine(System.ReadOnlySpan<char> buffer) { }
         public override System.Threading.Tasks.Task WriteAsync(char value) { throw null; }
         public override System.Threading.Tasks.Task WriteAsync(char[] buffer, int index, int count) { throw null; }
+        public override System.Threading.Tasks.Task WriteAsync(System.ReadOnlyMemory<char> buffer, System.Threading.CancellationToken cancellationToken = default) { throw null; }
         public override System.Threading.Tasks.Task WriteAsync(string value) { throw null; }
         public override System.Threading.Tasks.Task WriteLineAsync() { throw null; }
         public override System.Threading.Tasks.Task WriteLineAsync(char value) { throw null; }
         public override System.Threading.Tasks.Task WriteLineAsync(char[] buffer, int index, int count) { throw null; }
+        public override System.Threading.Tasks.Task WriteLineAsync(System.ReadOnlyMemory<char> buffer, System.Threading.CancellationToken cancellationToken = default) { throw null; }
         public override System.Threading.Tasks.Task WriteLineAsync(string value) { throw null; }
     }
     public partial class StringReader : System.IO.TextReader
@@ -1437,12 +1513,12 @@ namespace System.IO
         public override int Peek() { throw null; }
         public override int Read() { throw null; }
         public override int Read(char[] buffer, int index, int count) { throw null; }
-        public override int Read(System.Span<char> destination) { throw null; }
-        public override int ReadBlock(System.Span<char> destination) { throw null; }
+        public override int Read(System.Span<char> buffer) { throw null; }
+        public override int ReadBlock(System.Span<char> buffer) { throw null; }
         public override System.Threading.Tasks.Task<int> ReadAsync(char[] buffer, int index, int count) { throw null; }
-        public override System.Threading.Tasks.ValueTask<int> ReadAsync(System.Memory<char> destination, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
+        public override System.Threading.Tasks.ValueTask<int> ReadAsync(System.Memory<char> buffer, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
         public override System.Threading.Tasks.Task<int> ReadBlockAsync(char[] buffer, int index, int count) { throw null; }
-        public override System.Threading.Tasks.ValueTask<int> ReadBlockAsync(System.Memory<char> destination, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
+        public override System.Threading.Tasks.ValueTask<int> ReadBlockAsync(System.Memory<char> buffer, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
         public override string ReadLine() { throw null; }
         public override System.Threading.Tasks.Task<string> ReadLineAsync() { throw null; }
         public override string ReadToEnd() { throw null; }
@@ -1462,16 +1538,16 @@ namespace System.IO
         public override string ToString() { throw null; }
         public override void Write(char value) { }
         public override void Write(char[] buffer, int index, int count) { }
-        public override void Write(System.ReadOnlySpan<char> source) { throw null; }
+        public override void Write(System.ReadOnlySpan<char> buffer) { throw null; }
         public override void Write(string value) { }
-        public override void WriteLine(System.ReadOnlySpan<char> source) { throw null; }
+        public override void WriteLine(System.ReadOnlySpan<char> buffer) { throw null; }
         public override System.Threading.Tasks.Task WriteAsync(char value) { throw null; }
         public override System.Threading.Tasks.Task WriteAsync(char[] buffer, int index, int count) { throw null; }
-        public override System.Threading.Tasks.Task WriteAsync(System.ReadOnlyMemory<char> source, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
+        public override System.Threading.Tasks.Task WriteAsync(System.ReadOnlyMemory<char> buffer, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
         public override System.Threading.Tasks.Task WriteAsync(string value) { throw null; }
         public override System.Threading.Tasks.Task WriteLineAsync(char value) { throw null; }
         public override System.Threading.Tasks.Task WriteLineAsync(char[] buffer, int index, int count) { throw null; }
-        public override System.Threading.Tasks.Task WriteLineAsync(System.ReadOnlyMemory<char> source, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
+        public override System.Threading.Tasks.Task WriteLineAsync(System.ReadOnlyMemory<char> buffer, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
         public override System.Threading.Tasks.Task WriteLineAsync(string value) { throw null; }
     }
     public abstract partial class TextReader : System.MarshalByRefObject, System.IDisposable
@@ -1484,20 +1560,20 @@ namespace System.IO
         public virtual int Peek() { throw null; }
         public virtual int Read() { throw null; }
         public virtual int Read(char[] buffer, int index, int count) { throw null; }
-        public virtual int Read(System.Span<char> destination) { throw null; }
+        public virtual int Read(System.Span<char> buffer) { throw null; }
         public virtual System.Threading.Tasks.Task<int> ReadAsync(char[] buffer, int index, int count) { throw null; }
-        public virtual System.Threading.Tasks.ValueTask<int> ReadAsync(System.Memory<char> destination, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
+        public virtual System.Threading.Tasks.ValueTask<int> ReadAsync(System.Memory<char> buffer, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
         public virtual int ReadBlock(char[] buffer, int index, int count) { throw null; }
-        public virtual int ReadBlock(System.Span<char> destination) { throw null; }
+        public virtual int ReadBlock(System.Span<char> buffer) { throw null; }
         public virtual System.Threading.Tasks.Task<int> ReadBlockAsync(char[] buffer, int index, int count) { throw null; }
-        public virtual System.Threading.Tasks.ValueTask<int> ReadBlockAsync(System.Memory<char> destination, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
+        public virtual System.Threading.Tasks.ValueTask<int> ReadBlockAsync(System.Memory<char> buffer, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
         public virtual string ReadLine() { throw null; }
         public virtual System.Threading.Tasks.Task<string> ReadLineAsync() { throw null; }
         public virtual string ReadToEnd() { throw null; }
         public virtual System.Threading.Tasks.Task<string> ReadToEndAsync() { throw null; }
         public static System.IO.TextReader Synchronized(System.IO.TextReader reader) { throw null; }
     }
-    public abstract partial class TextWriter : System.MarshalByRefObject, System.IDisposable
+    public abstract partial class TextWriter : System.MarshalByRefObject, System.IDisposable, System.IAsyncDisposable
     {
         protected char[] CoreNewLine;
         public static readonly System.IO.TextWriter Null;
@@ -1509,6 +1585,7 @@ namespace System.IO
         public virtual void Close() { }
         public void Dispose() { }
         protected virtual void Dispose(bool disposing) { }
+        public virtual System.Threading.Tasks.ValueTask DisposeAsync() { throw null; }
         public virtual void Flush() { }
         public virtual System.Threading.Tasks.Task FlushAsync() { throw null; }
         public static System.IO.TextWriter Synchronized(System.IO.TextWriter writer) { throw null; }
@@ -1527,16 +1604,18 @@ namespace System.IO
         public virtual void Write(string format, object arg0, object arg1) { }
         public virtual void Write(string format, object arg0, object arg1, object arg2) { }
         public virtual void Write(string format, params object[] arg) { }
+        public virtual void Write(System.Text.StringBuilder value) { }
         [System.CLSCompliantAttribute(false)]
         public virtual void Write(uint value) { }
         [System.CLSCompliantAttribute(false)]
         public virtual void Write(ulong value) { }
-        public virtual void Write(System.ReadOnlySpan<char> source) { }
+        public virtual void Write(System.ReadOnlySpan<char> buffer) { }
         public virtual System.Threading.Tasks.Task WriteAsync(char value) { throw null; }
         public System.Threading.Tasks.Task WriteAsync(char[] buffer) { throw null; }
         public virtual System.Threading.Tasks.Task WriteAsync(char[] buffer, int index, int count) { throw null; }
-        public virtual System.Threading.Tasks.Task WriteAsync(System.ReadOnlyMemory<char> source, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
+        public virtual System.Threading.Tasks.Task WriteAsync(System.ReadOnlyMemory<char> buffer, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
         public virtual System.Threading.Tasks.Task WriteAsync(string value) { throw null; }
+        public virtual System.Threading.Tasks.Task WriteAsync(System.Text.StringBuilder value, System.Threading.CancellationToken cancellationToken = default) { throw null;  }
         public virtual void WriteLine() { }
         public virtual void WriteLine(bool value) { }
         public virtual void WriteLine(char value) { }
@@ -1553,17 +1632,19 @@ namespace System.IO
         public virtual void WriteLine(string format, object arg0, object arg1) { }
         public virtual void WriteLine(string format, object arg0, object arg1, object arg2) { }
         public virtual void WriteLine(string format, params object[] arg) { }
+        public virtual void WriteLine(System.Text.StringBuilder value) { }
         [System.CLSCompliantAttribute(false)]
         public virtual void WriteLine(uint value) { }
         [System.CLSCompliantAttribute(false)]
         public virtual void WriteLine(ulong value) { }
-        public virtual void WriteLine(System.ReadOnlySpan<char> source) { }
+        public virtual void WriteLine(System.ReadOnlySpan<char> buffer) { }
         public virtual System.Threading.Tasks.Task WriteLineAsync() { throw null; }
         public virtual System.Threading.Tasks.Task WriteLineAsync(char value) { throw null; }
         public System.Threading.Tasks.Task WriteLineAsync(char[] buffer) { throw null; }
         public virtual System.Threading.Tasks.Task WriteLineAsync(char[] buffer, int index, int count) { throw null; }
-        public virtual System.Threading.Tasks.Task WriteLineAsync(System.ReadOnlyMemory<char> source, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
+        public virtual System.Threading.Tasks.Task WriteLineAsync(System.ReadOnlyMemory<char> buffer, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
         public virtual System.Threading.Tasks.Task WriteLineAsync(string value) { throw null; }
+        public virtual System.Threading.Tasks.Task WriteLineAsync(System.Text.StringBuilder value, System.Threading.CancellationToken cancellationToken = default) { throw null; }
     }
 }
 namespace System.Net
@@ -1594,6 +1675,54 @@ namespace System.Security
     {
         void FromXml(System.Security.SecurityElement e);
         System.Security.SecurityElement ToXml();
+    }
+    public partial interface IStackWalk
+    {
+        void Assert();
+        void Demand();
+        void Deny();
+        void PermitOnly();
+    }
+    public partial class PermissionSet : System.Collections.ICollection, System.Collections.IEnumerable, System.Runtime.Serialization.IDeserializationCallback, System.Security.ISecurityEncodable, System.Security.IStackWalk
+    {
+        public PermissionSet(System.Security.Permissions.PermissionState state) { }
+        public PermissionSet(System.Security.PermissionSet permSet) { }
+        public virtual int Count { get { throw null; } }
+        public virtual bool IsReadOnly { get { throw null; } }
+        public virtual bool IsSynchronized { get { throw null; } }
+        public virtual object SyncRoot { get { throw null; } }
+        public System.Security.IPermission AddPermission(System.Security.IPermission perm) { throw null; }
+        protected virtual System.Security.IPermission AddPermissionImpl(System.Security.IPermission perm) { throw null; }
+        public void Assert() { }
+        public bool ContainsNonCodeAccessPermissions() { throw null; }
+        [System.ObsoleteAttribute]
+        public static byte[] ConvertPermissionSet(string inFormat, byte[] inData, string outFormat) { throw null; }
+        public virtual System.Security.PermissionSet Copy() { throw null; }
+        public virtual void CopyTo(System.Array array, int index) { }
+        public void Demand() { }
+        [System.ObsoleteAttribute]
+        public void Deny() { }
+        public override bool Equals(object o) { throw null; }
+        public virtual void FromXml(System.Security.SecurityElement et) { }
+        public System.Collections.IEnumerator GetEnumerator() { throw null; }
+        protected virtual System.Collections.IEnumerator GetEnumeratorImpl() { throw null; }
+        public override int GetHashCode() { throw null; }
+        public System.Security.IPermission GetPermission(System.Type permClass) { throw null; }
+        protected virtual System.Security.IPermission GetPermissionImpl(System.Type permClass) { throw null; }
+        public System.Security.PermissionSet Intersect(System.Security.PermissionSet other) { throw null; }
+        public bool IsEmpty() { throw null; }
+        public bool IsSubsetOf(System.Security.PermissionSet target) { throw null; }
+        public bool IsUnrestricted() { throw null; }
+        public void PermitOnly() { }
+        public System.Security.IPermission RemovePermission(System.Type permClass) { throw null; }
+        protected virtual System.Security.IPermission RemovePermissionImpl(System.Type permClass) { throw null; }
+        public static void RevertAssert() { }
+        public System.Security.IPermission SetPermission(System.Security.IPermission perm) { throw null; }
+        protected virtual System.Security.IPermission SetPermissionImpl(System.Security.IPermission perm) { throw null; }
+        void System.Runtime.Serialization.IDeserializationCallback.OnDeserialization(object sender) { }
+        public override string ToString() { throw null; }
+        public virtual System.Security.SecurityElement ToXml() { throw null; }
+        public System.Security.PermissionSet Union(System.Security.PermissionSet other) { throw null; }
     }
     public sealed partial class SecurityElement
     {
@@ -1626,20 +1755,25 @@ namespace System.Security.Permissions
     {
         protected CodeAccessSecurityAttribute(System.Security.Permissions.SecurityAction action) : base(default(System.Security.Permissions.SecurityAction)) { }
     }
+    public enum PermissionState
+    {
+        None = 0,
+        Unrestricted = 1,
+    }
     public enum SecurityAction
     {
         Assert = 3,
         Demand = 2,
-        [System.ObsoleteAttribute("Deny is obsolete and will be removed in a future release of the .NET Framework. See http://go.microsoft.com/fwlink/?LinkID=155570 for more information.")]
+        [System.ObsoleteAttribute("Deny is obsolete and will be removed in a future release of the .NET Framework. See https://go.microsoft.com/fwlink/?LinkID=155570 for more information.")]
         Deny = 4,
         InheritanceDemand = 7,
         LinkDemand = 6,
         PermitOnly = 5,
-        [System.ObsoleteAttribute("Assembly level declarative security is obsolete and is no longer enforced by the CLR by default. See http://go.microsoft.com/fwlink/?LinkID=155570 for more information.")]
+        [System.ObsoleteAttribute("Assembly level declarative security is obsolete and is no longer enforced by the CLR by default. See https://go.microsoft.com/fwlink/?LinkID=155570 for more information.")]
         RequestMinimum = 8,
-        [System.ObsoleteAttribute("Assembly level declarative security is obsolete and is no longer enforced by the CLR by default. See http://go.microsoft.com/fwlink/?LinkID=155570 for more information.")]
+        [System.ObsoleteAttribute("Assembly level declarative security is obsolete and is no longer enforced by the CLR by default. See https://go.microsoft.com/fwlink/?LinkID=155570 for more information.")]
         RequestOptional = 9,
-        [System.ObsoleteAttribute("Assembly level declarative security is obsolete and is no longer enforced by the CLR by default. See http://go.microsoft.com/fwlink/?LinkID=155570 for more information.")]
+        [System.ObsoleteAttribute("Assembly level declarative security is obsolete and is no longer enforced by the CLR by default. See https://go.microsoft.com/fwlink/?LinkID=155570 for more information.")]
         RequestRefuse = 10,
     }
     [System.AttributeUsageAttribute((System.AttributeTargets)109, AllowMultiple = true, Inherited = false)]
@@ -1698,6 +1832,27 @@ namespace System.Reflection
     {
         public AssemblyNameProxy() { }
         public System.Reflection.AssemblyName GetAssemblyName(System.String assemblyFile) { throw null; }
+    }
+}
+namespace System.Runtime
+{
+    public static class ProfileOptimization
+    {
+        public static void SetProfileRoot(string directoryPath) { throw null; }
+        public static void StartProfile(string profile) { throw null; }
+    }
+}
+namespace System.Runtime.CompilerServices
+{
+    public sealed class SwitchExpressionException : System.InvalidOperationException
+    {
+        public SwitchExpressionException() { }
+        public SwitchExpressionException(Exception innerException) { }
+        public SwitchExpressionException(object unmatchedValue) { }
+        public SwitchExpressionException(string message) { }
+        public SwitchExpressionException(string message, Exception innerException) { }
+        public object UnmatchedValue { get { throw null; } }
+        public override void GetObjectData(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) { }
     }
 }
 namespace System.Runtime.Versioning

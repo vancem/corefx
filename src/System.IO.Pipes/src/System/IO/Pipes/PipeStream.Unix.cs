@@ -6,7 +6,9 @@ using Microsoft.Win32.SafeHandles;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Security;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -23,6 +25,9 @@ namespace System.IO.Pipes
 
         /// <summary>Characters that can't be used in a pipe's name.</summary>
         private static readonly char[] s_invalidFileNameChars = Path.GetInvalidFileNameChars();
+
+        /// <summary>Characters that can't be used in an absolute path pipe's name.</summary>
+        private static readonly char[] s_invalidPathNameChars = Path.GetInvalidPathChars();
 
         /// <summary>Prefix to prepend to all pipe names.</summary>
         private static readonly string s_pipePrefix = Path.Combine(Path.GetTempPath(), "CoreFxPipe_");
@@ -41,18 +46,33 @@ namespace System.IO.Pipes
                 throw new ArgumentOutOfRangeException(nameof(pipeName), SR.ArgumentOutOfRange_AnonymousReserved);
             }
 
-            if (pipeName.IndexOfAny(s_invalidFileNameChars) >= 0)
+            // Since pipes are stored as files in the system we support either an absolute path to a file name
+            // or a file name. The support of absolute path was added to allow working around the limited
+            // length available for the pipe name when concatenated with the temp path, while being
+            // cross-platform with Windows (which has only '\' as an invalid char).
+            if (Path.IsPathRooted(pipeName))
             {
-                // Since pipes are stored as files in the file system, we don't support
-                // pipe names that are actually paths or that otherwise have invalid
-                // filename characters in them.
-                throw new PlatformNotSupportedException(SR.PlatformNotSupproted_InvalidNameChars);
+                if (pipeName.IndexOfAny(s_invalidPathNameChars) >= 0 || pipeName[pipeName.Length - 1] == Path.DirectorySeparatorChar)
+                    throw new PlatformNotSupportedException(SR.PlatformNotSupported_InvalidPipeNameChars);
+                
+                // Caller is in full control of file location.
+                return pipeName;
             }
 
-            // Return the pipe path.  The pipe is created directly under %TMPDIR%.  We don't bother
-            // putting it into subdirectories, as the pipe will only exist on disk for the
-            // duration between when the server starts listening and the client connects, after
-            // which the pipe will be deleted.
+            if (pipeName.IndexOfAny(s_invalidFileNameChars) >= 0)
+            {
+                throw new PlatformNotSupportedException(SR.PlatformNotSupported_InvalidPipeNameChars);
+            }
+
+            // The pipe is created directly under Path.GetTempPath() with "CoreFXPipe_" prefix.
+            //
+            // We previously didn't put it into a subdirectory because it only existed on disk for the duration
+            // between when the server started listening in WaitForConnection and when the client
+            // connected, after which the pipe was deleted.  We now create the pipe when the
+            // server stream is created, which leaves it on disk longer, but we can't change the
+            // naming scheme used as that breaks the ability for code running on an older
+            // runtime to connect to code running on the newer runtime.  That means we're stuck
+            // with a tmp file for the lifetime of the server stream.
             return s_pipePrefix + pipeName;
         }
 
@@ -77,13 +97,12 @@ namespace System.IO.Pipes
 
         /// <summary>Initializes the handle to be used asynchronously.</summary>
         /// <param name="handle">The handle.</param>
-        [SecurityCritical]
         private void InitializeAsyncHandle(SafePipeHandle handle)
         {
             // nop
         }
 
-        private void UninitializeAsyncHandle()
+        internal virtual void DisposeCore(bool disposing)
         {
             // nop
         }
@@ -111,7 +130,7 @@ namespace System.IO.Pipes
             }
 
             // For anonymous pipes, read from the file descriptor.
-            fixed (byte* bufPtr = &buffer.DangerousGetPinnableReference())
+            fixed (byte* bufPtr = &MemoryMarshal.GetReference(buffer))
             {
                 int result = CheckPipeCall(Interop.Sys.Read(_handle, bufPtr, buffer.Length));
                 Debug.Assert(result <= buffer.Length);
@@ -146,7 +165,7 @@ namespace System.IO.Pipes
             }
 
             // For anonymous pipes, write the file descriptor.
-            fixed (byte* bufPtr = &buffer.DangerousGetPinnableReference())
+            fixed (byte* bufPtr = &MemoryMarshal.GetReference(buffer))
             {
                 while (buffer.Length > 0)
                 {
@@ -201,7 +220,7 @@ namespace System.IO.Pipes
                 }
 
                 // Issue the asynchronous read.
-                return await (destination.TryGetArray(out ArraySegment<byte> buffer) ?
+                return await (MemoryMarshal.TryGetArray(destination, out ArraySegment<byte> buffer) ?
                     socket.ReceiveAsync(buffer, SocketFlags.None) :
                     socket.ReceiveAsync(destination.ToArray(), SocketFlags.None)).ConfigureAwait(false);
             }
@@ -220,7 +239,7 @@ namespace System.IO.Pipes
                 // accepts a Memory<T> in the near future.
                 byte[] buffer;
                 int offset, count;
-                if (source.DangerousTryGetArray(out ArraySegment<byte> segment))
+                if (MemoryMarshal.TryGetArray(source, out ArraySegment<byte> segment))
                 {
                     buffer = segment.Array;
                     offset = segment.Offset;
@@ -264,7 +283,6 @@ namespace System.IO.Pipes
         }
 
         // Blocks until the other end of the pipe has read in all written buffer.
-        [SecurityCritical]
         public void WaitForPipeDrain()
         {
             CheckWriteOperations();
@@ -284,7 +302,6 @@ namespace System.IO.Pipes
         // override this in cases where only one mode is legal (such as anonymous pipes)
         public virtual PipeTransmissionMode TransmissionMode
         {
-            [SecurityCritical]
             [SuppressMessage("Microsoft.Security", "CA2122:DoNotIndirectlyExposeMethodsWithLinkDemands", Justification = "Security model of pipes: demand at creation but no subsequent demands")]
             get
             {
@@ -297,7 +314,6 @@ namespace System.IO.Pipes
         // access. If that passes, call to GetNamedPipeInfo will succeed.
         public virtual int InBufferSize
         {
-            [SecurityCritical]
             [SuppressMessage("Microsoft.Security", "CA2122:DoNotIndirectlyExposeMethodsWithLinkDemands")]
             get
             {
@@ -316,7 +332,6 @@ namespace System.IO.Pipes
         // the ctor.
         public virtual int OutBufferSize
         {
-            [SecurityCritical]
             [SuppressMessage("Microsoft.Security", "CA2122:DoNotIndirectlyExposeMethodsWithLinkDemands", Justification = "Security model of pipes: demand at creation but no subsequent demands")]
             get
             {
@@ -331,13 +346,11 @@ namespace System.IO.Pipes
 
         public virtual PipeTransmissionMode ReadMode
         {
-            [SecurityCritical]
             get
             {
                 CheckPipePropertyOperations();
                 return PipeTransmissionMode.Byte; // Unix pipes are only byte-based, not message-based
             }
-            [SecurityCritical]
             [SuppressMessage("Microsoft.Security", "CA2122:DoNotIndirectlyExposeMethodsWithLinkDemands", Justification = "Security model of pipes: demand at creation but no subsequent demands")]
             set
             {
@@ -391,19 +404,20 @@ namespace System.IO.Pipes
         }
 
         /// <summary>Creates an anonymous pipe.</summary>
-        /// <param name="inheritability">The inheritability to try to use.  This may not always be honored, depending on platform.</param>
         /// <param name="reader">The resulting reader end of the pipe.</param>
         /// <param name="writer">The resulting writer end of the pipe.</param>
-        internal static unsafe void CreateAnonymousPipe(
-            HandleInheritability inheritability, out SafePipeHandle reader, out SafePipeHandle writer)
+        internal static unsafe void CreateAnonymousPipe(out SafePipeHandle reader, out SafePipeHandle writer)
         {
             // Allocate the safe handle objects prior to calling pipe/pipe2, in order to help slightly in low-mem situations
             reader = new SafePipeHandle();
             writer = new SafePipeHandle();
 
-            // Create the OS pipe
+            // Create the OS pipe.  We always create it as O_CLOEXEC (trying to do so atomically) so that the
+            // file descriptors aren't inherited.  Then if inheritability was requested, we opt-in the child file
+            // descriptor later; if the server file descriptor was also inherited, closing the server file
+            // descriptor would fail to signal EOF for the child side.
             int* fds = stackalloc int[2];
-            CreateAnonymousPipe(inheritability, fds);
+            Interop.CheckIo(Interop.Sys.Pipe(fds, Interop.Sys.PipeFlags.O_CLOEXEC));
 
             // Store the file descriptors into our safe handles
             reader.SetHandle(fds[Interop.Sys.ReadEndOfPipe]);
@@ -439,13 +453,6 @@ namespace System.IO.Pipes
                 _outBufferSize;
         }
 
-        internal static unsafe void CreateAnonymousPipe(HandleInheritability inheritability, int* fdsptr)
-        {
-            var flags = (inheritability & HandleInheritability.Inheritable) == 0 ?
-                Interop.Sys.PipeFlags.O_CLOEXEC : 0;
-            Interop.CheckIo(Interop.Sys.Pipe(fdsptr, flags));
-        }
-
         internal static void ConfigureSocket(
             Socket s, SafePipeHandle pipeHandle, 
             PipeDirection direction, int inBufferSize, int outBufferSize, HandleInheritability inheritability)
@@ -460,9 +467,11 @@ namespace System.IO.Pipes
                 s.SendBufferSize = outBufferSize;
             }
 
-            if (inheritability != HandleInheritability.Inheritable)
+            // Sockets are created with O_CLOEXEC.  If inheritability has been requested, we need to unset the flag.
+            if (inheritability == HandleInheritability.Inheritable &&
+                Interop.Sys.Fcntl.SetFD(s.SafeHandle, 0) == -1)
             {
-                Interop.Sys.Fcntl.SetCloseOnExec(pipeHandle); // ignore failures, best-effort attempt
+                throw Interop.GetExceptionForIoErrno(Interop.Sys.GetLastErrorInfo());
             }
 
             switch (direction)
@@ -474,6 +483,14 @@ namespace System.IO.Pipes
                     s.Shutdown(SocketShutdown.Receive);
                     break;
             }
+        }
+
+        internal static Exception CreateExceptionForLastError(string pipeName = null)
+        {
+            Interop.ErrorInfo error = Interop.Sys.GetLastErrorInfo();
+            return error.Error == Interop.Error.ENOTSUP ?
+                new PlatformNotSupportedException(SR.Format(SR.PlatformNotSupported_OperatingSystemError, nameof(Interop.Error.ENOTSUP))) :
+                Interop.GetExceptionForIoErrno(error, pipeName);
         }
     }
 }

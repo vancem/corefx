@@ -340,8 +340,6 @@ namespace System.Net.Http.Headers
 
         private IEnumerator<KeyValuePair<string, IEnumerable<string>>> GetEnumeratorCore()
         {
-            List<HeaderDescriptor> invalidHeaders = null;
-
             foreach (var header in _headerStore)
             {
                 HeaderDescriptor descriptor = header.Key;
@@ -352,13 +350,8 @@ namespace System.Net.Http.Headers
                 // values.
                 if (!ParseRawHeaderValues(descriptor, info, false))
                 {
-                    // We have an invalid header value (contains invalid newline chars). Mark it as "to-be-deleted"
-                    // and skip this header.
-                    if (invalidHeaders == null)
-                    {
-                        invalidHeaders = new List<HeaderDescriptor>();
-                    }
-                    invalidHeaders.Add(descriptor);
+                    // We have an invalid header value (contains invalid newline chars). Delete it.
+                    _headerStore.Remove(descriptor);
                 }
                 else
                 {
@@ -366,23 +359,44 @@ namespace System.Net.Http.Headers
                     yield return new KeyValuePair<string, IEnumerable<string>>(descriptor.Name, values);
                 }
             }
+        }
 
-            // While we were enumerating headers, we also parsed header values. If during parsing it turned out that
-            // the header value was invalid (contains invalid newline chars), remove the header from the store after
-            // completing the enumeration.
-            if (invalidHeaders != null)
+        // The following is the same general code as the above GetEnumerator, but returning the
+        // HeaderDescriptor and values string[], rather than the key name and a values enumerable.
+
+        internal IEnumerable<KeyValuePair<HeaderDescriptor, string[]>> GetHeaderDescriptorsAndValues()
+        {
+            return _headerStore != null && _headerStore.Count > 0 ?
+                GetHeaderDescriptorsAndValuesCore() :
+                Array.Empty<KeyValuePair<HeaderDescriptor, string[]>>();
+        }
+
+        private IEnumerable<KeyValuePair<HeaderDescriptor, string[]>> GetHeaderDescriptorsAndValuesCore()
+        {
+            foreach (var header in _headerStore)
             {
-                Debug.Assert(_headerStore != null);
-                foreach (HeaderDescriptor invalidheaderInfo in invalidHeaders)
+                HeaderDescriptor descriptor = header.Key;
+                HeaderStoreItemInfo info = header.Value;
+
+                // Make sure we parse all raw values before returning the result. Note that this has to be
+                // done before we calculate the array length (next line): A raw value may contain a list of
+                // values.
+                if (!ParseRawHeaderValues(descriptor, info, false))
                 {
-                    _headerStore.Remove(invalidheaderInfo);
+                    // We have an invalid header value (contains invalid newline chars). Delete it.
+                    _headerStore.Remove(descriptor);
+                }
+                else
+                {
+                    string[] values = GetValuesAsStrings(descriptor, info);
+                    yield return new KeyValuePair<HeaderDescriptor, string[]>(descriptor, values);
                 }
             }
         }
 
-#endregion
+        #endregion
 
-#region IEnumerable Members
+        #region IEnumerable Members
 
         Collections.IEnumerator Collections.IEnumerable.GetEnumerator()
         {
@@ -583,8 +597,6 @@ namespace System.Net.Http.Headers
                 return;
             }
 
-            List<HeaderDescriptor> invalidHeaders = null;
-
             foreach (var header in sourceHeaders._headerStore)
             {
                 // Only add header values if they're not already set on the message. Note that we don't merge 
@@ -600,27 +612,13 @@ namespace System.Net.Http.Headers
                     if (!sourceHeaders.ParseRawHeaderValues(header.Key, sourceInfo, false))
                     {
                         // If after trying to parse source header values no value is left (i.e. all values contain 
-                        // invalid newline chars), mark this header as 'to-be-deleted' and skip to the next header.
-                        if (invalidHeaders == null)
-                        {
-                            invalidHeaders = new List<HeaderDescriptor>();
-                        }
-
-                        invalidHeaders.Add(header.Key);
+                        // invalid newline chars), delete it and skip to the next header.
+                        sourceHeaders._headerStore.Remove(header.Key);
                     }
                     else
                     {
                         AddHeaderInfo(header.Key, sourceInfo);
                     }
-                }
-            }
-
-            if (invalidHeaders != null)
-            {
-                Debug.Assert(sourceHeaders._headerStore != null);
-                foreach (HeaderDescriptor invalidheaderInfo in invalidHeaders)
-                {
-                    sourceHeaders._headerStore.Remove(invalidheaderInfo);
                 }
             }
         }
@@ -729,6 +727,9 @@ namespace System.Net.Http.Headers
         {
             // If we don't have the header in the store yet, add it now.
             HeaderStoreItemInfo result = new HeaderStoreItemInfo();
+
+            // If the descriptor header type is in _treatAsCustomHeaderTypes, it must be converted to a custom header before calling this method
+            Debug.Assert((descriptor.HeaderType & _treatAsCustomHeaderTypes) == 0);
 
             AddHeaderToStore(descriptor, result);
 
@@ -968,13 +969,13 @@ namespace System.Net.Http.Headers
             {
                 case StoreLocation.Raw:
                     currentStoreValue = info.RawValue;
-                    AddValueToStoreValue<string>(info, value, ref currentStoreValue);
+                    AddValueToStoreValue<string>(value, ref currentStoreValue);
                     info.RawValue = currentStoreValue;
                     break;
 
                 case StoreLocation.Invalid:
                     currentStoreValue = info.InvalidValue;
-                    AddValueToStoreValue<string>(info, value, ref currentStoreValue);
+                    AddValueToStoreValue<string>(value, ref currentStoreValue);
                     info.InvalidValue = currentStoreValue;
                     break;
 
@@ -983,7 +984,7 @@ namespace System.Net.Http.Headers
                         "Header value types must not derive from List<object> since this type is used internally to store " +
                         "lists of values. So we would not be able to distinguish between a single value and a list of values.");
                     currentStoreValue = info.ParsedValue;
-                    AddValueToStoreValue<object>(info, value, ref currentStoreValue);
+                    AddValueToStoreValue<object>(value, ref currentStoreValue);
                     info.ParsedValue = currentStoreValue;
                     break;
 
@@ -993,8 +994,7 @@ namespace System.Net.Http.Headers
             }
         }
 
-        private static void AddValueToStoreValue<T>(HeaderStoreItemInfo info, object value,
-            ref object currentStoreValue) where T : class
+        private static void AddValueToStoreValue<T>(object value, ref object currentStoreValue) where T : class
         {
             // If there is no value set yet, then add current item as value (we don't create a list
             // if not required). If 'info.Value' is already assigned then make sure 'info.Value' is a
@@ -1010,7 +1010,7 @@ namespace System.Net.Http.Headers
                 if (storeValues == null)
                 {
                     storeValues = new List<T>(2);
-                    Debug.Assert(value is T);
+                    Debug.Assert(currentStoreValue is T);
                     storeValues.Add(currentStoreValue as T);
                     currentStoreValue = storeValues;
                 }

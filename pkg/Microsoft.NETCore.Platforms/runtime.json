@@ -2,35 +2,18 @@
   "runtimes": {
     "alpine": {
       "#import": [
-        "any"
-      ]
-    },
-    "alpine-corert": {
-      "#import": [
-        "alpine",
-        "corert"
+        "linux-musl"
       ]
     },
     "alpine-x64": {
       "#import": [
-        "alpine"
-      ]
-    },
-    "alpine-x64-corert": {
-      "#import": [
-        "alpine-corert",
-        "alpine-x64"
+        "alpine",
+        "linux-musl-x64"
       ]
     },
     "alpine.3.6": {
       "#import": [
         "alpine"
-      ]
-    },
-    "alpine.3.6-corert": {
-      "#import": [
-        "alpine.3.6",
-        "alpine-corert"
       ]
     },
     "alpine.3.6-x64": {
@@ -39,45 +22,54 @@
         "alpine-x64"
       ]
     },
-    "alpine.3.6-x64-corert": {
+    "alpine.3.7": {
       "#import": [
-        "alpine.3.6-corert",
-        "alpine.3.6-x64",
-        "alpine.3.6",
-        "alpine-x64-corert"
+        "alpine.3.6"
+      ]
+    },
+    "alpine.3.7-x64": {
+      "#import": [
+        "alpine.3.7",
+        "alpine.3.6-x64"
+      ]
+    },
+    "alpine.3.8": {
+      "#import": [
+        "alpine.3.7"
+      ]
+    },
+    "alpine.3.8-x64": {
+      "#import": [
+        "alpine.3.8",
+        "alpine.3.7-x64"
+      ]
+    },
+    "alpine.3.9": {
+      "#import": [
+        "alpine.3.8"
+      ]
+    },
+    "alpine.3.9-x64": {
+      "#import": [
+        "alpine.3.9",
+        "alpine.3.8-x64"
       ]
     },
     "android": {
       "#import": [
-        "any"
+        "linux"
       ]
     },
     "android-arm": {
       "#import": [
-        "android"
-      ]
-    },
-    "android-arm-corert": {
-      "#import": [
-        "android-corert",
-        "android-arm"
+        "android",
+        "linux-arm"
       ]
     },
     "android-arm64": {
       "#import": [
-        "android"
-      ]
-    },
-    "android-arm64-corert": {
-      "#import": [
-        "android-corert",
-        "android-arm64"
-      ]
-    },
-    "android-corert": {
-      "#import": [
         "android",
-        "corert"
+        "linux-arm64"
       ]
     },
     "android.21": {
@@ -91,32 +83,10 @@
         "android-arm"
       ]
     },
-    "android.21-arm-corert": {
-      "#import": [
-        "android.21-corert",
-        "android.21-arm",
-        "android.21",
-        "android-arm-corert"
-      ]
-    },
     "android.21-arm64": {
       "#import": [
         "android.21",
         "android-arm64"
-      ]
-    },
-    "android.21-arm64-corert": {
-      "#import": [
-        "android.21-corert",
-        "android.21-arm64",
-        "android.21",
-        "android-arm64-corert"
-      ]
-    },
-    "android.21-corert": {
-      "#import": [
-        "android.21",
-        "android-corert"
       ]
     },
     "any": {
@@ -137,23 +107,10 @@
         "rhel"
       ]
     },
-    "centos-corert": {
-      "#import": [
-        "centos",
-        "rhel-corert"
-      ]
-    },
     "centos-x64": {
       "#import": [
         "centos",
         "rhel-x64"
-      ]
-    },
-    "centos-x64-corert": {
-      "#import": [
-        "centos-corert",
-        "centos-x64",
-        "rhel-x64-corert"
       ]
     },
     "centos.7": {
@@ -162,31 +119,11 @@
         "rhel.7"
       ]
     },
-    "centos.7-corert": {
-      "#import": [
-        "centos.7",
-        "centos-corert",
-        "rhel.7-corert"
-      ]
-    },
     "centos.7-x64": {
       "#import": [
         "centos.7",
         "centos-x64",
         "rhel.7-x64"
-      ]
-    },
-    "centos.7-x64-corert": {
-      "#import": [
-        "centos.7-corert",
-        "centos.7-x64",
-        "centos.7",
-        "centos-x64-corert"
-      ]
-    },
-    "corert": {
-      "#import": [
-        "any"
       ]
     },
     "debian": {
@@ -200,24 +137,10 @@
         "linux-arm"
       ]
     },
-    "debian-arm-corert": {
-      "#import": [
-        "debian-corert",
-        "debian-arm",
-        "linux-arm-corert"
-      ]
-    },
     "debian-arm64": {
       "#import": [
         "debian",
         "linux-arm64"
-      ]
-    },
-    "debian-arm64-corert": {
-      "#import": [
-        "debian-corert",
-        "debian-arm64",
-        "linux-arm64-corert"
       ]
     },
     "debian-armel": {
@@ -226,43 +149,16 @@
         "linux-armel"
       ]
     },
-    "debian-armel-corert": {
-      "#import": [
-        "debian-corert",
-        "debian-armel",
-        "linux-armel-corert"
-      ]
-    },
-    "debian-corert": {
-      "#import": [
-        "debian",
-        "linux-corert"
-      ]
-    },
     "debian-x64": {
       "#import": [
         "debian",
         "linux-x64"
       ]
     },
-    "debian-x64-corert": {
-      "#import": [
-        "debian-corert",
-        "debian-x64",
-        "linux-x64-corert"
-      ]
-    },
     "debian-x86": {
       "#import": [
         "debian",
         "linux-x86"
-      ]
-    },
-    "debian-x86-corert": {
-      "#import": [
-        "debian-corert",
-        "debian-x86",
-        "linux-x86-corert"
       ]
     },
     "debian.8": {
@@ -276,26 +172,10 @@
         "debian-arm"
       ]
     },
-    "debian.8-arm-corert": {
-      "#import": [
-        "debian.8-corert",
-        "debian.8-arm",
-        "debian.8",
-        "debian-arm-corert"
-      ]
-    },
     "debian.8-arm64": {
       "#import": [
         "debian.8",
         "debian-arm64"
-      ]
-    },
-    "debian.8-arm64-corert": {
-      "#import": [
-        "debian.8-corert",
-        "debian.8-arm64",
-        "debian.8",
-        "debian-arm64-corert"
       ]
     },
     "debian.8-armel": {
@@ -304,32 +184,10 @@
         "debian-armel"
       ]
     },
-    "debian.8-armel-corert": {
-      "#import": [
-        "debian.8-corert",
-        "debian.8-armel",
-        "debian.8",
-        "debian-armel-corert"
-      ]
-    },
-    "debian.8-corert": {
-      "#import": [
-        "debian.8",
-        "debian-corert"
-      ]
-    },
     "debian.8-x64": {
       "#import": [
         "debian.8",
         "debian-x64"
-      ]
-    },
-    "debian.8-x64-corert": {
-      "#import": [
-        "debian.8-corert",
-        "debian.8-x64",
-        "debian.8",
-        "debian-x64-corert"
       ]
     },
     "debian.8-x86": {
@@ -338,23 +196,44 @@
         "debian-x86"
       ]
     },
-    "debian.8-x86-corert": {
+    "debian.9": {
       "#import": [
-        "debian.8-corert",
-        "debian.8-x86",
-        "debian.8",
-        "debian-x86-corert"
+        "debian"
+      ]
+    },
+    "debian.9-arm": {
+      "#import": [
+        "debian.9",
+        "debian-arm"
+      ]
+    },
+    "debian.9-arm64": {
+      "#import": [
+        "debian.9",
+        "debian-arm64"
+      ]
+    },
+    "debian.9-armel": {
+      "#import": [
+        "debian.9",
+        "debian-armel"
+      ]
+    },
+    "debian.9-x64": {
+      "#import": [
+        "debian.9",
+        "debian-x64"
+      ]
+    },
+    "debian.9-x86": {
+      "#import": [
+        "debian.9",
+        "debian-x86"
       ]
     },
     "fedora": {
       "#import": [
         "linux"
-      ]
-    },
-    "fedora-corert": {
-      "#import": [
-        "fedora",
-        "linux-corert"
       ]
     },
     "fedora-x64": {
@@ -363,22 +242,9 @@
         "linux-x64"
       ]
     },
-    "fedora-x64-corert": {
-      "#import": [
-        "fedora-corert",
-        "fedora-x64",
-        "linux-x64-corert"
-      ]
-    },
     "fedora.23": {
       "#import": [
         "fedora"
-      ]
-    },
-    "fedora.23-corert": {
-      "#import": [
-        "fedora.23",
-        "fedora-corert"
       ]
     },
     "fedora.23-x64": {
@@ -387,23 +253,9 @@
         "fedora-x64"
       ]
     },
-    "fedora.23-x64-corert": {
-      "#import": [
-        "fedora.23-corert",
-        "fedora.23-x64",
-        "fedora.23",
-        "fedora-x64-corert"
-      ]
-    },
     "fedora.24": {
       "#import": [
         "fedora"
-      ]
-    },
-    "fedora.24-corert": {
-      "#import": [
-        "fedora.24",
-        "fedora-corert"
       ]
     },
     "fedora.24-x64": {
@@ -412,23 +264,9 @@
         "fedora-x64"
       ]
     },
-    "fedora.24-x64-corert": {
-      "#import": [
-        "fedora.24-corert",
-        "fedora.24-x64",
-        "fedora.24",
-        "fedora-x64-corert"
-      ]
-    },
     "fedora.25": {
       "#import": [
         "fedora"
-      ]
-    },
-    "fedora.25-corert": {
-      "#import": [
-        "fedora.25",
-        "fedora-corert"
       ]
     },
     "fedora.25-x64": {
@@ -437,23 +275,9 @@
         "fedora-x64"
       ]
     },
-    "fedora.25-x64-corert": {
-      "#import": [
-        "fedora.25-corert",
-        "fedora.25-x64",
-        "fedora.25",
-        "fedora-x64-corert"
-      ]
-    },
     "fedora.26": {
       "#import": [
         "fedora"
-      ]
-    },
-    "fedora.26-corert": {
-      "#import": [
-        "fedora.26",
-        "fedora-corert"
       ]
     },
     "fedora.26-x64": {
@@ -462,12 +286,92 @@
         "fedora-x64"
       ]
     },
-    "fedora.26-x64-corert": {
+    "fedora.27": {
       "#import": [
-        "fedora.26-corert",
-        "fedora.26-x64",
-        "fedora.26",
-        "fedora-x64-corert"
+        "fedora"
+      ]
+    },
+    "fedora.27-x64": {
+      "#import": [
+        "fedora.27",
+        "fedora-x64"
+      ]
+    },
+    "fedora.28": {
+      "#import": [
+        "fedora"
+      ]
+    },
+    "fedora.28-x64": {
+      "#import": [
+        "fedora.28",
+        "fedora-x64"
+      ]
+    },
+    "fedora.29": {
+      "#import": [
+        "fedora"
+      ]
+    },
+    "fedora.29-x64": {
+      "#import": [
+        "fedora.29",
+        "fedora-x64"
+      ]
+    },
+    "freebsd": {
+      "#import": [
+        "unix"
+      ]
+    },
+    "freebsd-x64": {
+      "#import": [
+        "freebsd",
+        "unix-x64"
+      ]
+    },
+    "freebsd.11": {
+      "#import": [
+        "freebsd"
+      ]
+    },
+    "freebsd.11-x64": {
+      "#import": [
+        "freebsd.11",
+        "freebsd-x64"
+      ]
+    },
+    "freebsd.11.0": {
+      "#import": [
+        "freebsd.11"
+      ]
+    },
+    "freebsd.11.0-x64": {
+      "#import": [
+        "freebsd.11.0",
+        "freebsd.11-x64"
+      ]
+    },
+    "freebsd.11.1": {
+      "#import": [
+        "freebsd.11.0"
+      ]
+    },
+    "freebsd.11.1-x64": {
+      "#import": [
+        "freebsd.11.1",
+        "freebsd.11.0-x64"
+      ]
+    },
+    "freebsd.11.2": {
+      "#import": [
+        "freebsd.11.1"
+      ]
+    },
+    "freebsd.11.2-x64": {
+      "#import": [
+        "freebsd.11.2",
+        "freebsd.11.1-x64"
       ]
     },
     "gentoo": {
@@ -475,23 +379,10 @@
         "linux"
       ]
     },
-    "gentoo-corert": {
-      "#import": [
-        "gentoo",
-        "linux-corert"
-      ]
-    },
     "gentoo-x64": {
       "#import": [
         "gentoo",
         "linux-x64"
-      ]
-    },
-    "gentoo-x64-corert": {
-      "#import": [
-        "gentoo-corert",
-        "gentoo-x64",
-        "linux-x64-corert"
       ]
     },
     "linux": {
@@ -505,24 +396,10 @@
         "unix-arm"
       ]
     },
-    "linux-arm-corert": {
-      "#import": [
-        "linux-corert",
-        "linux-arm",
-        "unix-arm-corert"
-      ]
-    },
     "linux-arm64": {
       "#import": [
         "linux",
         "unix-arm64"
-      ]
-    },
-    "linux-arm64-corert": {
-      "#import": [
-        "linux-corert",
-        "linux-arm64",
-        "unix-arm64-corert"
       ]
     },
     "linux-armel": {
@@ -531,17 +408,39 @@
         "unix-armel"
       ]
     },
-    "linux-armel-corert": {
+    "linux-musl": {
       "#import": [
-        "linux-corert",
-        "linux-armel",
-        "unix-armel-corert"
+        "linux"
       ]
     },
-    "linux-corert": {
+    "linux-musl-arm": {
       "#import": [
-        "linux",
-        "unix-corert"
+        "linux-musl",
+        "linux-arm"
+      ]
+    },
+    "linux-musl-arm64": {
+      "#import": [
+        "linux-musl",
+        "linux-arm64"
+      ]
+    },
+    "linux-musl-armel": {
+      "#import": [
+        "linux-musl",
+        "linux-armel"
+      ]
+    },
+    "linux-musl-x64": {
+      "#import": [
+        "linux-musl",
+        "linux-x64"
+      ]
+    },
+    "linux-musl-x86": {
+      "#import": [
+        "linux-musl",
+        "linux-x86"
       ]
     },
     "linux-x64": {
@@ -550,35 +449,15 @@
         "unix-x64"
       ]
     },
-    "linux-x64-corert": {
-      "#import": [
-        "linux-corert",
-        "linux-x64",
-        "unix-x64-corert"
-      ]
-    },
     "linux-x86": {
       "#import": [
         "linux",
         "unix-x86"
       ]
     },
-    "linux-x86-corert": {
-      "#import": [
-        "linux-corert",
-        "linux-x86",
-        "unix-x86-corert"
-      ]
-    },
     "linuxmint.17": {
       "#import": [
         "ubuntu.14.04"
-      ]
-    },
-    "linuxmint.17-corert": {
-      "#import": [
-        "linuxmint.17",
-        "ubuntu.14.04-corert"
       ]
     },
     "linuxmint.17-x64": {
@@ -587,22 +466,9 @@
         "ubuntu.14.04-x64"
       ]
     },
-    "linuxmint.17-x64-corert": {
-      "#import": [
-        "linuxmint.17-corert",
-        "linuxmint.17-x64",
-        "ubuntu.14.04-x64-corert"
-      ]
-    },
     "linuxmint.17.1": {
       "#import": [
         "linuxmint.17"
-      ]
-    },
-    "linuxmint.17.1-corert": {
-      "#import": [
-        "linuxmint.17.1",
-        "linuxmint.17-corert"
       ]
     },
     "linuxmint.17.1-x64": {
@@ -611,23 +477,9 @@
         "linuxmint.17-x64"
       ]
     },
-    "linuxmint.17.1-x64-corert": {
-      "#import": [
-        "linuxmint.17.1-corert",
-        "linuxmint.17.1-x64",
-        "linuxmint.17.1",
-        "linuxmint.17-x64-corert"
-      ]
-    },
     "linuxmint.17.2": {
       "#import": [
         "linuxmint.17.1"
-      ]
-    },
-    "linuxmint.17.2-corert": {
-      "#import": [
-        "linuxmint.17.2",
-        "linuxmint.17.1-corert"
       ]
     },
     "linuxmint.17.2-x64": {
@@ -636,23 +488,9 @@
         "linuxmint.17.1-x64"
       ]
     },
-    "linuxmint.17.2-x64-corert": {
-      "#import": [
-        "linuxmint.17.2-corert",
-        "linuxmint.17.2-x64",
-        "linuxmint.17.2",
-        "linuxmint.17.1-x64-corert"
-      ]
-    },
     "linuxmint.17.3": {
       "#import": [
         "linuxmint.17.2"
-      ]
-    },
-    "linuxmint.17.3-corert": {
-      "#import": [
-        "linuxmint.17.3",
-        "linuxmint.17.2-corert"
       ]
     },
     "linuxmint.17.3-x64": {
@@ -661,23 +499,9 @@
         "linuxmint.17.2-x64"
       ]
     },
-    "linuxmint.17.3-x64-corert": {
-      "#import": [
-        "linuxmint.17.3-corert",
-        "linuxmint.17.3-x64",
-        "linuxmint.17.3",
-        "linuxmint.17.2-x64-corert"
-      ]
-    },
     "linuxmint.18": {
       "#import": [
         "ubuntu.16.04"
-      ]
-    },
-    "linuxmint.18-corert": {
-      "#import": [
-        "linuxmint.18",
-        "ubuntu.16.04-corert"
       ]
     },
     "linuxmint.18-x64": {
@@ -686,22 +510,9 @@
         "ubuntu.16.04-x64"
       ]
     },
-    "linuxmint.18-x64-corert": {
-      "#import": [
-        "linuxmint.18-corert",
-        "linuxmint.18-x64",
-        "ubuntu.16.04-x64-corert"
-      ]
-    },
     "linuxmint.18.1": {
       "#import": [
         "linuxmint.18"
-      ]
-    },
-    "linuxmint.18.1-corert": {
-      "#import": [
-        "linuxmint.18.1",
-        "linuxmint.18-corert"
       ]
     },
     "linuxmint.18.1-x64": {
@@ -710,23 +521,42 @@
         "linuxmint.18-x64"
       ]
     },
-    "linuxmint.18.1-x64-corert": {
+    "linuxmint.18.2": {
       "#import": [
-        "linuxmint.18.1-corert",
-        "linuxmint.18.1-x64",
-        "linuxmint.18.1",
-        "linuxmint.18-x64-corert"
+        "linuxmint.18.1"
+      ]
+    },
+    "linuxmint.18.2-x64": {
+      "#import": [
+        "linuxmint.18.2",
+        "linuxmint.18.1-x64"
+      ]
+    },
+    "linuxmint.18.3": {
+      "#import": [
+        "linuxmint.18.2"
+      ]
+    },
+    "linuxmint.18.3-x64": {
+      "#import": [
+        "linuxmint.18.3",
+        "linuxmint.18.2-x64"
+      ]
+    },
+    "linuxmint.19": {
+      "#import": [
+        "ubuntu.18.04"
+      ]
+    },
+    "linuxmint.19-x64": {
+      "#import": [
+        "linuxmint.19",
+        "ubuntu.18.04-x64"
       ]
     },
     "ol": {
       "#import": [
         "rhel"
-      ]
-    },
-    "ol-corert": {
-      "#import": [
-        "ol",
-        "rhel-corert"
       ]
     },
     "ol-x64": {
@@ -735,24 +565,10 @@
         "rhel-x64"
       ]
     },
-    "ol-x64-corert": {
-      "#import": [
-        "ol-corert",
-        "ol-x64",
-        "rhel-x64-corert"
-      ]
-    },
     "ol.7": {
       "#import": [
         "ol",
         "rhel.7"
-      ]
-    },
-    "ol.7-corert": {
-      "#import": [
-        "ol.7",
-        "ol-corert",
-        "rhel.7-corert"
       ]
     },
     "ol.7-x64": {
@@ -762,25 +578,10 @@
         "rhel.7-x64"
       ]
     },
-    "ol.7-x64-corert": {
-      "#import": [
-        "ol.7-corert",
-        "ol.7-x64",
-        "ol.7",
-        "ol-x64-corert"
-      ]
-    },
     "ol.7.0": {
       "#import": [
         "ol.7",
         "rhel.7.0"
-      ]
-    },
-    "ol.7.0-corert": {
-      "#import": [
-        "ol.7.0",
-        "ol.7-corert",
-        "rhel.7.0-corert"
       ]
     },
     "ol.7.0-x64": {
@@ -790,25 +591,10 @@
         "rhel.7.0-x64"
       ]
     },
-    "ol.7.0-x64-corert": {
-      "#import": [
-        "ol.7.0-corert",
-        "ol.7.0-x64",
-        "ol.7.0",
-        "ol.7-x64-corert"
-      ]
-    },
     "ol.7.1": {
       "#import": [
         "ol.7.0",
         "rhel.7.1"
-      ]
-    },
-    "ol.7.1-corert": {
-      "#import": [
-        "ol.7.1",
-        "ol.7.0-corert",
-        "rhel.7.1-corert"
       ]
     },
     "ol.7.1-x64": {
@@ -818,25 +604,10 @@
         "rhel.7.1-x64"
       ]
     },
-    "ol.7.1-x64-corert": {
-      "#import": [
-        "ol.7.1-corert",
-        "ol.7.1-x64",
-        "ol.7.1",
-        "ol.7.0-x64-corert"
-      ]
-    },
     "ol.7.2": {
       "#import": [
         "ol.7.1",
         "rhel.7.2"
-      ]
-    },
-    "ol.7.2-corert": {
-      "#import": [
-        "ol.7.2",
-        "ol.7.1-corert",
-        "rhel.7.2-corert"
       ]
     },
     "ol.7.2-x64": {
@@ -846,23 +617,61 @@
         "rhel.7.2-x64"
       ]
     },
-    "ol.7.2-x64-corert": {
+    "ol.7.3": {
       "#import": [
-        "ol.7.2-corert",
-        "ol.7.2-x64",
         "ol.7.2",
-        "ol.7.1-x64-corert"
+        "rhel.7.3"
+      ]
+    },
+    "ol.7.3-x64": {
+      "#import": [
+        "ol.7.3",
+        "ol.7.2-x64",
+        "rhel.7.3-x64"
+      ]
+    },
+    "ol.7.4": {
+      "#import": [
+        "ol.7.3",
+        "rhel.7.4"
+      ]
+    },
+    "ol.7.4-x64": {
+      "#import": [
+        "ol.7.4",
+        "ol.7.3-x64",
+        "rhel.7.4-x64"
+      ]
+    },
+    "ol.7.5": {
+      "#import": [
+        "ol.7.4",
+        "rhel.7.5"
+      ]
+    },
+    "ol.7.5-x64": {
+      "#import": [
+        "ol.7.5",
+        "ol.7.4-x64",
+        "rhel.7.5-x64"
+      ]
+    },
+    "ol.7.6": {
+      "#import": [
+        "ol.7.5",
+        "rhel.7.6"
+      ]
+    },
+    "ol.7.6-x64": {
+      "#import": [
+        "ol.7.6",
+        "ol.7.5-x64",
+        "rhel.7.6-x64"
       ]
     },
     "opensuse": {
       "#import": [
         "linux"
-      ]
-    },
-    "opensuse-corert": {
-      "#import": [
-        "opensuse",
-        "linux-corert"
       ]
     },
     "opensuse-x64": {
@@ -871,22 +680,9 @@
         "linux-x64"
       ]
     },
-    "opensuse-x64-corert": {
-      "#import": [
-        "opensuse-corert",
-        "opensuse-x64",
-        "linux-x64-corert"
-      ]
-    },
     "opensuse.13.2": {
       "#import": [
         "opensuse"
-      ]
-    },
-    "opensuse.13.2-corert": {
-      "#import": [
-        "opensuse.13.2",
-        "opensuse-corert"
       ]
     },
     "opensuse.13.2-x64": {
@@ -895,23 +691,20 @@
         "opensuse-x64"
       ]
     },
-    "opensuse.13.2-x64-corert": {
+    "opensuse.15.0": {
       "#import": [
-        "opensuse.13.2-corert",
-        "opensuse.13.2-x64",
-        "opensuse.13.2",
-        "opensuse-x64-corert"
+        "opensuse"
+      ]
+    },
+    "opensuse.15.0-x64": {
+      "#import": [
+        "opensuse.15.0",
+        "opensuse-x64"
       ]
     },
     "opensuse.42.1": {
       "#import": [
         "opensuse"
-      ]
-    },
-    "opensuse.42.1-corert": {
-      "#import": [
-        "opensuse.42.1",
-        "opensuse-corert"
       ]
     },
     "opensuse.42.1-x64": {
@@ -920,23 +713,31 @@
         "opensuse-x64"
       ]
     },
-    "opensuse.42.1-x64-corert": {
+    "opensuse.42.2": {
       "#import": [
-        "opensuse.42.1-corert",
-        "opensuse.42.1-x64",
-        "opensuse.42.1",
-        "opensuse-x64-corert"
+        "opensuse"
+      ]
+    },
+    "opensuse.42.2-x64": {
+      "#import": [
+        "opensuse.42.2",
+        "opensuse-x64"
+      ]
+    },
+    "opensuse.42.3": {
+      "#import": [
+        "opensuse"
+      ]
+    },
+    "opensuse.42.3-x64": {
+      "#import": [
+        "opensuse.42.3",
+        "opensuse-x64"
       ]
     },
     "osx": {
       "#import": [
         "unix"
-      ]
-    },
-    "osx-corert": {
-      "#import": [
-        "osx",
-        "unix-corert"
       ]
     },
     "osx-x64": {
@@ -945,22 +746,9 @@
         "unix-x64"
       ]
     },
-    "osx-x64-corert": {
-      "#import": [
-        "osx-corert",
-        "osx-x64",
-        "unix-x64-corert"
-      ]
-    },
     "osx.10.10": {
       "#import": [
         "osx"
-      ]
-    },
-    "osx.10.10-corert": {
-      "#import": [
-        "osx.10.10",
-        "osx-corert"
       ]
     },
     "osx.10.10-x64": {
@@ -969,23 +757,9 @@
         "osx-x64"
       ]
     },
-    "osx.10.10-x64-corert": {
-      "#import": [
-        "osx.10.10-corert",
-        "osx.10.10-x64",
-        "osx.10.10",
-        "osx-x64-corert"
-      ]
-    },
     "osx.10.11": {
       "#import": [
         "osx.10.10"
-      ]
-    },
-    "osx.10.11-corert": {
-      "#import": [
-        "osx.10.11",
-        "osx.10.10-corert"
       ]
     },
     "osx.10.11-x64": {
@@ -994,23 +768,9 @@
         "osx.10.10-x64"
       ]
     },
-    "osx.10.11-x64-corert": {
-      "#import": [
-        "osx.10.11-corert",
-        "osx.10.11-x64",
-        "osx.10.11",
-        "osx.10.10-x64-corert"
-      ]
-    },
     "osx.10.12": {
       "#import": [
         "osx.10.11"
-      ]
-    },
-    "osx.10.12-corert": {
-      "#import": [
-        "osx.10.12",
-        "osx.10.11-corert"
       ]
     },
     "osx.10.12-x64": {
@@ -1019,23 +779,31 @@
         "osx.10.11-x64"
       ]
     },
-    "osx.10.12-x64-corert": {
+    "osx.10.13": {
       "#import": [
-        "osx.10.12-corert",
-        "osx.10.12-x64",
-        "osx.10.12",
-        "osx.10.11-x64-corert"
+        "osx.10.12"
+      ]
+    },
+    "osx.10.13-x64": {
+      "#import": [
+        "osx.10.13",
+        "osx.10.12-x64"
+      ]
+    },
+    "osx.10.14": {
+      "#import": [
+        "osx.10.13"
+      ]
+    },
+    "osx.10.14-x64": {
+      "#import": [
+        "osx.10.14",
+        "osx.10.13-x64"
       ]
     },
     "rhel": {
       "#import": [
         "linux"
-      ]
-    },
-    "rhel-corert": {
-      "#import": [
-        "rhel",
-        "linux-corert"
       ]
     },
     "rhel-x64": {
@@ -1044,22 +812,9 @@
         "linux-x64"
       ]
     },
-    "rhel-x64-corert": {
-      "#import": [
-        "rhel-corert",
-        "rhel-x64",
-        "linux-x64-corert"
-      ]
-    },
     "rhel.6": {
       "#import": [
         "rhel"
-      ]
-    },
-    "rhel.6-corert": {
-      "#import": [
-        "rhel.6",
-        "rhel-corert"
       ]
     },
     "rhel.6-x64": {
@@ -1068,23 +823,9 @@
         "rhel-x64"
       ]
     },
-    "rhel.6-x64-corert": {
-      "#import": [
-        "rhel.6-corert",
-        "rhel.6-x64",
-        "rhel.6",
-        "rhel-x64-corert"
-      ]
-    },
     "rhel.7": {
       "#import": [
         "rhel"
-      ]
-    },
-    "rhel.7-corert": {
-      "#import": [
-        "rhel.7",
-        "rhel-corert"
       ]
     },
     "rhel.7-x64": {
@@ -1093,23 +834,9 @@
         "rhel-x64"
       ]
     },
-    "rhel.7-x64-corert": {
-      "#import": [
-        "rhel.7-corert",
-        "rhel.7-x64",
-        "rhel.7",
-        "rhel-x64-corert"
-      ]
-    },
     "rhel.7.0": {
       "#import": [
         "rhel.7"
-      ]
-    },
-    "rhel.7.0-corert": {
-      "#import": [
-        "rhel.7.0",
-        "rhel.7-corert"
       ]
     },
     "rhel.7.0-x64": {
@@ -1118,23 +845,9 @@
         "rhel.7-x64"
       ]
     },
-    "rhel.7.0-x64-corert": {
-      "#import": [
-        "rhel.7.0-corert",
-        "rhel.7.0-x64",
-        "rhel.7.0",
-        "rhel.7-x64-corert"
-      ]
-    },
     "rhel.7.1": {
       "#import": [
         "rhel.7.0"
-      ]
-    },
-    "rhel.7.1-corert": {
-      "#import": [
-        "rhel.7.1",
-        "rhel.7.0-corert"
       ]
     },
     "rhel.7.1-x64": {
@@ -1143,23 +856,9 @@
         "rhel.7.0-x64"
       ]
     },
-    "rhel.7.1-x64-corert": {
-      "#import": [
-        "rhel.7.1-corert",
-        "rhel.7.1-x64",
-        "rhel.7.1",
-        "rhel.7.0-x64-corert"
-      ]
-    },
     "rhel.7.2": {
       "#import": [
         "rhel.7.1"
-      ]
-    },
-    "rhel.7.2-corert": {
-      "#import": [
-        "rhel.7.2",
-        "rhel.7.1-corert"
       ]
     },
     "rhel.7.2-x64": {
@@ -1168,23 +867,9 @@
         "rhel.7.1-x64"
       ]
     },
-    "rhel.7.2-x64-corert": {
-      "#import": [
-        "rhel.7.2-corert",
-        "rhel.7.2-x64",
-        "rhel.7.2",
-        "rhel.7.1-x64-corert"
-      ]
-    },
     "rhel.7.3": {
       "#import": [
         "rhel.7.2"
-      ]
-    },
-    "rhel.7.3-corert": {
-      "#import": [
-        "rhel.7.3",
-        "rhel.7.2-corert"
       ]
     },
     "rhel.7.3-x64": {
@@ -1193,23 +878,9 @@
         "rhel.7.2-x64"
       ]
     },
-    "rhel.7.3-x64-corert": {
-      "#import": [
-        "rhel.7.3-corert",
-        "rhel.7.3-x64",
-        "rhel.7.3",
-        "rhel.7.2-x64-corert"
-      ]
-    },
     "rhel.7.4": {
       "#import": [
         "rhel.7.3"
-      ]
-    },
-    "rhel.7.4-corert": {
-      "#import": [
-        "rhel.7.4",
-        "rhel.7.3-corert"
       ]
     },
     "rhel.7.4-x64": {
@@ -1218,12 +889,114 @@
         "rhel.7.3-x64"
       ]
     },
-    "rhel.7.4-x64-corert": {
+    "rhel.7.5": {
       "#import": [
-        "rhel.7.4-corert",
-        "rhel.7.4-x64",
-        "rhel.7.4",
-        "rhel.7.3-x64-corert"
+        "rhel.7.4"
+      ]
+    },
+    "rhel.7.5-x64": {
+      "#import": [
+        "rhel.7.5",
+        "rhel.7.4-x64"
+      ]
+    },
+    "rhel.7.6": {
+      "#import": [
+        "rhel.7.5"
+      ]
+    },
+    "rhel.7.6-x64": {
+      "#import": [
+        "rhel.7.6",
+        "rhel.7.5-x64"
+      ]
+    },
+    "rhel.8": {
+      "#import": [
+        "rhel"
+      ]
+    },
+    "rhel.8-x64": {
+      "#import": [
+        "rhel.8",
+        "rhel-x64"
+      ]
+    },
+    "rhel.8.0": {
+      "#import": [
+        "rhel.8"
+      ]
+    },
+    "rhel.8.0-x64": {
+      "#import": [
+        "rhel.8.0",
+        "rhel.8-x64"
+      ]
+    },
+    "sles": {
+      "#import": [
+        "linux"
+      ]
+    },
+    "sles-x64": {
+      "#import": [
+        "sles",
+        "linux-x64"
+      ]
+    },
+    "sles.12": {
+      "#import": [
+        "sles"
+      ]
+    },
+    "sles.12-x64": {
+      "#import": [
+        "sles.12",
+        "sles-x64"
+      ]
+    },
+    "sles.12.1": {
+      "#import": [
+        "sles.12"
+      ]
+    },
+    "sles.12.1-x64": {
+      "#import": [
+        "sles.12.1",
+        "sles.12-x64"
+      ]
+    },
+    "sles.12.2": {
+      "#import": [
+        "sles.12.1"
+      ]
+    },
+    "sles.12.2-x64": {
+      "#import": [
+        "sles.12.2",
+        "sles.12.1-x64"
+      ]
+    },
+    "sles.12.3": {
+      "#import": [
+        "sles.12.2"
+      ]
+    },
+    "sles.12.3-x64": {
+      "#import": [
+        "sles.12.3",
+        "sles.12.2-x64"
+      ]
+    },
+    "sles.15": {
+      "#import": [
+        "sles.12.3"
+      ]
+    },
+    "sles.15-x64": {
+      "#import": [
+        "sles.15",
+        "sles.12.3-x64"
       ]
     },
     "tizen": {
@@ -1237,17 +1010,10 @@
         "linux-armel"
       ]
     },
-    "tizen-armel-corert": {
-      "#import": [
-        "tizen-corert",
-        "tizen-armel",
-        "linux-armel-corert"
-      ]
-    },
-    "tizen-corert": {
+    "tizen-x86": {
       "#import": [
         "tizen",
-        "linux-corert"
+        "linux-x86"
       ]
     },
     "tizen.4.0.0": {
@@ -1261,18 +1027,27 @@
         "tizen-armel"
       ]
     },
-    "tizen.4.0.0-armel-corert": {
+    "tizen.4.0.0-x86": {
       "#import": [
-        "tizen.4.0.0-corert",
-        "tizen.4.0.0-armel",
         "tizen.4.0.0",
-        "tizen-armel-corert"
+        "tizen-x86"
       ]
     },
-    "tizen.4.0.0-corert": {
+    "tizen.5.0.0": {
       "#import": [
-        "tizen.4.0.0",
-        "tizen-corert"
+        "tizen.4.0.0"
+      ]
+    },
+    "tizen.5.0.0-armel": {
+      "#import": [
+        "tizen.5.0.0",
+        "tizen.4.0.0-armel"
+      ]
+    },
+    "tizen.5.0.0-x86": {
+      "#import": [
+        "tizen.5.0.0",
+        "tizen.4.0.0-x86"
       ]
     },
     "ubuntu": {
@@ -1286,30 +1061,10 @@
         "debian-arm"
       ]
     },
-    "ubuntu-arm-corert": {
-      "#import": [
-        "ubuntu-corert",
-        "ubuntu-arm",
-        "debian-arm-corert"
-      ]
-    },
     "ubuntu-arm64": {
       "#import": [
         "ubuntu",
         "debian-arm64"
-      ]
-    },
-    "ubuntu-arm64-corert": {
-      "#import": [
-        "ubuntu-corert",
-        "ubuntu-arm64",
-        "debian-arm64-corert"
-      ]
-    },
-    "ubuntu-corert": {
-      "#import": [
-        "ubuntu",
-        "debian-corert"
       ]
     },
     "ubuntu-x64": {
@@ -1318,24 +1073,10 @@
         "debian-x64"
       ]
     },
-    "ubuntu-x64-corert": {
-      "#import": [
-        "ubuntu-corert",
-        "ubuntu-x64",
-        "debian-x64-corert"
-      ]
-    },
     "ubuntu-x86": {
       "#import": [
         "ubuntu",
         "debian-x86"
-      ]
-    },
-    "ubuntu-x86-corert": {
-      "#import": [
-        "ubuntu-corert",
-        "ubuntu-x86",
-        "debian-x86-corert"
       ]
     },
     "ubuntu.14.04": {
@@ -1349,46 +1090,16 @@
         "ubuntu-arm"
       ]
     },
-    "ubuntu.14.04-arm-corert": {
-      "#import": [
-        "ubuntu.14.04-corert",
-        "ubuntu.14.04-arm",
-        "ubuntu.14.04",
-        "ubuntu-arm-corert"
-      ]
-    },
-    "ubuntu.14.04-corert": {
-      "#import": [
-        "ubuntu.14.04",
-        "ubuntu-corert"
-      ]
-    },
     "ubuntu.14.04-x64": {
       "#import": [
         "ubuntu.14.04",
         "ubuntu-x64"
       ]
     },
-    "ubuntu.14.04-x64-corert": {
-      "#import": [
-        "ubuntu.14.04-corert",
-        "ubuntu.14.04-x64",
-        "ubuntu.14.04",
-        "ubuntu-x64-corert"
-      ]
-    },
     "ubuntu.14.04-x86": {
       "#import": [
         "ubuntu.14.04",
         "ubuntu-x86"
-      ]
-    },
-    "ubuntu.14.04-x86-corert": {
-      "#import": [
-        "ubuntu.14.04-corert",
-        "ubuntu.14.04-x86",
-        "ubuntu.14.04",
-        "ubuntu-x86-corert"
       ]
     },
     "ubuntu.14.10": {
@@ -1402,46 +1113,16 @@
         "ubuntu-arm"
       ]
     },
-    "ubuntu.14.10-arm-corert": {
-      "#import": [
-        "ubuntu.14.10-corert",
-        "ubuntu.14.10-arm",
-        "ubuntu.14.10",
-        "ubuntu-arm-corert"
-      ]
-    },
-    "ubuntu.14.10-corert": {
-      "#import": [
-        "ubuntu.14.10",
-        "ubuntu-corert"
-      ]
-    },
     "ubuntu.14.10-x64": {
       "#import": [
         "ubuntu.14.10",
         "ubuntu-x64"
       ]
     },
-    "ubuntu.14.10-x64-corert": {
-      "#import": [
-        "ubuntu.14.10-corert",
-        "ubuntu.14.10-x64",
-        "ubuntu.14.10",
-        "ubuntu-x64-corert"
-      ]
-    },
     "ubuntu.14.10-x86": {
       "#import": [
         "ubuntu.14.10",
         "ubuntu-x86"
-      ]
-    },
-    "ubuntu.14.10-x86-corert": {
-      "#import": [
-        "ubuntu.14.10-corert",
-        "ubuntu.14.10-x86",
-        "ubuntu.14.10",
-        "ubuntu-x86-corert"
       ]
     },
     "ubuntu.15.04": {
@@ -1455,46 +1136,16 @@
         "ubuntu-arm"
       ]
     },
-    "ubuntu.15.04-arm-corert": {
-      "#import": [
-        "ubuntu.15.04-corert",
-        "ubuntu.15.04-arm",
-        "ubuntu.15.04",
-        "ubuntu-arm-corert"
-      ]
-    },
-    "ubuntu.15.04-corert": {
-      "#import": [
-        "ubuntu.15.04",
-        "ubuntu-corert"
-      ]
-    },
     "ubuntu.15.04-x64": {
       "#import": [
         "ubuntu.15.04",
         "ubuntu-x64"
       ]
     },
-    "ubuntu.15.04-x64-corert": {
-      "#import": [
-        "ubuntu.15.04-corert",
-        "ubuntu.15.04-x64",
-        "ubuntu.15.04",
-        "ubuntu-x64-corert"
-      ]
-    },
     "ubuntu.15.04-x86": {
       "#import": [
         "ubuntu.15.04",
         "ubuntu-x86"
-      ]
-    },
-    "ubuntu.15.04-x86-corert": {
-      "#import": [
-        "ubuntu.15.04-corert",
-        "ubuntu.15.04-x86",
-        "ubuntu.15.04",
-        "ubuntu-x86-corert"
       ]
     },
     "ubuntu.15.10": {
@@ -1508,46 +1159,16 @@
         "ubuntu-arm"
       ]
     },
-    "ubuntu.15.10-arm-corert": {
-      "#import": [
-        "ubuntu.15.10-corert",
-        "ubuntu.15.10-arm",
-        "ubuntu.15.10",
-        "ubuntu-arm-corert"
-      ]
-    },
-    "ubuntu.15.10-corert": {
-      "#import": [
-        "ubuntu.15.10",
-        "ubuntu-corert"
-      ]
-    },
     "ubuntu.15.10-x64": {
       "#import": [
         "ubuntu.15.10",
         "ubuntu-x64"
       ]
     },
-    "ubuntu.15.10-x64-corert": {
-      "#import": [
-        "ubuntu.15.10-corert",
-        "ubuntu.15.10-x64",
-        "ubuntu.15.10",
-        "ubuntu-x64-corert"
-      ]
-    },
     "ubuntu.15.10-x86": {
       "#import": [
         "ubuntu.15.10",
         "ubuntu-x86"
-      ]
-    },
-    "ubuntu.15.10-x86-corert": {
-      "#import": [
-        "ubuntu.15.10-corert",
-        "ubuntu.15.10-x86",
-        "ubuntu.15.10",
-        "ubuntu-x86-corert"
       ]
     },
     "ubuntu.16.04": {
@@ -1561,32 +1182,10 @@
         "ubuntu-arm"
       ]
     },
-    "ubuntu.16.04-arm-corert": {
-      "#import": [
-        "ubuntu.16.04-corert",
-        "ubuntu.16.04-arm",
-        "ubuntu.16.04",
-        "ubuntu-arm-corert"
-      ]
-    },
     "ubuntu.16.04-arm64": {
       "#import": [
         "ubuntu.16.04",
         "ubuntu-arm64"
-      ]
-    },
-    "ubuntu.16.04-arm64-corert": {
-      "#import": [
-        "ubuntu.16.04-corert",
-        "ubuntu.16.04-arm64",
-        "ubuntu.16.04",
-        "ubuntu-arm64-corert"
-      ]
-    },
-    "ubuntu.16.04-corert": {
-      "#import": [
-        "ubuntu.16.04",
-        "ubuntu-corert"
       ]
     },
     "ubuntu.16.04-x64": {
@@ -1595,26 +1194,10 @@
         "ubuntu-x64"
       ]
     },
-    "ubuntu.16.04-x64-corert": {
-      "#import": [
-        "ubuntu.16.04-corert",
-        "ubuntu.16.04-x64",
-        "ubuntu.16.04",
-        "ubuntu-x64-corert"
-      ]
-    },
     "ubuntu.16.04-x86": {
       "#import": [
         "ubuntu.16.04",
         "ubuntu-x86"
-      ]
-    },
-    "ubuntu.16.04-x86-corert": {
-      "#import": [
-        "ubuntu.16.04-corert",
-        "ubuntu.16.04-x86",
-        "ubuntu.16.04",
-        "ubuntu-x86-corert"
       ]
     },
     "ubuntu.16.10": {
@@ -1628,32 +1211,10 @@
         "ubuntu-arm"
       ]
     },
-    "ubuntu.16.10-arm-corert": {
-      "#import": [
-        "ubuntu.16.10-corert",
-        "ubuntu.16.10-arm",
-        "ubuntu.16.10",
-        "ubuntu-arm-corert"
-      ]
-    },
     "ubuntu.16.10-arm64": {
       "#import": [
         "ubuntu.16.10",
         "ubuntu-arm64"
-      ]
-    },
-    "ubuntu.16.10-arm64-corert": {
-      "#import": [
-        "ubuntu.16.10-corert",
-        "ubuntu.16.10-arm64",
-        "ubuntu.16.10",
-        "ubuntu-arm64-corert"
-      ]
-    },
-    "ubuntu.16.10-corert": {
-      "#import": [
-        "ubuntu.16.10",
-        "ubuntu-corert"
       ]
     },
     "ubuntu.16.10-x64": {
@@ -1662,26 +1223,126 @@
         "ubuntu-x64"
       ]
     },
-    "ubuntu.16.10-x64-corert": {
-      "#import": [
-        "ubuntu.16.10-corert",
-        "ubuntu.16.10-x64",
-        "ubuntu.16.10",
-        "ubuntu-x64-corert"
-      ]
-    },
     "ubuntu.16.10-x86": {
       "#import": [
         "ubuntu.16.10",
         "ubuntu-x86"
       ]
     },
-    "ubuntu.16.10-x86-corert": {
+    "ubuntu.17.04": {
       "#import": [
-        "ubuntu.16.10-corert",
-        "ubuntu.16.10-x86",
-        "ubuntu.16.10",
-        "ubuntu-x86-corert"
+        "ubuntu"
+      ]
+    },
+    "ubuntu.17.04-arm": {
+      "#import": [
+        "ubuntu.17.04",
+        "ubuntu-arm"
+      ]
+    },
+    "ubuntu.17.04-arm64": {
+      "#import": [
+        "ubuntu.17.04",
+        "ubuntu-arm64"
+      ]
+    },
+    "ubuntu.17.04-x64": {
+      "#import": [
+        "ubuntu.17.04",
+        "ubuntu-x64"
+      ]
+    },
+    "ubuntu.17.04-x86": {
+      "#import": [
+        "ubuntu.17.04",
+        "ubuntu-x86"
+      ]
+    },
+    "ubuntu.17.10": {
+      "#import": [
+        "ubuntu"
+      ]
+    },
+    "ubuntu.17.10-arm": {
+      "#import": [
+        "ubuntu.17.10",
+        "ubuntu-arm"
+      ]
+    },
+    "ubuntu.17.10-arm64": {
+      "#import": [
+        "ubuntu.17.10",
+        "ubuntu-arm64"
+      ]
+    },
+    "ubuntu.17.10-x64": {
+      "#import": [
+        "ubuntu.17.10",
+        "ubuntu-x64"
+      ]
+    },
+    "ubuntu.17.10-x86": {
+      "#import": [
+        "ubuntu.17.10",
+        "ubuntu-x86"
+      ]
+    },
+    "ubuntu.18.04": {
+      "#import": [
+        "ubuntu"
+      ]
+    },
+    "ubuntu.18.04-arm": {
+      "#import": [
+        "ubuntu.18.04",
+        "ubuntu-arm"
+      ]
+    },
+    "ubuntu.18.04-arm64": {
+      "#import": [
+        "ubuntu.18.04",
+        "ubuntu-arm64"
+      ]
+    },
+    "ubuntu.18.04-x64": {
+      "#import": [
+        "ubuntu.18.04",
+        "ubuntu-x64"
+      ]
+    },
+    "ubuntu.18.04-x86": {
+      "#import": [
+        "ubuntu.18.04",
+        "ubuntu-x86"
+      ]
+    },
+    "ubuntu.18.10": {
+      "#import": [
+        "ubuntu"
+      ]
+    },
+    "ubuntu.18.10-arm": {
+      "#import": [
+        "ubuntu.18.10",
+        "ubuntu-arm"
+      ]
+    },
+    "ubuntu.18.10-arm64": {
+      "#import": [
+        "ubuntu.18.10",
+        "ubuntu-arm64"
+      ]
+    },
+    "ubuntu.18.10-x64": {
+      "#import": [
+        "ubuntu.18.10",
+        "ubuntu-x64"
+      ]
+    },
+    "ubuntu.18.10-x86": {
+      "#import": [
+        "ubuntu.18.10",
+        "ubuntu-x86"
       ]
     },
     "unix": {
@@ -1694,21 +1355,9 @@
         "unix"
       ]
     },
-    "unix-arm-corert": {
-      "#import": [
-        "unix-corert",
-        "unix-arm"
-      ]
-    },
     "unix-arm64": {
       "#import": [
         "unix"
-      ]
-    },
-    "unix-arm64-corert": {
-      "#import": [
-        "unix-corert",
-        "unix-arm64"
       ]
     },
     "unix-armel": {
@@ -1716,38 +1365,14 @@
         "unix"
       ]
     },
-    "unix-armel-corert": {
-      "#import": [
-        "unix-corert",
-        "unix-armel"
-      ]
-    },
-    "unix-corert": {
-      "#import": [
-        "unix",
-        "corert"
-      ]
-    },
     "unix-x64": {
       "#import": [
         "unix"
       ]
     },
-    "unix-x64-corert": {
-      "#import": [
-        "unix-corert",
-        "unix-x64"
-      ]
-    },
     "unix-x86": {
       "#import": [
         "unix"
-      ]
-    },
-    "unix-x86-corert": {
-      "#import": [
-        "unix-corert",
-        "unix-x86"
       ]
     },
     "win": {
@@ -1772,12 +1397,6 @@
         "win-arm"
       ]
     },
-    "win-arm-corert": {
-      "#import": [
-        "win-corert",
-        "win-arm"
-      ]
-    },
     "win-arm64": {
       "#import": [
         "win"
@@ -1787,18 +1406,6 @@
       "#import": [
         "win-aot",
         "win-arm64"
-      ]
-    },
-    "win-arm64-corert": {
-      "#import": [
-        "win-corert",
-        "win-arm64"
-      ]
-    },
-    "win-corert": {
-      "#import": [
-        "win",
-        "corert"
       ]
     },
     "win-x64": {
@@ -1812,12 +1419,6 @@
         "win-x64"
       ]
     },
-    "win-x64-corert": {
-      "#import": [
-        "win-corert",
-        "win-x64"
-      ]
-    },
     "win-x86": {
       "#import": [
         "win"
@@ -1826,12 +1427,6 @@
     "win-x86-aot": {
       "#import": [
         "win-aot",
-        "win-x86"
-      ]
-    },
-    "win-x86-corert": {
-      "#import": [
-        "win-corert",
         "win-x86"
       ]
     },
@@ -1860,14 +1455,6 @@
         "win81-arm-aot"
       ]
     },
-    "win10-arm-corert": {
-      "#import": [
-        "win10-corert",
-        "win10-arm",
-        "win10",
-        "win81-arm-corert"
-      ]
-    },
     "win10-arm64": {
       "#import": [
         "win10",
@@ -1880,20 +1467,6 @@
         "win10-arm64",
         "win10",
         "win81-arm64-aot"
-      ]
-    },
-    "win10-arm64-corert": {
-      "#import": [
-        "win10-corert",
-        "win10-arm64",
-        "win10",
-        "win81-arm64-corert"
-      ]
-    },
-    "win10-corert": {
-      "#import": [
-        "win10",
-        "win81-corert"
       ]
     },
     "win10-x64": {
@@ -1910,14 +1483,6 @@
         "win81-x64-aot"
       ]
     },
-    "win10-x64-corert": {
-      "#import": [
-        "win10-corert",
-        "win10-x64",
-        "win10",
-        "win81-x64-corert"
-      ]
-    },
     "win10-x86": {
       "#import": [
         "win10",
@@ -1930,14 +1495,6 @@
         "win10-x86",
         "win10",
         "win81-x86-aot"
-      ]
-    },
-    "win10-x86-corert": {
-      "#import": [
-        "win10-corert",
-        "win10-x86",
-        "win10",
-        "win81-x86-corert"
       ]
     },
     "win7": {
@@ -1965,14 +1522,6 @@
         "win-arm-aot"
       ]
     },
-    "win7-arm-corert": {
-      "#import": [
-        "win7-corert",
-        "win7-arm",
-        "win7",
-        "win-arm-corert"
-      ]
-    },
     "win7-arm64": {
       "#import": [
         "win7",
@@ -1985,20 +1534,6 @@
         "win7-arm64",
         "win7",
         "win-arm64-aot"
-      ]
-    },
-    "win7-arm64-corert": {
-      "#import": [
-        "win7-corert",
-        "win7-arm64",
-        "win7",
-        "win-arm64-corert"
-      ]
-    },
-    "win7-corert": {
-      "#import": [
-        "win7",
-        "win-corert"
       ]
     },
     "win7-x64": {
@@ -2015,14 +1550,6 @@
         "win-x64-aot"
       ]
     },
-    "win7-x64-corert": {
-      "#import": [
-        "win7-corert",
-        "win7-x64",
-        "win7",
-        "win-x64-corert"
-      ]
-    },
     "win7-x86": {
       "#import": [
         "win7",
@@ -2035,14 +1562,6 @@
         "win7-x86",
         "win7",
         "win-x86-aot"
-      ]
-    },
-    "win7-x86-corert": {
-      "#import": [
-        "win7-corert",
-        "win7-x86",
-        "win7",
-        "win-x86-corert"
       ]
     },
     "win8": {
@@ -2070,14 +1589,6 @@
         "win7-arm-aot"
       ]
     },
-    "win8-arm-corert": {
-      "#import": [
-        "win8-corert",
-        "win8-arm",
-        "win8",
-        "win7-arm-corert"
-      ]
-    },
     "win8-arm64": {
       "#import": [
         "win8",
@@ -2090,20 +1601,6 @@
         "win8-arm64",
         "win8",
         "win7-arm64-aot"
-      ]
-    },
-    "win8-arm64-corert": {
-      "#import": [
-        "win8-corert",
-        "win8-arm64",
-        "win8",
-        "win7-arm64-corert"
-      ]
-    },
-    "win8-corert": {
-      "#import": [
-        "win8",
-        "win7-corert"
       ]
     },
     "win8-x64": {
@@ -2120,14 +1617,6 @@
         "win7-x64-aot"
       ]
     },
-    "win8-x64-corert": {
-      "#import": [
-        "win8-corert",
-        "win8-x64",
-        "win8",
-        "win7-x64-corert"
-      ]
-    },
     "win8-x86": {
       "#import": [
         "win8",
@@ -2140,14 +1629,6 @@
         "win8-x86",
         "win8",
         "win7-x86-aot"
-      ]
-    },
-    "win8-x86-corert": {
-      "#import": [
-        "win8-corert",
-        "win8-x86",
-        "win8",
-        "win7-x86-corert"
       ]
     },
     "win81": {
@@ -2175,14 +1656,6 @@
         "win8-arm-aot"
       ]
     },
-    "win81-arm-corert": {
-      "#import": [
-        "win81-corert",
-        "win81-arm",
-        "win81",
-        "win8-arm-corert"
-      ]
-    },
     "win81-arm64": {
       "#import": [
         "win81",
@@ -2195,20 +1668,6 @@
         "win81-arm64",
         "win81",
         "win8-arm64-aot"
-      ]
-    },
-    "win81-arm64-corert": {
-      "#import": [
-        "win81-corert",
-        "win81-arm64",
-        "win81",
-        "win8-arm64-corert"
-      ]
-    },
-    "win81-corert": {
-      "#import": [
-        "win81",
-        "win8-corert"
       ]
     },
     "win81-x64": {
@@ -2225,14 +1684,6 @@
         "win8-x64-aot"
       ]
     },
-    "win81-x64-corert": {
-      "#import": [
-        "win81-corert",
-        "win81-x64",
-        "win81",
-        "win8-x64-corert"
-      ]
-    },
     "win81-x86": {
       "#import": [
         "win81",
@@ -2245,14 +1696,6 @@
         "win81-x86",
         "win81",
         "win8-x86-aot"
-      ]
-    },
-    "win81-x86-corert": {
-      "#import": [
-        "win81-corert",
-        "win81-x86",
-        "win81",
-        "win8-x86-corert"
       ]
     }
   }

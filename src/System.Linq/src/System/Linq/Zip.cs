@@ -10,19 +10,19 @@ namespace System.Linq
     {
         public static IEnumerable<TResult> Zip<TFirst, TSecond, TResult>(this IEnumerable<TFirst> first, IEnumerable<TSecond> second, Func<TFirst, TSecond, TResult> resultSelector)
         {
-            if (first == null)
+            if (first is null)
             {
-                throw Error.ArgumentNull(nameof(first));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.first);
             }
 
-            if (second == null)
+            if (second is null)
             {
-                throw Error.ArgumentNull(nameof(second));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.second);
             }
 
-            if (resultSelector == null)
+            if (resultSelector is null)
             {
-                throw Error.ArgumentNull(nameof(resultSelector));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.resultSelector);
             }
 
             return ZipIterator(first, second, resultSelector);

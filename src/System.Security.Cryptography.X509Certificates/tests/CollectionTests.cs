@@ -228,7 +228,8 @@ namespace System.Security.Cryptography.X509Certificates.Tests
                 Assert.Throws<ArgumentNullException>(() => ilist.Remove(null));
             }
 
-            Assert.Throws<ArgumentNullException>(() => new X509CertificateCollection.X509CertificateEnumerator(null));
+            AssertExtensions.Throws<ArgumentNullException, NullReferenceException>(
+                () => new X509CertificateCollection.X509CertificateEnumerator(null));
         }
 
         [Fact]
@@ -364,7 +365,14 @@ namespace System.Security.Cryptography.X509Certificates.Tests
                 // has been deliberately changed to no longer throw to match the behavior of
                 // X509CertificateCollection.Contains and the IList.Contains implementation, which do not
                 // throw.
-                Assert.False(collection.Contains(null));
+                if (PlatformDetection.IsFullFramework)
+                {
+                    Assert.Throws<ArgumentNullException>(() => collection.Contains(null));
+                }
+                else
+                {
+                    Assert.False(collection.Contains(null));
+                }
 
                 IList ilist = (IList)collection;
                 Assert.True(ilist.Contains(c1));
@@ -859,6 +867,33 @@ namespace System.Security.Cryptography.X509Certificates.Tests
                 foreach (X509Certificate2 cert in collection)
                 {
                     cert.Dispose();
+                }
+            }
+        }
+
+        [Fact]
+        [ActiveIssue(26397, TestPlatforms.OSX)]
+        public static void CanAddMultipleCertsWithSinglePrivateKey()
+        {
+            using (var oneWithKey = new X509Certificate2(TestData.PfxData, TestData.PfxDataPassword, X509KeyStorageFlags.Exportable | Cert.EphemeralIfPossible))
+            using (var twoWithoutKey = new X509Certificate2(TestData.ComplexNameInfoCert))
+            {
+                Assert.True(oneWithKey.HasPrivateKey);
+
+                var col = new X509Certificate2Collection
+                {
+                    oneWithKey,
+                    twoWithoutKey,
+                };
+
+                Assert.Equal(1, col.Cast<X509Certificate2>().Count(x => x.HasPrivateKey));
+                Assert.Equal(2, col.Count);
+
+                byte[] buffer = col.Export(X509ContentType.Pfx);
+
+                using (ImportedCollection newCollection = Cert.Import(buffer))
+                {
+                    Assert.Equal(2, newCollection.Collection.Count);
                 }
             }
         }

@@ -13,6 +13,11 @@ using System.Security.Cryptography;
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Security.Permissions.SecurityAttribute))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Security.Permissions.SecurityPermissionAttribute))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Security.Permissions.SecurityPermissionFlag))]
+#if netcoreapp || uap
+[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Security.IStackWalk))]
+[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Security.PermissionSet))]
+[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Security.Permissions.PermissionState))]
+#endif
 
 namespace System
 {
@@ -21,9 +26,29 @@ namespace System
         public ApplicationIdentity(string applicationIdentityFullName) { }
         public string CodeBase { get { throw null; } }
         public string FullName { get { throw null; } }
-        [System.Security.SecurityCriticalAttribute]
         void System.Runtime.Serialization.ISerializable.GetObjectData(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) { }
         public override string ToString() { throw null; }
+    }
+}
+
+namespace System.Configuration
+{
+    public sealed partial class ConfigurationPermission : System.Security.CodeAccessPermission, System.Security.Permissions.IUnrestrictedPermission
+    {
+        public ConfigurationPermission(System.Security.Permissions.PermissionState state) { }
+        public override System.Security.IPermission Copy() { throw null; }
+        public override void FromXml(System.Security.SecurityElement securityElement) { }
+        public override System.Security.IPermission Intersect(System.Security.IPermission target) { throw null; }
+        public override bool IsSubsetOf(System.Security.IPermission target) { throw null; }
+        public bool IsUnrestricted() { throw null; }
+        public override System.Security.SecurityElement ToXml() { throw null; }
+        public override System.Security.IPermission Union(System.Security.IPermission target) { throw null; }
+    }    
+    [System.AttributeUsageAttribute((System.AttributeTargets)(32767), AllowMultiple = true, Inherited = false)]
+    public sealed partial class ConfigurationPermissionAttribute : System.Security.Permissions.CodeAccessSecurityAttribute
+    {
+        public ConfigurationPermissionAttribute(System.Security.Permissions.SecurityAction action) : base(default(System.Security.Permissions.SecurityAction)) { }
+        public override System.Security.IPermission CreatePermission() { throw null; }
     }
 }
 
@@ -136,7 +161,6 @@ namespace System.Data.OracleClient
         public bool ShouldSerializeKeyRestrictions() => false;
     }
 }
-
 namespace System.Drawing.Printing
 {
     public sealed partial class PrintingPermission : System.Security.CodeAccessPermission, System.Security.Permissions.IUnrestrictedPermission
@@ -574,6 +598,7 @@ namespace System.Security
         void FromXml(System.Security.SecurityElement e, System.Security.Policy.PolicyLevel level);
         System.Security.SecurityElement ToXml(System.Security.Policy.PolicyLevel level);
     }
+#if !netcoreapp && !uap
     public partial interface IStackWalk
     {
         void Assert();
@@ -581,6 +606,7 @@ namespace System.Security
         void Deny();
         void PermitOnly();
     }
+#endif
     public sealed partial class NamedPermissionSet : System.Security.PermissionSet
     {
         public NamedPermissionSet(System.Security.NamedPermissionSet permSet) : base(default(System.Security.Permissions.PermissionState)) { }
@@ -596,6 +622,7 @@ namespace System.Security
         public override int GetHashCode() => base.GetHashCode();
         public override System.Security.SecurityElement ToXml() { throw null; }
     }
+#if !netcoreapp && !uap
     public partial class PermissionSet : System.Collections.ICollection, System.Collections.IEnumerable, System.Runtime.Serialization.IDeserializationCallback, System.Security.ISecurityEncodable, System.Security.IStackWalk
     {
         public PermissionSet(System.Security.Permissions.PermissionState state) { }
@@ -637,6 +664,7 @@ namespace System.Security
         public virtual System.Security.SecurityElement ToXml() { throw null; }
         public System.Security.PermissionSet Union(System.Security.PermissionSet other) { throw null; }
     }
+#endif
     public enum PolicyLevelType
     {
         AppDomain = 3,
@@ -668,7 +696,6 @@ namespace System.Security
         public static bool CheckExecutionRights { get { throw null; } set { } }
         [System.ObsoleteAttribute]
         public static bool SecurityEnabled { get { throw null; } set { } }
-        [SecurityCritical]
         public static bool CurrentThreadRequiresSecurityContextCapture() { throw null; }
         public static System.Security.PermissionSet GetStandardSandbox(System.Security.Policy.Evidence evidence) { throw null; }
         public static void GetZoneAndOrigin(out System.Collections.ArrayList zone, out System.Collections.ArrayList origin) { zone = default(System.Collections.ArrayList); origin = default(System.Collections.ArrayList); }
@@ -722,6 +749,41 @@ namespace System.Security
 
 namespace System.Security.Permissions
 {
+    public sealed partial class DataProtectionPermission : System.Security.CodeAccessPermission, System.Security.Permissions.IUnrestrictedPermission
+    {
+        public DataProtectionPermission(System.Security.Permissions.DataProtectionPermissionFlags flag) { }
+        public DataProtectionPermission(System.Security.Permissions.PermissionState state) { }
+        public System.Security.Permissions.DataProtectionPermissionFlags Flags { get { throw null; } set { } }
+        public override System.Security.IPermission Copy() { throw null; }
+        public override void FromXml(System.Security.SecurityElement securityElement) { }
+        public override System.Security.IPermission Intersect(System.Security.IPermission target) { throw null; }
+        public override bool IsSubsetOf(System.Security.IPermission target) { throw null; }
+        public bool IsUnrestricted() { throw null; }
+        public override System.Security.SecurityElement ToXml() { throw null; }
+        public override System.Security.IPermission Union(System.Security.IPermission target) { throw null; }
+    }
+    [System.AttributeUsageAttribute((System.AttributeTargets)109, AllowMultiple = true, Inherited = false)]
+    [System.Security.Permissions.HostProtectionAttribute(System.Security.Permissions.SecurityAction.LinkDemand, MayLeakOnAbort=true)]
+    public sealed partial class DataProtectionPermissionAttribute : System.Security.Permissions.CodeAccessSecurityAttribute
+    {
+        public DataProtectionPermissionAttribute(System.Security.Permissions.SecurityAction action) : base(default(System.Security.Permissions.SecurityAction)) { }
+        public System.Security.Permissions.DataProtectionPermissionFlags Flags { get { throw null; } set { } }
+        public bool ProtectData { get { throw null; } set { } }
+        public bool ProtectMemory { get { throw null; } set { } }
+        public bool UnprotectData { get { throw null; } set { } }
+        public bool UnprotectMemory { get { throw null; } set { } }
+        public override System.Security.IPermission CreatePermission() { throw null; }
+    }
+    [System.FlagsAttribute]
+    public enum DataProtectionPermissionFlags
+    {
+        AllFlags = 15,
+        NoFlags = 0,
+        ProtectData = 1,
+        ProtectMemory = 4,
+        UnprotectData = 2,
+        UnprotectMemory = 8,
+    }
     public sealed partial class EnvironmentPermission : System.Security.CodeAccessPermission, System.Security.Permissions.IUnrestrictedPermission
     {
         public EnvironmentPermission(System.Security.Permissions.EnvironmentPermissionAccess flag, string pathList) { }
@@ -915,7 +977,6 @@ namespace System.Security.Permissions
         public IsolatedStorageFilePermissionAttribute(SecurityAction action) : base(action) { }
         public override IPermission CreatePermission() { return null; }
     }
-    [SecurityPermission(SecurityAction.InheritanceDemand, ControlEvidence = true, ControlPolicy = true)]
     public abstract class IsolatedStoragePermission : CodeAccessPermission, IUnrestrictedPermission
     {
         protected IsolatedStoragePermission(PermissionState state) { }
@@ -1027,11 +1088,13 @@ namespace System.Security.Permissions
         public override System.Security.IPermission CreatePermission() { throw null; }
         public System.Security.PermissionSet CreatePermissionSet() { throw null; }
     }
+#if !netcoreapp && !uap
     public enum PermissionState
     {
         None = 0,
         Unrestricted = 1,
     }
+#endif
     public sealed partial class PrincipalPermission : System.Security.IPermission, System.Security.ISecurityEncodable, System.Security.Permissions.IUnrestrictedPermission
     {
         public PrincipalPermission(System.Security.Permissions.PermissionState state) { }
@@ -1158,7 +1221,6 @@ namespace System.Security.Permissions
         public string Write { get; set; }
         public override System.Security.IPermission CreatePermission() { throw null; }
     }
-    [SecurityPermission(SecurityAction.InheritanceDemand, ControlEvidence = true, ControlPolicy = true)]
     public abstract class ResourcePermissionBase : CodeAccessPermission, IUnrestrictedPermission
     {
         public const string Any = "*";
@@ -1462,11 +1524,9 @@ namespace System.Security.Policy
         public void AddRange(System.Security.Policy.ApplicationTrustCollection trusts) { }
         public void Clear() { }
         public void CopyTo(System.Security.Policy.ApplicationTrust[] array, int index) { }
-        [System.Security.SecurityCritical]
         public System.Security.Policy.ApplicationTrustCollection Find(System.ApplicationIdentity applicationIdentity, System.Security.Policy.ApplicationVersionMatch versionMatch) { throw null; }
         public System.Security.Policy.ApplicationTrustEnumerator GetEnumerator() { throw null; }
         public void Remove(System.Security.Policy.ApplicationTrust trust) { }
-        [System.Security.SecurityCritical]
         public void Remove(System.ApplicationIdentity applicationIdentity, System.Security.Policy.ApplicationVersionMatch versionMatch) { }
         public void RemoveRange(System.Security.Policy.ApplicationTrust[] trusts) { }
         public void RemoveRange(System.Security.Policy.ApplicationTrustCollection trusts) { }
@@ -1577,6 +1637,7 @@ namespace System.Security.Policy
         public override System.Security.Policy.PolicyStatement Resolve(System.Security.Policy.Evidence evidence) { throw null; }
         public override System.Security.Policy.CodeGroup ResolveMatchingCodeGroups(System.Security.Policy.Evidence evidence) { throw null; }
     }
+    [System.ObsoleteAttribute("This type is obsolete. See https://go.microsoft.com/fwlink/?LinkID=155570 for more information.")]
     public sealed partial class FirstMatchCodeGroup : System.Security.Policy.CodeGroup
     {
         public FirstMatchCodeGroup(System.Security.Policy.IMembershipCondition membershipCondition, System.Security.Policy.PolicyStatement policy) : base(default(System.Security.Policy.IMembershipCondition), default(System.Security.Policy.PolicyStatement)) { }
@@ -1667,6 +1728,7 @@ namespace System.Security.Policy
         public override System.Security.Policy.PolicyStatement Resolve(System.Security.Policy.Evidence evidence) { throw null; }
         public override System.Security.Policy.CodeGroup ResolveMatchingCodeGroups(System.Security.Policy.Evidence evidence) { throw null; }
     }
+    [System.ObsoleteAttribute("This type is obsolete. See https://go.microsoft.com/fwlink/?LinkID=155570 for more information.")]
     public sealed partial class PermissionRequestEvidence : System.Security.Policy.EvidenceBase
     {
         public PermissionRequestEvidence(System.Security.PermissionSet request, System.Security.PermissionSet optional, System.Security.PermissionSet denied) { }
@@ -1699,6 +1761,7 @@ namespace System.Security.Policy
         public void AddFullTrustAssembly(System.Security.Policy.StrongNameMembershipCondition snMC) { }
         public void AddNamedPermissionSet(System.Security.NamedPermissionSet permSet) { }
         public System.Security.NamedPermissionSet ChangeNamedPermissionSet(string name, System.Security.PermissionSet pSet) { throw null; }
+        [System.ObsoleteAttribute("AppDomain policy levels are obsolete. See https://go.microsoft.com/fwlink/?LinkID=155570 for more information.")]
         public static System.Security.Policy.PolicyLevel CreateAppDomainLevel() { throw null; }
         public void FromXml(System.Security.SecurityElement e) { }
         public System.Security.NamedPermissionSet GetNamedPermissionSet(string name) { throw null; }
@@ -1831,6 +1894,7 @@ namespace System.Security.Policy
         Run = 2,
         Upgrade = 1,
     }
+    [System.ObsoleteAttribute("This type is obsolete. See https://go.microsoft.com/fwlink/?LinkID=155570 for more information.")]
     public sealed partial class UnionCodeGroup : System.Security.Policy.CodeGroup
     {
         public UnionCodeGroup(System.Security.Policy.IMembershipCondition membershipCondition, System.Security.Policy.PolicyStatement policy) : base(default(System.Security.Policy.IMembershipCondition), default(System.Security.Policy.PolicyStatement)) { }
@@ -1889,6 +1953,59 @@ namespace System.Security.Policy
         public System.Security.SecurityElement ToXml(System.Security.Policy.PolicyLevel level) { throw null; }
     }
 }
+namespace System.ServiceProcess
+{
+    public sealed partial class ServiceControllerPermission : System.Security.Permissions.ResourcePermissionBase
+    {
+        public ServiceControllerPermission() { }
+        public ServiceControllerPermission(System.ServiceProcess.ServiceControllerPermissionAccess permissionAccess, string machineName, string serviceName) { }
+        public ServiceControllerPermission(System.ServiceProcess.ServiceControllerPermissionEntry[] permissionAccessEntries) { }
+        public ServiceControllerPermission(System.Security.Permissions.PermissionState state) { }
+        public System.ServiceProcess.ServiceControllerPermissionEntryCollection PermissionEntries { get { throw null; } }
+    }
+    [System.Flags]
+    public enum ServiceControllerPermissionAccess
+    {
+        None = 0,
+        Browse = 1 << 1,
+        Control = 1 << 2 | Browse,
+    }
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Class | AttributeTargets.Struct
+        | AttributeTargets.Assembly | AttributeTargets.Event, AllowMultiple = true, Inherited = false)]
+    public partial class ServiceControllerPermissionAttribute : System.Security.Permissions.CodeAccessSecurityAttribute
+    {
+        public ServiceControllerPermissionAttribute(System.Security.Permissions.SecurityAction action) : base(action) { }
+        public string MachineName { get { throw null; } set { } }
+        public System.ServiceProcess.ServiceControllerPermissionAccess PermissionAccess { get { throw null; } set { } }
+        public string ServiceName { get { throw null; } set { } }
+        public override System.Security.IPermission CreatePermission() { throw null; }
+    }
+    public partial class ServiceControllerPermissionEntry
+    {
+        public ServiceControllerPermissionEntry() { }
+        public ServiceControllerPermissionEntry(System.ServiceProcess.ServiceControllerPermissionAccess permissionAccess, string machineName, string serviceName) { }
+        public string MachineName { get { throw null; } }
+        public System.ServiceProcess.ServiceControllerPermissionAccess PermissionAccess { get { throw null; } }
+        public string ServiceName { get { throw null; } }
+    }
+    public sealed class ServiceControllerPermissionEntryCollection : System.Collections.CollectionBase
+    {
+        internal ServiceControllerPermissionEntryCollection() { }
+        public System.ServiceProcess.ServiceControllerPermissionEntry this[int index] { get { throw null; } set { } }
+        public int Add(System.ServiceProcess.ServiceControllerPermissionEntry value) { throw null; }
+        public void AddRange(System.ServiceProcess.ServiceControllerPermissionEntry[] value) { }
+        public void AddRange(System.ServiceProcess.ServiceControllerPermissionEntryCollection value) { }
+        public bool Contains(System.ServiceProcess.ServiceControllerPermissionEntry value) { throw null; }
+        public void CopyTo(System.ServiceProcess.ServiceControllerPermissionEntry[] array, int index) { }
+        public int IndexOf(System.ServiceProcess.ServiceControllerPermissionEntry value) { throw null; }
+        public void Insert(int index, System.ServiceProcess.ServiceControllerPermissionEntry value) { }
+        protected override void OnClear() { }
+        protected override void OnInsert(int index, object value) { }
+        protected override void OnRemove(int index, object value) { }
+        protected override void OnSet(int index, object oldValue, object newValue) { }
+        public void Remove(System.ServiceProcess.ServiceControllerPermissionEntry value) { }
+    }
+}
 namespace System.Transactions
 {
     public sealed partial class DistributedTransactionPermission : System.Security.CodeAccessPermission, System.Security.Permissions.IUnrestrictedPermission
@@ -1908,5 +2025,37 @@ namespace System.Transactions
         public DistributedTransactionPermissionAttribute(System.Security.Permissions.SecurityAction action) : base(action) { }
         public new bool Unrestricted { get; set; }
         public override System.Security.IPermission CreatePermission() { return null; }
+    }
+}
+namespace System.Web
+{
+    public sealed partial class AspNetHostingPermission : System.Security.CodeAccessPermission, System.Security.Permissions.IUnrestrictedPermission
+    {
+        public AspNetHostingPermission(System.Security.Permissions.PermissionState state) { }
+        public AspNetHostingPermission(System.Web.AspNetHostingPermissionLevel level) { }
+        public System.Web.AspNetHostingPermissionLevel Level { get { throw null; } set { } }
+        public override System.Security.IPermission Copy() { throw null; }
+        public override void FromXml(System.Security.SecurityElement securityElement) { }
+        public override System.Security.IPermission Intersect(System.Security.IPermission target) { throw null; }
+        public override bool IsSubsetOf(System.Security.IPermission target) { throw null; }
+        public bool IsUnrestricted() { throw null; }
+        public override System.Security.SecurityElement ToXml() { throw null; }
+        public override System.Security.IPermission Union(System.Security.IPermission target) { throw null; }
+    }
+    [System.AttributeUsageAttribute((System.AttributeTargets)32767, AllowMultiple = true, Inherited = false)]
+    public sealed partial class AspNetHostingPermissionAttribute : System.Security.Permissions.CodeAccessSecurityAttribute
+    {
+        public AspNetHostingPermissionAttribute(System.Security.Permissions.SecurityAction action) : base(default(System.Security.Permissions.SecurityAction)) { }
+        public System.Web.AspNetHostingPermissionLevel Level { get { throw null; } set { } }
+        public override System.Security.IPermission CreatePermission() { throw null; }
+    }
+    public enum AspNetHostingPermissionLevel
+    {
+        High = 500,
+        Low = 300,
+        Medium = 400,
+        Minimal = 200,
+        None = 100,
+        Unrestricted = 600,
     }
 }

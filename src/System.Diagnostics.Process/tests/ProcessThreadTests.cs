@@ -69,7 +69,7 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
-        [PlatformSpecific(TestPlatforms.OSX)] // OSX throws PNSE from StartTime
+        [PlatformSpecific(TestPlatforms.OSX|TestPlatforms.FreeBSD)] // OSX and FreeBSD throw PNSE from StartTime
         public void TestStartTimeProperty_OSX()
         {
             using (Process p = Process.GetCurrentProcess())
@@ -86,11 +86,11 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
-        [PlatformSpecific(~TestPlatforms.OSX)] // OSX throws PNSE from StartTime
+        [PlatformSpecific(TestPlatforms.Linux|TestPlatforms.Windows)] // OSX and FreeBSD throw PNSE from StartTime
         [SkipOnTargetFramework(TargetFrameworkMonikers.Uap, "Retrieving information about local processes is not supported on uap")]
         public async Task TestStartTimeProperty()
         {
-            TimeSpan allowedWindow = TimeSpan.FromSeconds(1);
+            TimeSpan allowedWindow = TimeSpan.FromSeconds(2);
 
             using (Process p = Process.GetCurrentProcess())
             {
@@ -129,7 +129,8 @@ namespace System.Diagnostics.Tests
                     p.Refresh();
                     try
                     {
-                        Assert.Contains(p.Threads.Cast<ProcessThread>(), t => t.StartTime.ToUniversalTime() >= curTime - allowedWindow);
+                        var newest = p.Threads.Cast<ProcessThread>().OrderBy(t => t.StartTime.ToUniversalTime()).Last();
+                        Assert.InRange(newest.StartTime.ToUniversalTime(), curTime - allowedWindow, DateTime.Now.ToUniversalTime() + allowedWindow);
                     }
                     catch (InvalidOperationException)
                     {
@@ -173,6 +174,12 @@ namespace System.Diagnostics.Tests
             ThreadPriorityLevel originalPriority = thread.PriorityLevel;
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                Assert.Throws<PlatformNotSupportedException>(() => thread.PriorityLevel = ThreadPriorityLevel.AboveNormal);
+                return;
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Create("FREEBSD")))
             {
                 Assert.Throws<PlatformNotSupportedException>(() => thread.PriorityLevel = ThreadPriorityLevel.AboveNormal);
                 return;

@@ -6,8 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
-#pragma warning disable 1718 //Comparison made to same variable; did you mean to compare something else?
-
 namespace System.MemoryTests
 {
     public static partial class MemoryTests
@@ -107,6 +105,20 @@ namespace System.MemoryTests
             Assert.True(readOnlyMemory.Equals(memoryAsObject));
         }
 
+        [Fact]
+        public static void DefaultMemoryCanBeBoxed()
+        {
+            Memory<byte> memory = default;
+            object memoryAsObject = memory;
+            Assert.True(memory.Equals(memoryAsObject));
+
+            ReadOnlyMemory<byte> readOnlyMemory = default;
+            object readOnlyMemoryAsObject = readOnlyMemory;
+            Assert.True(readOnlyMemory.Equals(readOnlyMemoryAsObject));
+
+            Assert.True(memory.Equals(readOnlyMemoryAsObject));
+            Assert.True(readOnlyMemory.Equals(memoryAsObject));
+        }
 
         [Theory]
         [MemberData(nameof(ValidArraySegments))]

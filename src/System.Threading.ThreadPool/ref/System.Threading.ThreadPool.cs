@@ -8,6 +8,10 @@
 
 namespace System.Threading
 {
+    public interface IThreadPoolWorkItem
+    {
+        void Execute();
+    }
     public sealed partial class RegisteredWaitHandle : System.MarshalByRefObject
     {
         internal RegisteredWaitHandle() { }
@@ -17,14 +21,13 @@ namespace System.Threading
     {
         [System.ObsoleteAttribute("ThreadPool.BindHandle(IntPtr) has been deprecated.  Please use ThreadPool.BindHandle(SafeHandle) instead.", false)]
         public static bool BindHandle(System.IntPtr osHandle) { throw null; }
-        [System.Security.SecurityCriticalAttribute]
         public static bool BindHandle(System.Runtime.InteropServices.SafeHandle osHandle) { throw null; }
         public static void GetAvailableThreads(out int workerThreads, out int completionPortThreads) { throw null; }
         public static void GetMaxThreads(out int workerThreads, out int completionPortThreads) { throw null; }
         public static void GetMinThreads(out int workerThreads, out int completionPortThreads) { throw null; }
         public static bool QueueUserWorkItem(System.Threading.WaitCallback callBack) { throw null; }
         public static bool QueueUserWorkItem(System.Threading.WaitCallback callBack, object state) { throw null; }
-        public static bool QueueUserWorkItem(System.Threading.WaitCallback callBack, object state, bool preferLocal) { throw null; }
+        public static bool QueueUserWorkItem<TState>(System.Action<TState> callBack, TState state, bool preferLocal) { throw null; }
         public static System.Threading.RegisteredWaitHandle RegisterWaitForSingleObject(System.Threading.WaitHandle waitObject, System.Threading.WaitOrTimerCallback callBack, object state, int millisecondsTimeOutInterval, bool executeOnlyOnce) { throw null; }
         public static System.Threading.RegisteredWaitHandle RegisterWaitForSingleObject(System.Threading.WaitHandle waitObject, System.Threading.WaitOrTimerCallback callBack, object state, long millisecondsTimeOutInterval, bool executeOnlyOnce) { throw null; }
         public static System.Threading.RegisteredWaitHandle RegisterWaitForSingleObject(System.Threading.WaitHandle waitObject, System.Threading.WaitOrTimerCallback callBack, object state, System.TimeSpan timeout, bool executeOnlyOnce) { throw null; }
@@ -34,7 +37,9 @@ namespace System.Threading
         public static bool SetMinThreads(int workerThreads, int completionPortThreads) { throw null; }
         [System.CLSCompliantAttribute(false)]
         public static unsafe bool UnsafeQueueNativeOverlapped(System.Threading.NativeOverlapped* overlapped) { throw null; }
+        public static bool UnsafeQueueUserWorkItem(System.Threading.IThreadPoolWorkItem callBack, bool preferLocal) { throw null; }
         public static bool UnsafeQueueUserWorkItem(System.Threading.WaitCallback callBack, object state) { throw null; }
+        public static bool UnsafeQueueUserWorkItem<TState>(System.Action<TState> callBack, TState state, bool preferLocal) { throw null; }
         public static System.Threading.RegisteredWaitHandle UnsafeRegisterWaitForSingleObject(System.Threading.WaitHandle waitObject, System.Threading.WaitOrTimerCallback callBack, object state, int millisecondsTimeOutInterval, bool executeOnlyOnce) { throw null; }
         public static System.Threading.RegisteredWaitHandle UnsafeRegisterWaitForSingleObject(System.Threading.WaitHandle waitObject, System.Threading.WaitOrTimerCallback callBack, object state, long millisecondsTimeOutInterval, bool executeOnlyOnce) { throw null; }
         public static System.Threading.RegisteredWaitHandle UnsafeRegisterWaitForSingleObject(System.Threading.WaitHandle waitObject, System.Threading.WaitOrTimerCallback callBack, object state, System.TimeSpan timeout, bool executeOnlyOnce) { throw null; }

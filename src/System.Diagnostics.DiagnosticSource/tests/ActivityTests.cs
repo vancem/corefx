@@ -1,4 +1,8 @@
-﻿using System.Collections.Generic;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -427,6 +431,7 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
+        [OuterLoop] // Slighly flaky - https://github.com/dotnet/corefx/issues/23072
         public void DiagnosticSourceStartStop()
         {
             using (DiagnosticListener listener = new DiagnosticListener("Testing"))
@@ -525,6 +530,62 @@ namespace System.Diagnostics.Tests
             activity1.Stop();
 
             Assert.Same(originalActivity, Activity.Current);
+        }
+
+        /// <summary>
+        /// Tests that Activity.Current could be set
+        /// </summary>
+        [Fact]
+        public async Task ActivityCurrentSet()
+        {
+            Activity activity = new Activity("activity");
+
+            // start Activity in the 'child' context
+            await Task.Run(() => activity.Start());
+
+            Assert.Null(Activity.Current);
+            Activity.Current = activity;
+            Assert.Same(activity, Activity.Current);
+        }
+
+        /// <summary>
+        /// Tests that Activity.Current could be set to null
+        /// </summary>
+        [Fact]
+        public void ActivityCurrentSetToNull()
+        {
+            Activity started = new Activity("started").Start();
+
+            Activity.Current = null;
+            Assert.Null(Activity.Current);
+        }
+
+        /// <summary>
+        /// Tests that Activity.Current could not be set to Activity
+        /// that has not been started yet
+        /// </summary>
+        [Fact]
+        public void ActivityCurrentNotSetToNotStarted()
+        {
+            Activity started = new Activity("started").Start();
+            Activity notStarted = new Activity("notStarted");
+
+            Activity.Current = notStarted;
+            Assert.Same(started, Activity.Current);
+        }
+
+        /// <summary>
+        /// Tests that Activity.Current could not be set to stopped Activity
+        /// </summary>
+        [Fact]
+        public void ActivityCurrentNotSetToStopped()
+        {
+            Activity started = new Activity("started").Start();
+            Activity stopped = new Activity("stopped").Start();
+            stopped.Stop();
+
+            Activity.Current = stopped;
+            Assert.Same(started, Activity.Current);
         }
 
         private class TestObserver : IObserver<KeyValuePair<string, object>>

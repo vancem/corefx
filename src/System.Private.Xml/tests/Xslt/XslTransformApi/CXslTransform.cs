@@ -1,4 +1,3 @@
-
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
@@ -1414,7 +1413,7 @@ namespace System.Xml.Tests
         {
             try
             {
-                LoadXSL("\\\\", InputType.URI, readerType);
+                LoadXSL("     ", InputType.URI, readerType);
             }
             catch (System.ArgumentException)
             {
@@ -1455,7 +1454,7 @@ namespace System.Xml.Tests
 #pragma warning disable 0618
             xslt = new XslTransform();
 #pragma warning restore 0618
-            String _strXslFile = "showParam.xsl";
+            string _strXslFile = "showParam.xsl";
 
             _strXslFile = FullFilePath(_strXslFile);
             _output.WriteLine("Compiling {0}", _strXslFile);
@@ -1575,7 +1574,7 @@ namespace System.Xml.Tests
 		5.No Value Specified
 		6.No Value Specified</result>";
 
-            Boolean fTEST_FAIL = false;
+            bool fTEST_FAIL = false;
 #pragma warning disable 0618
             xslt = new XslTransform();
 
@@ -1641,7 +1640,7 @@ namespace System.Xml.Tests
         [Theory]
         public void LoadXmlReader3()
         {
-            Boolean fTEST_FAIL = false;
+            bool fTEST_FAIL = false;
 #pragma warning disable 0618
             xslt = new XslTransform();
 
@@ -1677,7 +1676,7 @@ namespace System.Xml.Tests
         [Theory]
         public void LoadXmlReader4()
         {
-            Boolean fTEST_FAIL = false;
+            bool fTEST_FAIL = false;
 #pragma warning disable 0618
             xslt = new XslTransform();
 
@@ -1713,7 +1712,7 @@ namespace System.Xml.Tests
         [Theory]
         public void LoadXmlReader5()
         {
-            Boolean fTEST_FAIL = false;
+            bool fTEST_FAIL = false;
 #pragma warning disable 0618
             xslt = new XslTransform();
 
@@ -2201,7 +2200,7 @@ namespace System.Xml.Tests
 		5.No Value Specified
 		6.No Value Specified</result>";
 
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             if (LoadXSL("showParam.xsl", inputType, readerType) == 1)
             {
@@ -2239,7 +2238,7 @@ namespace System.Xml.Tests
         [Theory]
         public void TransformStrStr3(InputType inputType, ReaderType readerType)
         {
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             if (LoadXSL("showParam.xsl", inputType, readerType) == 1)
             {
@@ -2286,7 +2285,7 @@ namespace System.Xml.Tests
         [Theory]
         public void TransformStrStr5(InputType inputType, ReaderType readerType)
         {
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             if (LoadXSL("showParam.xsl", inputType, readerType) == 1)
             {
@@ -2332,7 +2331,7 @@ namespace System.Xml.Tests
         [Theory]
         public void TransformStrStr7(InputType inputType, ReaderType readerType)
         {
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             if (LoadXSL("showParam.xsl", inputType, readerType) == 1)
             {
@@ -2364,7 +2363,7 @@ namespace System.Xml.Tests
 		5.No Value Specified
 		6.No Value Specified</result>";
 
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             for (int i = 0; i < 50; i++)
             {
@@ -2481,7 +2480,7 @@ namespace System.Xml.Tests
         [Theory]
         public void TransformStrStr12(InputType inputType, ReaderType readerType)
         {
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
             int iCount = 0;
             if (LoadXSL("showParam.xsl", inputType, readerType) == 1)
             {
@@ -2519,11 +2518,11 @@ namespace System.Xml.Tests
         [Theory]
         public void TransformStrStr12_win(InputType inputType, ReaderType readerType)
         {
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             if (LoadXSL("showParam.xsl", inputType, readerType) == 1)
             {
-                Assert.Throws<System.ArgumentException>(() => xslt.Transform(szFullFilename, "\\\\"));
+                Assert.Throws<System.ArgumentException>(() => xslt.Transform(szFullFilename, "    "));
                 return;
             }
 
@@ -2538,7 +2537,7 @@ namespace System.Xml.Tests
         [Theory]
         public void TransformStrStr13(InputType inputType, ReaderType readerType)
         {
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
             Stream strmTemp;
 
             if (LoadXSL("showParam.xsl", inputType, readerType) == 1)
@@ -2618,7 +2617,7 @@ namespace System.Xml.Tests
             // "xmlResolver_document_function.xsl" contains
             // <xsl:for-each select="document('xmlResolver_document_function.xml')//elem">
             string expected = @"<?xml version=""1.0"" encoding=""utf-8""?><result></result>";
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             if (LoadXSL("xmlResolver_document_function.xsl", inputType, readerType) == 1)
             {

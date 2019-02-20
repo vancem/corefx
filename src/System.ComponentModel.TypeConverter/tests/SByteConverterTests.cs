@@ -16,9 +16,9 @@ namespace System.ComponentModel.Tests
         {
             ConvertFrom_WithContext(new object[3, 3]
                 {
-                    { "1  ", (SByte)1, null },
-                    { "&H6", (SByte)6, null },
-                    { "-7", (SByte)(-7), CultureInfo.InvariantCulture }
+                    { "1  ", (sbyte)1, null },
+                    { "&H6", (sbyte)6, null },
+                    { "-7", (sbyte)(-7), CultureInfo.InvariantCulture }
                 },
                 SByteConverterTests.s_converter);
         }
@@ -26,7 +26,7 @@ namespace System.ComponentModel.Tests
         [Fact]
         public static void ConvertFrom_WithContext_Negative()
         {
-            Assert.Throws<Exception>(
+            AssertExtensions.Throws<ArgumentException, Exception>(
                 () => SByteConverterTests.s_converter.ConvertFrom(TypeConverterTests.s_context, null, "8.0"));
         }
 
@@ -35,9 +35,9 @@ namespace System.ComponentModel.Tests
         {
             ConvertTo_WithContext(new object[3, 3]
                 {
-                    { (SByte)1, "1", null },
-                    { (SByte)(-2), (SByte)(-2), CultureInfo.InvariantCulture },
-                    { (SByte)3, (Single)3.0, null }
+                    { (sbyte)1, "1", null },
+                    { (sbyte)(-2), (sbyte)(-2), CultureInfo.InvariantCulture },
+                    { (sbyte)3, (float)3.0, null }
                 },
                 SByteConverterTests.s_converter);
         }

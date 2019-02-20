@@ -5,10 +5,11 @@
 // Changes to this file must follow the http://aka.ms/api-review process.
 // ------------------------------------------------------------------------------
 
-// Types moved down into System.Runtime.Handles
+// Types moved down into System.Runtime
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Runtime.InteropServices.CriticalHandle))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Runtime.InteropServices.GCHandle))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Runtime.InteropServices.GCHandleType))]
+[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Runtime.InteropServices.InAttribute))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Runtime.InteropServices.SafeHandle))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.Missing))]
 
@@ -107,12 +108,14 @@ namespace System.IO
         public override int Read(byte[] buffer, int offset, int count) { throw null; }
         public override int Read(System.Span<byte> destination) { throw null; }
         public override System.Threading.Tasks.Task<int> ReadAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken) { throw null; }
+        public override System.Threading.Tasks.ValueTask<int> ReadAsync(Memory<byte> buffer, System.Threading.CancellationToken cancellationToken = default) { throw null; }
         public override int ReadByte() { throw null; }
         public override long Seek(long offset, System.IO.SeekOrigin loc) { throw null; }
         public override void SetLength(long value) { }
         public override void Write(byte[] buffer, int offset, int count) { }
         public override void Write(System.ReadOnlySpan<byte> source) { }
         public override System.Threading.Tasks.Task WriteAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken) { throw null; }
+        public override System.Threading.Tasks.ValueTask WriteAsync(System.ReadOnlyMemory<byte> buffer, System.Threading.CancellationToken cancellationToken = default) { throw null; }
         public override void WriteByte(byte value) { }
     }
 }
@@ -122,6 +125,12 @@ namespace System.Runtime.CompilerServices
     public sealed partial class IUnknownConstantAttribute : System.Runtime.CompilerServices.CustomConstantAttribute
     {
         public IUnknownConstantAttribute() { }
+        public override object Value { get { throw null; } }
+    }
+    [System.AttributeUsageAttribute((System.AttributeTargets)(2304), Inherited = false)]
+    public sealed partial class IDispatchConstantAttribute : System.Runtime.CompilerServices.CustomConstantAttribute
+    {
+        public IDispatchConstantAttribute() { }
         public override object Value { get { throw null; } }
     }
 }
@@ -138,9 +147,9 @@ namespace System.Runtime.InteropServices
         public AutomationProxyAttribute(bool val) { }
         public bool Value { get { throw null; } }
     }     
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct ArrayWithOffset
     {
+        private object _dummy;
         public ArrayWithOffset(object array, int offset) { throw null; }
         public override bool Equals(object obj) { throw null; }
         public bool Equals(System.Runtime.InteropServices.ArrayWithOffset obj) { throw null; }
@@ -375,6 +384,7 @@ namespace System.Runtime.InteropServices
         public DllImportAttribute(string dllName) { }
         public string Value { get { throw null; } }
     }
+    public delegate System.IntPtr DllImportResolver(string libraryName, System.Reflection.Assembly assembly, DllImportSearchPath? searchPath);
     [System.FlagsAttribute]
     public enum DllImportSearchPath
     {
@@ -412,8 +422,9 @@ namespace System.Runtime.InteropServices
         public void Add() { }
         public void Remove() { }
     }
-    public struct HandleRef
+    public readonly struct HandleRef
     {
+        private readonly object _dummy;
         public HandleRef(object wrapper, System.IntPtr handle) : this() { }
         public System.IntPtr Handle { get; }
         public object Wrapper { get; }
@@ -448,11 +459,6 @@ namespace System.Runtime.InteropServices
     {
         public ImportedFromTypeLibAttribute(String tlbFile) { }
         public String Value { get { throw null; } }
-    }         
-    [System.AttributeUsageAttribute((System.AttributeTargets)(2048), Inherited = false)]
-    public sealed partial class InAttribute : System.Attribute
-    {
-        public InAttribute() { }
     }
     [System.AttributeUsageAttribute((System.AttributeTargets)(1024), Inherited = false)]
     public sealed partial class InterfaceTypeAttribute : System.Attribute
@@ -538,35 +544,31 @@ namespace System.Runtime.InteropServices
         public static int GetExceptionCode() { throw null; }
         public static System.Exception GetExceptionForHR(int errorCode) { throw null; }
         public static System.Exception GetExceptionForHR(int errorCode, System.IntPtr errorInfo) { throw null; }
+        public static IntPtr GetExceptionPointers() { throw null; }
         [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
         public static System.IntPtr GetFunctionPointerForDelegate(System.Delegate d) { throw null; }
         public static System.IntPtr GetFunctionPointerForDelegate<TDelegate>(TDelegate d) { throw null; }
-        public static System.IntPtr GetHINSTANCE(System.Reflection.Module m) { throw null; }        
+        public static System.IntPtr GetHINSTANCE(System.Reflection.Module m) { throw null; }
         public static int GetHRForException(System.Exception e) { throw null; }
         public static int GetHRForLastWin32Error() { throw null; }
         public static System.IntPtr GetIDispatchForObject(object o) { throw null; }
         public static System.IntPtr GetIUnknownForObject(object o) { throw null; }
         public static int GetLastWin32Error() { throw null; }
         [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
-        [System.ObsoleteAttribute("GetNativeVariantForObject(Object, IntPtr) may be unavailable in future releases.")]
         public static void GetNativeVariantForObject(object obj, System.IntPtr pDstNativeVariant) { }
         [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
-        [System.ObsoleteAttribute("GetNativeVariantForObject<T>(T, IntPtr) may be unavailable in future releases.")]
         public static void GetNativeVariantForObject<T>(T obj, System.IntPtr pDstNativeVariant) { }
         public static object GetObjectForIUnknown(System.IntPtr pUnk) { throw null; }
         [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
-        [System.ObsoleteAttribute("GetObjectForNativeVariant(IntPtr) may be unavailable in future releases.")]
         public static object GetObjectForNativeVariant(System.IntPtr pSrcNativeVariant) { throw null; }
         [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
-        [System.ObsoleteAttribute("GetObjectForNativeVariant<T>(IntPtr) may be unavailable in future releases.")]
         public static T GetObjectForNativeVariant<T>(System.IntPtr pSrcNativeVariant) { throw null; }
         [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
-        [System.ObsoleteAttribute("GetObjectsForNativeVariants(IntPtr, Int32) may be unavailable in future releases.")]
         public static object[] GetObjectsForNativeVariants(System.IntPtr aSrcNativeVariant, int cVars) { throw null; }
         [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
-        [System.ObsoleteAttribute("GetObjectsForNativeVariants<T>(IntPtr, Int32) may be unavailable in future releases.")]
         public static T[] GetObjectsForNativeVariants<T>(System.IntPtr aSrcNativeVariant, int cVars) { throw null; }
         public static int GetStartComSlot(System.Type t) { throw null; }
+        public static int GetEndComSlot(System.Type t) { throw null; }
         public static object GetTypedObjectForIUnknown(System.IntPtr pUnk, System.Type t) { throw null; }         
         public static System.Type GetTypeFromCLSID(System.Guid clsid) { throw null; }
         public static string GetTypeInfoName(System.Runtime.InteropServices.ComTypes.ITypeInfo typeInfo) { throw null; }
@@ -592,6 +594,7 @@ namespace System.Runtime.InteropServices
         public static object PtrToStructure(System.IntPtr ptr, System.Type structureType) { throw null; }
         public static T PtrToStructure<T>(System.IntPtr ptr) { throw null; }
         public static void PtrToStructure<T>(System.IntPtr ptr, T structure) { }
+        public static bool IsTypeVisibleFromCom(Type t) { throw null;}
         public static int QueryInterface(System.IntPtr pUnk, ref System.Guid iid, out System.IntPtr ppv) { throw null; }
         public static byte ReadByte(System.IntPtr ptr) { throw null; }
         public static byte ReadByte(System.IntPtr ptr, int ofs) { throw null; }
@@ -692,7 +695,7 @@ namespace System.Runtime.InteropServices
         public static void ZeroFreeGlobalAllocUnicode(System.IntPtr s) { }
         public static void ZeroFreeCoTaskMemUTF8(System.IntPtr s) { }
     }
-    [System.AttributeUsageAttribute((System.AttributeTargets)(64), Inherited=false)]
+    [System.AttributeUsageAttribute((System.AttributeTargets)(64), Inherited=false, AllowMultiple=false)]
     public sealed partial class ManagedToNativeComInteropStubAttribute : System.Attribute
     {
         public ManagedToNativeComInteropStubAttribute(System.Type classType, string methodName) { }
@@ -721,6 +724,17 @@ namespace System.Runtime.InteropServices
         protected MarshalDirectiveException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) { }
         public MarshalDirectiveException(string message) { }
         public MarshalDirectiveException(string message, System.Exception inner) { }
+    }
+    public static partial class NativeLibrary
+    {
+        public static void Free(System.IntPtr handle) { }
+        public static System.IntPtr GetExport(System.IntPtr handle, string name) { throw null; }
+        public static System.IntPtr Load(string libraryPath) { throw null; }
+        public static System.IntPtr Load(string libraryName, System.Reflection.Assembly assembly, DllImportSearchPath? searchPath) { throw null; }
+        public static void SetDllImportResolver(System.Reflection.Assembly assembly, DllImportResolver resolver) { throw null; }
+        public static bool TryGetExport(IntPtr handle, string name, out IntPtr address) { throw null; }
+        public static bool TryLoad(string libraryPath, out System.IntPtr handle) { throw null; }
+        public static bool TryLoad(string libraryName, System.Reflection.Assembly assembly, DllImportSearchPath? searchPath, out System.IntPtr handle) { throw null; }
     }
     [System.AttributeUsageAttribute((System.AttributeTargets)(2048), Inherited = false)]
     public sealed partial class OptionalAttribute : System.Attribute
@@ -767,6 +781,10 @@ namespace System.Runtime.InteropServices
         protected SafeArrayTypeMismatchException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) { }
         public SafeArrayTypeMismatchException(string message) { }
         public SafeArrayTypeMismatchException(string message, System.Exception inner) { }
+    }
+    public partial class StandardOleMarshalObject : MarshalByRefObject
+    {
+        protected StandardOleMarshalObject() { }
     }
     public abstract partial class SafeBuffer : Microsoft.Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid
     {
@@ -887,7 +905,6 @@ namespace System.Runtime.InteropServices
         public TypeLibVarFlags Value { get { throw null; } }
     }
     [AttributeUsage(AttributeTargets.Assembly, Inherited = false)]
-    [System.Runtime.InteropServices.ComVisible(true)]
     public sealed class TypeLibVersionAttribute : Attribute
     {
         public TypeLibVersionAttribute(int major, int minor) {}
@@ -935,7 +952,6 @@ namespace System.Runtime.InteropServices
         I4 = 7,
         I8 = 9,
         [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
-        [System.ObsoleteAttribute("Marshalling as IDispatch may be unavailable in future releases.")]
         IDispatch = 26,
         IInspectable = 46,
         Interface = 28,
@@ -949,10 +965,8 @@ namespace System.Runtime.InteropServices
         R4 = 11,
         R8 = 12,
         [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
-        [System.ObsoleteAttribute("Marshalling as SafeArray may be unavailable in future releases.")]
         SafeArray = 29,
         [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
-        [System.ObsoleteAttribute("Applying UnmanagedType.Struct is unnecessary when marshalling a struct. Support for UnmanagedType.Struct when marshalling a reference type may be unavailable in future releases.")]
         Struct = 27,
         SysInt = 31,
         SysUInt = 32,
@@ -964,14 +978,12 @@ namespace System.Runtime.InteropServices
         U4 = 8,
         U8 = 10,
         [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
-        [System.ObsoleteAttribute("Marshalling as VariantBool may be unavailable in future releases.")]
         VariantBool = 37,
         [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
         [System.ObsoleteAttribute("Marshalling as VBByRefString may be unavailable in future releases.")]
         VBByRefStr = 34,
     }
     [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
-    [System.ObsoleteAttribute("Marshalling VARIANTs may be unavailable in future releases.")]
     public enum VarEnum
     {
         VT_ARRAY = 8192,

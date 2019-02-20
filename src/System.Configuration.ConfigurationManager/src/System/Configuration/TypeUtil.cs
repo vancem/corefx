@@ -33,16 +33,6 @@ namespace System.Configuration
 
             "mscorlib",
             "System",
-
-            // TODO: ISSUE #14528
-            // System facade isn't currently part of the framework
-            // package. Once it is added the following locations can
-            // be removed. There are tests for types from each of
-            // these locations.
-            "System.Runtime",
-            "System.Collections",
-            "System.Collections.Concurrent",
-            "System.Collections.Specialized",
         };
 
         /// <summary>
@@ -60,7 +50,7 @@ namespace System.Configuration
 
             // Don't bother to look around if we've already got something that
             // is clearly not a simple type name.
-            if (string.IsNullOrEmpty(typeString) || typeString.IndexOf(',') != -1)
+            if (string.IsNullOrEmpty(typeString) || typeString.IndexOf(',') != -1) // string.Contains(char) is .NetCore2.1+ specific
                 return null;
 
             // Ignore all exceptions, otherwise callers will get unexpected

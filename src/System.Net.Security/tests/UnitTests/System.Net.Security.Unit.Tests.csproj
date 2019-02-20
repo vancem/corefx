@@ -1,6 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.props))\dir.props" />
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectGuid>{0D174EA9-9E61-4519-8D31-7BD2331A1982}</ProjectGuid>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -11,14 +9,15 @@
       imported. We are disabling the "Type conflicts with the imported type CS0436 warning" for these types of projects.
     -->
     <NoWarn>436</NoWarn>
+    <Configurations>netcoreapp-OSX-Debug;netcoreapp-OSX-Release;netcoreapp-Unix-Debug;netcoreapp-Unix-Release;netcoreapp-Windows_NT-Debug;netcoreapp-Windows_NT-Release;uap-Windows_NT-Debug;uap-Windows_NT-Release</Configurations>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='netstandard-Unix-Debug|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='netstandard-Unix-Release|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='netstandard-Windows_NT-Debug|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='netstandard-Windows_NT-Release|AnyCPU'" />
   <ItemGroup>
+    <Compile Include="SslApplicationProtocolTests.cs" />
+    <Compile Include="SslAuthenticationOptionsTests.cs" />
     <Compile Include="SslStreamAllowedProtocolsTest.cs" />
+    <Compile Include="System\Security\Authentication\AuthenticationExceptionTest.cs" />
     <Compile Include="System\Security\Authentication\ExtendedProtection\ExtendedProtectionPolicyTest.cs" />
+    <Compile Include="System\Security\Authentication\InvalidCredentialExceptionTest.cs" />
     <Compile Include="TlsAlertsMatchWindowsInterop.cs" />
     <!-- Fakes -->
     <Compile Include="Fakes\FakeSslState.cs" />
@@ -33,6 +32,18 @@
     <!-- Production code references -->
     <Compile Include="..\..\src\System\Net\Security\SslStream.cs">
       <Link>ProductionCode\System\Net\Security\SslStream.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\System\Net\Security\SslClientAuthenticationOptions.cs">
+      <Link>ProductionCode\System\Net\Security\SslClientAuthenticationOptions.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\System\Net\Security\SslServerAuthenticationOptions.cs">
+      <Link>ProductionCode\System\Net\Security\SslServerAuthenticationOptions.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\System\Net\Security\SslAuthenticationOptions.cs">
+      <Link>ProductionCode\System\Net\Security\SslAuthenticationOptions.cs</Link>
+    </Compile>
+    <Compile Include="..\..\src\System\Net\Security\SslApplicationProtocol.cs">
+      <Link>ProductionCode\System\Net\Security\SslApplicationProtocol.cs</Link>
     </Compile>
     <Compile Include="..\..\src\System\Net\SslStreamContext.cs">
       <Link>ProductionCode\System\Net\SslStreamContext.cs</Link>
@@ -57,5 +68,12 @@
       <Link>ProductionCode\Common\System\Net\InternalException.cs</Link>
     </Compile>
   </ItemGroup>
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.targets))\dir.targets" />
+  <ItemGroup>
+    <Reference Include="System.Memory" />
+    <Reference Include="System.Runtime" />
+    <Reference Include="System.Runtime.Extensions" />
+    <Reference Include="System.Runtime.InteropServices" />
+    <Reference Include="System.Threading" />
+    <Reference Include="System.Threading.Tasks" />
+  </ItemGroup>
 </Project>

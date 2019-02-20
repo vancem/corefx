@@ -143,7 +143,12 @@ namespace System.Net.Http
 
         internal bool TryGetBuffer(out ArraySegment<byte> buffer)
         {
-            return _bufferedContent != null && _bufferedContent.TryGetBuffer(out buffer);
+            if (_bufferedContent != null)
+            {
+                return _bufferedContent.TryGetBuffer(out buffer);
+            }
+            buffer = default;
+            return false;
         }
 
         protected HttpContent()
@@ -183,21 +188,33 @@ namespace System.Net.Http
 
         internal static string ReadBufferAsString(ArraySegment<byte> buffer, HttpContentHeaders headers)
         {
-            // We don't validate the Content-Encoding header: If the content was encoded, it's the caller's 
-            // responsibility to make sure to only call ReadAsString() on already decoded content. E.g. if the 
-            // Content-Encoding is 'gzip' the user should set HttpClientHandler.AutomaticDecompression to get a 
+            // We don't validate the Content-Encoding header: If the content was encoded, it's the caller's
+            // responsibility to make sure to only call ReadAsString() on already decoded content. E.g. if the
+            // Content-Encoding is 'gzip' the user should set HttpClientHandler.AutomaticDecompression to get a
             // decoded response stream.
 
             Encoding encoding = null;
             int bomLength = -1;
 
+            string charset = headers.ContentType?.CharSet;
+
             // If we do have encoding information in the 'Content-Type' header, use that information to convert
             // the content to a string.
-            if ((headers.ContentType != null) && (headers.ContentType.CharSet != null))
+            if (charset != null)
             {
                 try
                 {
-                    encoding = Encoding.GetEncoding(headers.ContentType.CharSet);
+                    // Remove at most a single set of quotes.
+                    if (charset.Length > 2 &&
+                        charset[0] == '\"' &&
+                        charset[charset.Length - 1] == '\"')
+                    {
+                        encoding = Encoding.GetEncoding(charset.Substring(1, charset.Length - 2));
+                    }
+                    else
+                    {
+                        encoding = Encoding.GetEncoding(charset);
+                    }
 
                     // Byte-order-mark (BOM) characters may be present even if a charset was specified.
                     bomLength = GetPreambleLength(buffer, encoding);
@@ -208,7 +225,7 @@ namespace System.Net.Http
                 }
             }
 
-            // If no content encoding is listed in the ContentType HTTP header, or no Content-Type header present, 
+            // If no content encoding is listed in the ContentType HTTP header, or no Content-Type header present,
             // then check for a BOM in the data to figure out the encoding.
             if (encoding == null)
             {
@@ -235,9 +252,9 @@ namespace System.Net.Http
 
         internal byte[] ReadBufferedContentAsByteArray()
         {
-            // The returned array is exposed out of the library, so use ToArray rather 
+            // The returned array is exposed out of the library, so use ToArray rather
             // than TryGetBuffer in order to make a copy.
-            return _bufferedContent.ToArray(); 
+            return _bufferedContent.ToArray();
         }
 
         public Task<Stream> ReadAsStreamAsync()
@@ -299,7 +316,18 @@ namespace System.Net.Http
 
         protected abstract Task SerializeToStreamAsync(Stream stream, TransportContext context);
 
-        public Task CopyToAsync(Stream stream, TransportContext context)
+        // TODO #9071: Expose this publicly.  Until it's public, only sealed or internal types should override it, and then change
+        // their SerializeToStreamAsync implementation to delegate to this one.  They need to be sealed as otherwise an external
+        // type could derive from it and override SerializeToStreamAsync(stream, context) further, at which point when
+        // HttpClient calls SerializeToStreamAsync(stream, context, cancellationToken), their custom override will be skipped.
+        internal virtual Task SerializeToStreamAsync(Stream stream, TransportContext context, CancellationToken cancellationToken) =>
+            SerializeToStreamAsync(stream, context);
+
+        public Task CopyToAsync(Stream stream, TransportContext context) =>
+            CopyToAsync(stream, context, CancellationToken.None);
+
+        // TODO #9071: Expose this publicly.
+        internal Task CopyToAsync(Stream stream, TransportContext context, CancellationToken cancellationToken)
         {
             CheckDisposed();
             if (stream == null)
@@ -309,19 +337,17 @@ namespace System.Net.Http
 
             try
             {
-                Task task = null;
                 ArraySegment<byte> buffer;
                 if (TryGetBuffer(out buffer))
                 {
-                    task = stream.WriteAsync(buffer.Array, buffer.Offset, buffer.Count);
+                    return CopyToAsyncCore(stream.WriteAsync(new ReadOnlyMemory<byte>(buffer.Array, buffer.Offset, buffer.Count), cancellationToken));
                 }
                 else
                 {
-                    task = SerializeToStreamAsync(stream, context);
+                    Task task = SerializeToStreamAsync(stream, context, cancellationToken);
                     CheckTaskNotNull(task);
+                    return CopyToAsyncCore(new ValueTask(task));
                 }
-
-                return CopyToAsyncCore(task);
             }
             catch (Exception e) when (StreamCopyExceptionNeedsWrapping(e))
             {
@@ -329,7 +355,7 @@ namespace System.Net.Http
             }
         }
 
-        private static async Task CopyToAsyncCore(Task copyTask)
+        private static async Task CopyToAsyncCore(ValueTask copyTask)
         {
             try
             {
@@ -354,12 +380,15 @@ namespace System.Net.Http
         // No "CancellationToken" parameter needed since canceling the CTS will close the connection, resulting
         // in an exception being thrown while we're buffering.
         // If buffering is used without a connection, it is supposed to be fast, thus no cancellation required.
-        public Task LoadIntoBufferAsync(long maxBufferSize)
+        public Task LoadIntoBufferAsync(long maxBufferSize) =>
+            LoadIntoBufferAsync(maxBufferSize, CancellationToken.None);
+
+        internal Task LoadIntoBufferAsync(long maxBufferSize, CancellationToken cancellationToken)
         {
             CheckDisposed();
             if (maxBufferSize > HttpContent.MaxBufferSize)
             {
-                // This should only be hit when called directly; HttpClient/HttpClientHandler 
+                // This should only be hit when called directly; HttpClient/HttpClientHandler
                 // will not exceed this limit.
                 throw new ArgumentOutOfRangeException(nameof(maxBufferSize), maxBufferSize,
                     string.Format(System.Globalization.CultureInfo.InvariantCulture,
@@ -382,7 +411,7 @@ namespace System.Net.Http
 
             try
             {
-                Task task = SerializeToStreamAsync(tempBuffer, null);
+                Task task = SerializeToStreamAsync(tempBuffer, null, cancellationToken);
                 CheckTaskNotNull(task);
                 return LoadIntoBufferAsyncCore(task, tempBuffer);
             }
@@ -693,8 +722,6 @@ namespace System.Net.Http
                 _maxSize = maxSize;
             }
 
-            public int MaxSize => _maxSize;
-
             public byte[] GetSizedBuffer()
             {
                 ArraySegment<byte> buffer;
@@ -719,6 +746,12 @@ namespace System.Net.Http
             {
                 CheckSize(count);
                 return base.WriteAsync(buffer, offset, count, cancellationToken);
+            }
+
+            public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
+            {
+                CheckSize(buffer.Length);
+                return base.WriteAsync(buffer, cancellationToken);
             }
 
             public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
@@ -853,11 +886,11 @@ namespace System.Net.Http
                 _length += count;
             }
 
-            public override void Write(ReadOnlySpan<byte> source)
+            public override void Write(ReadOnlySpan<byte> buffer)
             {
-                EnsureCapacity(_length + source.Length);
-                source.CopyTo(new Span<byte>(_buffer, _length, source.Length));
-                _length += source.Length;
+                EnsureCapacity(_length + buffer.Length);
+                buffer.CopyTo(new Span<byte>(_buffer, _length, buffer.Length));
+                _length += buffer.Length;
             }
 
             public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
@@ -866,10 +899,10 @@ namespace System.Net.Http
                 return Task.CompletedTask;
             }
 
-            public override Task WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancellationToken = default)
+            public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
             {
-                Write(source.Span);
-                return Task.CompletedTask;
+                Write(buffer.Span);
+                return default;
             }
 
             public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback asyncCallback, object asyncState) =>

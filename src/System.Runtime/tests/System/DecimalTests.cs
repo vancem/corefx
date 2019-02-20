@@ -557,7 +557,7 @@ namespace System.Tests
 
         public static IEnumerable<object[]> Parse_Valid_TestData()
         {
-            NumberStyles defaultStyle = NumberStyles.Float;
+            NumberStyles defaultStyle = NumberStyles.Number;
 
             NumberFormatInfo emptyFormat = NumberFormatInfo.CurrentInfo;
 
@@ -605,7 +605,7 @@ namespace System.Tests
         {
             bool isDefaultProvider = provider == null || provider == NumberFormatInfo.CurrentInfo;
             decimal result;
-            if ((style & ~NumberStyles.Integer) == 0 && style != NumberStyles.None)
+            if ((style & ~NumberStyles.Number) == 0 && style != NumberStyles.None)
             {
                 // Use Parse(string) or Parse(string, IFormatProvider)
                 if (isDefaultProvider)
@@ -638,7 +638,7 @@ namespace System.Tests
 
         public static IEnumerable<object[]> Parse_Invalid_TestData()
         {
-            NumberStyles defaultStyle = NumberStyles.Float;
+            NumberStyles defaultStyle = NumberStyles.Number;
 
             var customFormat = new NumberFormatInfo();
             customFormat.CurrencySymbol = "$";
@@ -669,7 +669,7 @@ namespace System.Tests
         {
             bool isDefaultProvider = provider == null || provider == NumberFormatInfo.CurrentInfo;
             decimal result;
-            if ((style & ~NumberStyles.Integer) == 0 && style != NumberStyles.None && (style & NumberStyles.AllowLeadingWhite) == (style & NumberStyles.AllowTrailingWhite))
+            if ((style & ~NumberStyles.Number) == 0 && style != NumberStyles.None && (style & NumberStyles.AllowLeadingWhite) == (style & NumberStyles.AllowTrailingWhite))
             {
                 // Use Parse(string) or Parse(string, IFormatProvider)
                 if (isDefaultProvider)
@@ -766,10 +766,34 @@ namespace System.Tests
             Assert.Equal(expected, decimal.Remainder(d1, d2));
         }
 
+        public static IEnumerable<object[]> Remainder_Valid_TestDataV2()
+        {
+            yield return new object[] { decimal.MaxValue, 0.1m, 0.0m };
+            yield return new object[] { decimal.MaxValue, 7.081881059m, 3.702941036m };
+            yield return new object[] { decimal.MaxValue, 2004094637636.6280382536104438m, 1980741879937.1051521151154118m };
+            yield return new object[] { decimal.MaxValue, new decimal(0, 0, 1, false, 28), 0.0000000013968756053316206592m };
+            yield return new object[] { decimal.MaxValue, new decimal(0, 1, 0, false, 28), 0.0000000000000000004026531840m };
+            yield return new object[] { decimal.MaxValue, new decimal(1, 0, 0, false, 28), 0.0000000000000000000000000000m };
+            yield return new object[] { 5m, 0.0000000000000000000000000003m, 0.0000000000000000000000000002m };
+            yield return new object[] { 5.94499443m, 0.0000000000000000000000000007m, 0.0000000000000000000000000005m };
+            yield return new object[] { 1667m, 325.66574961026426932314500573m, 38.67125194867865338427497135m };
+            yield return new object[] { 1667m, 0.00000000013630700224712809m, 0.00000000002527942770321278m };
+            yield return new object[] { 60596869520933069.9m, 8063773.1275438997671m, 5700076.9722872002614m };
+        }
+
+        [Theory]
+        [MemberData(nameof(Remainder_Valid_TestDataV2))]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "Full framework does not have fixes for https://github.com/dotnet/coreclr/issues/12605")]
+        public static void RemainderV2(decimal d1, decimal d2, decimal expected)
+        {
+            Assert.Equal(expected, d1 % d2);
+            Assert.Equal(expected, decimal.Remainder(d1, d2));
+        }
+
+
         public static IEnumerable<object[]> Remainder_Invalid_TestData()
         {
             yield return new object[] { 5m, 0m, typeof(DivideByZeroException) };
-            yield return new object[] { decimal.MaxValue, 0.1m, typeof(OverflowException) };
         }
 
         [Theory]
@@ -896,14 +920,6 @@ namespace System.Tests
         {
             AssertExtensions.Throws<ArgumentOutOfRangeException>("decimals", () => decimal.Round(1, decimals));
             AssertExtensions.Throws<ArgumentOutOfRangeException>("decimals", () => decimal.Round(1, decimals, MidpointRounding.AwayFromZero));
-        }
-
-        [Theory]
-        [InlineData(MidpointRounding.ToEven - 1)]
-        [InlineData(MidpointRounding.AwayFromZero + 1)]
-        public void Round_InvalidMidpointRounding_ThrowsArgumentException(MidpointRounding mode)
-        {
-            AssertExtensions.Throws<ArgumentException>("mode", () => decimal.Round(1, 2, mode));
         }
 
         public static IEnumerable<object[]> Subtract_Valid_TestData()
@@ -1167,19 +1183,24 @@ namespace System.Tests
 
         public static IEnumerable<object[]> ToString_TestData()
         {
-            yield return new object[] { decimal.MinValue, "G", null, "-79228162514264337593543950335" };
-            yield return new object[] { (decimal)-4567, "G", null, "-4567" };
-            yield return new object[] { (decimal)-4567.89101, "G", null, "-4567.89101" };
-            yield return new object[] { (decimal)0, "G", null, "0" };
-            yield return new object[] { (decimal)4567, "G", null, "4567" };
-            yield return new object[] { (decimal)4567.89101, "G", null, "4567.89101" };
-            yield return new object[] { decimal.MaxValue, "G", null, "79228162514264337593543950335" };
+            foreach (NumberFormatInfo defaultFormat in new[] { null, NumberFormatInfo.CurrentInfo })
+            {
+                yield return new object[] { decimal.MinValue, "G", defaultFormat, "-79228162514264337593543950335" };
+                yield return new object[] { (decimal)-4567, "G", defaultFormat, "-4567" };
+                yield return new object[] { (decimal)-4567.89101, "G", defaultFormat, "-4567.89101" };
+                yield return new object[] { (decimal)0, "G", defaultFormat, "0" };
+                yield return new object[] { (decimal)4567, "G", defaultFormat, "4567" };
+                yield return new object[] { (decimal)4567.89101, "G", defaultFormat, "4567.89101" };
+                yield return new object[] { decimal.MaxValue, "G", defaultFormat, "79228162514264337593543950335" };
 
-            yield return new object[] { decimal.MinusOne, "G", null, "-1" };
-            yield return new object[] { decimal.Zero, "G", null, "0" };
-            yield return new object[] { decimal.One, "G", null, "1" };
+                yield return new object[] { decimal.MinusOne, "G", defaultFormat, "-1" };
+                yield return new object[] { decimal.Zero, "G", defaultFormat, "0" };
+                yield return new object[] { decimal.One, "G", defaultFormat, "1" };
 
-            yield return new object[] { (decimal)2468, "N", null, "2,468.00" };
+                yield return new object[] { (decimal)2468, "N", defaultFormat, "2,468.00" };
+
+                yield return new object[] { (decimal)2467, "[#-##-#]", defaultFormat, "[2-46-7]" };
+            }
 
             // Changing the negative pattern doesn't do anything without also passing in a format string
             var customFormat1 = new NumberFormatInfo();
@@ -1198,6 +1219,22 @@ namespace System.Tests
             customFormat3.NumberGroupSeparator = "*";
             customFormat3.NumberNegativePattern = 0;
             yield return new object[] { (decimal)-2468, "N", customFormat3, "(2*468.00)" };
+
+            var customFormat4 = new NumberFormatInfo()
+            {
+                NegativeSign = "#",
+                NumberDecimalSeparator = "~",
+                NumberGroupSeparator = "*",
+                PositiveSign = "&",
+                NumberDecimalDigits = 2,
+                PercentSymbol = "@",
+                PercentGroupSeparator = ",",
+                PercentDecimalSeparator = ".",
+                PercentDecimalDigits = 5
+            };
+            yield return new object[] { (decimal)123, "E", customFormat4, "1~230000E&002" };
+            yield return new object[] { (decimal)123, "F", customFormat4, "123~00" };
+            yield return new object[] { (decimal)123, "P", customFormat4, "12,300.00000 @" };
         }
 
         [Fact]
@@ -1434,7 +1471,210 @@ namespace System.Tests
             }
         }
 
-        static decimal[] GetRandomData(out BigDecimal[] bigDecimals)
+        public static class BigIntegerMod
+        {
+            [Fact]
+            [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "Full framework does not have fixes for https://github.com/dotnet/coreclr/issues/12605")]
+            public static void Test()
+            {
+                decimal[] decimalValues = GetRandomData(out BigDecimal[] bigDecimals);
+                for (int i = 0; i < decimalValues.Length; i++)
+                {
+                    decimal d1 = decimalValues[i];
+                    BigDecimal b1 = bigDecimals[i];
+                    for (int j = 0; j < decimalValues.Length; j++)
+                    {
+                        decimal d2 = decimalValues[j];
+                        if (Math.Sign(d2) == 0)
+                            continue;
+                        BigDecimal expected = b1.Mod(bigDecimals[j]);
+                        try
+                        {
+                            decimal actual = d1 % d2;
+                            unsafe
+                            {
+                                if (expected.Scale != (byte)(*(uint*)&actual >> BigDecimal.ScaleShift) || expected.CompareTo(new BigDecimal(actual)) != 0)
+                                    throw new Xunit.Sdk.AssertActualExpectedException(expected, actual, d1 + " % " + d2);
+                            }
+                        }
+                        catch (OverflowException actual)
+                        {
+                            throw new Xunit.Sdk.AssertActualExpectedException(expected, actual, d1 + " % " + d2);
+                        }
+                    }
+                }
+            }
+        }
+
+        [Fact]
+        public static void BigInteger_Floor()
+        {
+            decimal[] decimalValues = GetRandomData(out BigDecimal[] bigDecimals);
+            for (int i = 0; i < decimalValues.Length; i++)
+            {
+                decimal d1 = decimalValues[i];
+                BigDecimal expected = bigDecimals[i].Floor();
+                decimal actual = decimal.Floor(d1);
+                unsafe
+                {
+                    if (expected.Scale != (byte)(*(uint*)&actual >> BigDecimal.ScaleShift) || expected.CompareTo(new BigDecimal(actual)) != 0)
+                        throw new Xunit.Sdk.AssertActualExpectedException(expected, actual, d1 + " Floor");
+                }
+            }
+        }
+
+        [Fact]
+        public static void BigInteger_Ceiling()
+        {
+            decimal[] decimalValues = GetRandomData(out BigDecimal[] bigDecimals);
+            for (int i = 0; i < decimalValues.Length; i++)
+            {
+                decimal d1 = decimalValues[i];
+                BigDecimal expected = bigDecimals[i].Ceiling();
+                decimal actual = decimal.Ceiling(d1);
+                unsafe
+                {
+                    if (expected.Scale != (byte)(*(uint*)&actual >> BigDecimal.ScaleShift) || expected.CompareTo(new BigDecimal(actual)) != 0)
+                        throw new Xunit.Sdk.AssertActualExpectedException(expected, actual, d1 + " Ceiling");
+                }
+            }
+        }
+
+        [Fact]
+        public static void BigInteger_Truncate()
+        {
+            decimal[] decimalValues = GetRandomData(out BigDecimal[] bigDecimals);
+            for (int i = 0; i < decimalValues.Length; i++)
+            {
+                decimal d1 = decimalValues[i];
+                BigDecimal expected = bigDecimals[i].Truncate();
+                decimal actual = decimal.Truncate(d1);
+                unsafe
+                {
+                    if (expected.Scale != (byte)(*(uint*)&actual >> BigDecimal.ScaleShift) || expected.CompareTo(new BigDecimal(actual)) != 0)
+                        throw new Xunit.Sdk.AssertActualExpectedException(expected, actual, d1 + " Truncate");
+                }
+            }
+        }
+
+        [Fact]
+        public static void BigInteger_ToInt32()
+        {
+            decimal[] decimalValues = GetRandomData(out BigDecimal[] bigDecimals);
+            for (int i = 0; i < decimalValues.Length; i++)
+            {
+                decimal d1 = decimalValues[i];
+                int expected = bigDecimals[i].ToInt32(out bool expectedOverflow);
+                if (expectedOverflow)
+                {
+                    try
+                    {
+                        int actual = decimal.ToInt32(d1);
+                        throw new Xunit.Sdk.AssertActualExpectedException(typeof(OverflowException), actual, d1 + " ToInt32");
+                    }
+                    catch (OverflowException) { }
+                }
+                else
+                {
+                    int actual = decimal.ToInt32(d1);
+                    if (expected != actual)
+                        throw new Xunit.Sdk.AssertActualExpectedException(expected, actual, d1 + " ToInt32");
+                }
+            }
+        }
+
+        [Fact]
+        public static void BigInteger_ToOACurrency()
+        {
+            decimal[] decimalValues = GetRandomData(out BigDecimal[] bigDecimals);
+            for (int i = 0; i < decimalValues.Length; i++)
+            {
+                decimal d1 = decimalValues[i];
+                long expected = bigDecimals[i].ToOACurrency(out bool expectedOverflow);
+                if (expectedOverflow)
+                {
+                    try
+                    {
+                        long actual = decimal.ToOACurrency(d1);
+                        throw new Xunit.Sdk.AssertActualExpectedException(typeof(OverflowException), actual, d1 + " ToOACurrency");
+                    }
+                    catch (OverflowException) { }
+                }
+                else
+                {
+                    long actual = decimal.ToOACurrency(d1);
+                    if (expected != actual)
+                        throw new Xunit.Sdk.AssertActualExpectedException(expected, actual, d1 + " ToOACurrency");
+                }
+            }
+        }
+
+        [Fact]
+        public static void BigInteger_Round()
+        {
+            decimal[] decimalValues = GetRandomData(out BigDecimal[] bigDecimals);
+            for (int i = 0; i < decimalValues.Length; i++)
+            {
+                decimal d1 = decimalValues[i];
+                BigDecimal b1 = bigDecimals[i];
+                for (int j = 0; j <= 28; j++)
+                {
+
+                    BigDecimal expected = b1.Round(j);
+                    decimal actual = decimal.Round(d1, j);
+                    unsafe
+                    {
+                        if (expected.Scale != (byte)(*(uint*)&actual >> BigDecimal.ScaleShift) || expected.CompareTo(new BigDecimal(actual)) != 0)
+                            throw new Xunit.Sdk.AssertActualExpectedException(expected, actual, d1 + " Round(" + j + ")");
+                    }
+                }
+            }
+        }
+
+        [Fact]
+        public static void BigInteger_RoundAwayFromZero()
+        {
+            decimal[] decimalValues = GetRandomData(out BigDecimal[] bigDecimals);
+            for (int i = 0; i < decimalValues.Length; i++)
+            {
+                decimal d1 = decimalValues[i];
+                BigDecimal b1 = bigDecimals[i];
+                for (int j = 0; j <= 28; j++)
+                {
+
+                    BigDecimal expected = b1.RoundAwayFromZero(j);
+                    decimal actual = decimal.Round(d1, j, MidpointRounding.AwayFromZero);
+                    unsafe
+                    {
+                        if (expected.Scale != (byte)(*(uint*)&actual >> BigDecimal.ScaleShift) || expected.CompareTo(new BigDecimal(actual)) != 0)
+                            throw new Xunit.Sdk.AssertActualExpectedException(expected, actual, d1 + " RoundAwayFromZero(" + j + ")");
+                    }
+                }
+            }
+        }
+
+        [Fact]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "Full framework does not have the fix for this bug")]
+        public static new void GetHashCode()
+        {
+            var dict = new Dictionary<string, (int hash, string value)>();
+            foreach (decimal d in GetRandomData(out _, hash: true))
+            {
+                string value = d.ToString(CultureInfo.InvariantCulture);
+                string key = value[value.Length - 1] == '0' && value.Contains('.') ? value.AsSpan().TrimEnd('0').TrimEnd('.').ToString() : value;
+                int hash = d.GetHashCode();
+                if (!dict.TryGetValue(key, out var ex))
+                {
+                    dict.Add(key, (hash, value));
+                }
+                else if (ex.hash != hash)
+                {
+                    throw new Xunit.Sdk.XunitException($"Decimal {key} has multiple hash codes: {ex.hash} ({ex.value}) and {hash} ({value})");
+                }
+            }
+        }
+
+        static decimal[] GetRandomData(out BigDecimal[] bigDecimals, bool hash = false)
         {
             // some static data to test the limits
             var list = new List<decimal> { new decimal(0, 0, 0, true, 0), decimal.Zero, decimal.MinusOne, decimal.One, decimal.MinValue, decimal.MaxValue,
@@ -1453,9 +1693,26 @@ namespace System.Tests
                             if (!unique.Add(d.ToString(CultureInfo.InvariantCulture)))
                                 continue; // skip duplicates
                             list.Add(d);
+
+                            if (hash)
+                            {
+                                // generate all possible variants of the number up-to max decimal scale
+                                for (byte lastScale = scale; lastScale < 28;)
+                                {
+                                    d *= 1.0m;
+                                    unsafe
+                                    {
+                                        byte curScale = (byte)(*(uint*)&d >> BigDecimal.ScaleShift);
+                                        if (curScale <= lastScale)
+                                            break;
+                                        lastScale = curScale;
+                                    }
+                                    list.Add(d);
+                                }
+                            }
                         }
             decimal[] decimalValues = list.ToArray();
-            bigDecimals = Array.ConvertAll(decimalValues, d => new BigDecimal(d));
+            bigDecimals = hash ? null : Array.ConvertAll(decimalValues, d => new BigDecimal(d));
             return decimalValues;
 
             // While the decimals are random in general,
@@ -1610,6 +1867,40 @@ namespace System.Tests
                 return new BigDecimal(quo, (byte)scale);
             }
 
+            public BigDecimal Mod(BigDecimal den)
+            {
+                if (den.Integer.IsZero)
+                {
+                    throw new DivideByZeroException();
+                }
+                int sign = Integer.Sign;
+                if (sign == 0)
+                {
+                    return this;
+                }
+                if (den.Integer.Sign != sign)
+                {
+                    den = -den;
+                }
+
+                int cmp = CompareTo(den) * sign;
+                if (cmp <= 0)
+                {
+                    return cmp < 0 ? this : new BigDecimal(default, Math.Max(Scale, den.Scale));
+                }
+
+                int sd = Scale - den.Scale;
+                BigInteger a = Integer, b = den.Integer;
+                if (sd > 0)
+                    b *= Pow10[sd];
+                else if (sd < 0)
+                    a *= Pow10[-sd];
+
+                return new BigDecimal(a % b, Math.Max(Scale, den.Scale));
+            }
+
+            public static BigDecimal operator -(BigDecimal value) => new BigDecimal(-value.Integer, value.Scale);
+
             static readonly BigInteger MaxInteger = (new BigInteger(ulong.MaxValue) << 32) | uint.MaxValue;
             static readonly BigInteger MaxInteger32 = uint.MaxValue;
             static readonly double Log2To10 = Math.Log(2) / Math.Log(10);
@@ -1676,6 +1967,69 @@ namespace System.Tests
                     res = res.Sign < 0 ? -abs : abs;
                 }
                 return false;
+            }
+
+            public BigDecimal Floor() => FloorCeiling(Integer.Sign < 0);
+            public BigDecimal Ceiling() => FloorCeiling(Integer.Sign > 0);
+
+            BigDecimal FloorCeiling(bool up)
+            {
+                if (Scale == 0)
+                    return this;
+                var res = BigInteger.DivRem(Integer, Pow10[Scale], out var remainder);
+                if (up && !remainder.IsZero)
+                    res += Integer.Sign;
+                return new BigDecimal(res, 0);
+            }
+
+            public BigDecimal Truncate() => Scale == 0 ? this : new BigDecimal(Integer / Pow10[Scale], 0);
+
+            public int ToInt32(out bool expectedOverflow)
+            {
+                var i = Truncate().Integer;
+                return (expectedOverflow = i < int.MinValue || i > int.MaxValue) ? 0 : (int)i;
+            }
+
+            public long ToOACurrency(out bool expectedOverflow)
+            {
+                var i = Integer;
+                if (Scale < 4)
+                    i *= Pow10[4 - Scale];
+                else if (Scale > 4)
+                    i = RoundToEven(i, Scale - 4);
+                return (expectedOverflow = i < long.MinValue || i > long.MaxValue) ? 0 : (long)i;
+            }
+
+            static BigInteger RoundToEven(BigInteger value, int scale)
+            {
+                var pow = Pow10[scale];
+                var res = BigInteger.DivRem(value, pow, out var remainder);
+                pow >>= 1;
+                remainder = BigInteger.Abs(remainder);
+                if (remainder > pow || remainder == pow && !res.IsEven)
+                    res += value.Sign;
+                return res;
+            }
+
+            public BigDecimal Round(int scale)
+            {
+                var diff = Scale - scale;
+                if (diff <= 0)
+                    return this;
+                return new BigDecimal(RoundToEven(Integer, diff), (byte)scale);
+            }
+
+            public BigDecimal RoundAwayFromZero(int scale)
+            {
+                var diff = Scale - scale;
+                if (diff <= 0)
+                    return this;
+
+                var pow = Pow10[diff];
+                var res = BigInteger.DivRem(Integer, pow, out var remainder);
+                if (BigInteger.Abs(remainder) >= (pow >> 1))
+                    res += Integer.Sign;
+                return new BigDecimal(res, (byte)scale);
             }
         }
     }

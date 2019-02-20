@@ -5,6 +5,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace System.Net
@@ -15,11 +16,12 @@ namespace System.Net
 
         internal static unsafe IPAddress Parse(ReadOnlySpan<char> ipSpan, bool tryParse)
         {
-            if (ipSpan.IndexOf(':') >= 0)
+            if (ipSpan.Contains(':'))
             {
                 // The address is parsed as IPv6 if and only if it contains a colon. This is valid because
                 // we don't support/parse a port specification at the end of an IPv4 address.
                 ushort* numbers = stackalloc ushort[IPAddressParserStatics.IPv6AddressShorts];
+                new Span<ushort>(numbers, IPAddressParserStatics.IPv6AddressShorts).Clear();
                 if (Ipv6StringToAddress(ipSpan, numbers, IPAddressParserStatics.IPv6AddressShorts, out uint scope))
                 {
                     return new IPAddress(numbers, IPAddressParserStatics.IPv6AddressShorts, scope);
@@ -45,6 +47,13 @@ namespace System.Net
             return new string(addressString, 0, charsWritten);
         }
 
+        internal static unsafe void IPv4AddressToString(uint address, StringBuilder destination)
+        {
+            char* addressString = stackalloc char[MaxIPv4StringLength];
+            int charsWritten = IPv4AddressToStringHelper(address, addressString);
+            destination.Append(addressString, charsWritten);
+        }
+
         internal static unsafe bool IPv4AddressToString(uint address, Span<char> formatted, out int charsWritten)
         {
             if (formatted.Length < MaxIPv4StringLength)
@@ -53,7 +62,7 @@ namespace System.Net
                 return false;
             }
 
-            fixed (char* formattedPtr = &formatted.DangerousGetPinnableReference())
+            fixed (char* formattedPtr = &MemoryMarshal.GetReference(formatted))
             {
                 charsWritten = IPv4AddressToStringHelper(address, formattedPtr);
             }
@@ -122,7 +131,7 @@ namespace System.Net
                 {
                     buffer.Append(':');
                 }
-                buffer.Append(IPAddressParser.IPv4AddressToString(ExtractIPv4Address(address)));
+                IPv4AddressToString(ExtractIPv4Address(address), buffer);
             }
             else
             {
@@ -160,7 +169,7 @@ namespace System.Net
             int end = ipSpan.Length;
             long tmpAddr;
 
-            fixed (char* ipStringPtr = &ipSpan.DangerousGetPinnableReference())
+            fixed (char* ipStringPtr = &MemoryMarshal.GetReference(ipSpan))
             {
                 tmpAddr = IPv4AddressHelper.ParseNonCanonical(ipStringPtr, 0, ref end, notImplicitFile: true);
             }
@@ -192,7 +201,7 @@ namespace System.Net
             int end = ipSpan.Length;
 
             bool isValid = false;
-            fixed (char* ipStringPtr = &ipSpan.DangerousGetPinnableReference())
+            fixed (char* ipStringPtr = &MemoryMarshal.GetReference(ipSpan))
             {
                 isValid = IPv6AddressHelper.IsValidStrict(ipStringPtr, 0, ref end);
             }
@@ -243,7 +252,8 @@ namespace System.Net
         private static void AppendSections(ushort[] address, int fromInclusive, int toExclusive, StringBuilder buffer)
         {
             // Find the longest sequence of zeros to be combined into a "::"
-            (int zeroStart, int zeroEnd) = IPv6AddressHelper.FindCompressionRange(address, fromInclusive, toExclusive);
+            ReadOnlySpan<ushort> addressSpan = new ReadOnlySpan<ushort>(address, fromInclusive, toExclusive - fromInclusive);
+            (int zeroStart, int zeroEnd) = IPv6AddressHelper.FindCompressionRange(addressSpan);
             bool needsColon = false;
 
             // Output all of the numbers before the zero sequence

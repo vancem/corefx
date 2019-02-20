@@ -12,6 +12,11 @@ internal static partial class Interop
 {
     internal static partial class Ssl
     {
+        internal const int SSL_TLSEXT_ERR_OK = 0;
+        internal const int OPENSSL_NPN_NEGOTIATED = 1;
+        internal const int SSL_TLSEXT_ERR_ALERT_FATAL = 2;
+        internal const int SSL_TLSEXT_ERR_NOACK = 3;
+
         internal delegate int SslCtxSetVerifyCallback(int preverify_ok, IntPtr x509_ctx);
 
         [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_EnsureLibSslInitialized")]
@@ -42,11 +47,27 @@ internal static partial class Interop
         internal static extern void SslSetAcceptState(SafeSslHandle ssl);
 
         [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_SslGetVersion")]
-        private static extern IntPtr SslGetVersion(SafeSslHandle ssl);
+        internal static extern IntPtr SslGetVersion(SafeSslHandle ssl);
 
-        internal static string GetProtocolVersion(SafeSslHandle ssl)
+        [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_SslSetTlsExtHostName")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool SslSetTlsExtHostName(SafeSslHandle ssl, string host);
+
+        [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_SslGet0AlpnSelected")]
+        internal static extern void SslGetAlpnSelected(SafeSslHandle ssl, out IntPtr protocol, out int len);
+
+        internal static byte[] SslGetAlpnSelected(SafeSslHandle ssl)
         {
-            return Marshal.PtrToStringAnsi(SslGetVersion(ssl));
+            IntPtr protocol;
+            int len;
+            SslGetAlpnSelected(ssl, out protocol, out len);
+
+            if (len == 0)
+                return null;
+
+            byte[] result = new byte[len];
+            Marshal.Copy(protocol, result, 0, len);
+            return result;
         }
 
         [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_GetSslConnectionInfo")]
@@ -101,6 +122,7 @@ internal static partial class Interop
         internal static extern int SslGetFinished(SafeSslHandle ssl, IntPtr buf, int count);
 
         [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_SslSessionReused")]
+        [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool SslSessionReused(SafeSslHandle ssl);
 
         [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_SslAddExtraChainCert")]
@@ -134,6 +156,7 @@ internal static partial class Interop
                 Crypto.CheckValidOpenSslHandle(dupCertHandle);
                 if (!SslAddExtraChainCert(sslContext, dupCertHandle))
                 {
+                    Crypto.ErrClearError();
                     dupCertHandle.Dispose(); // we still own the safe handle; clean it up
                     return false;
                 }
@@ -156,12 +179,12 @@ internal static partial class Interop
             SSL_ERROR_WANT_WRITE = 3,
             SSL_ERROR_SYSCALL = 5,
             SSL_ERROR_ZERO_RETURN = 6,
-            
+
             // NOTE: this SslErrorCode value doesn't exist in OpenSSL, but
             // we use it to distinguish when a renegotiation is pending.
             // Choosing an arbitrarily large value that shouldn't conflict
             // with any actual OpenSSL error codes
-            SSL_ERROR_RENEGOTIATE = 29304 
+            SSL_ERROR_RENEGOTIATE = 29304
         }
     }
 }
@@ -174,6 +197,8 @@ namespace Microsoft.Win32.SafeHandles
         private SafeBioHandle _writeBio;
         private bool _isServer;
         private bool _handshakeCompleted = false;
+
+        public GCHandle AlpnHandle;
 
         public bool IsServer
         {
@@ -255,6 +280,12 @@ namespace Microsoft.Win32.SafeHandles
                 _readBio?.Dispose();
                 _writeBio?.Dispose();
             }
+
+            if (AlpnHandle.IsAllocated)
+            {
+                AlpnHandle.Free();
+            }
+
             base.Dispose(disposing);
         }
 
@@ -285,6 +316,12 @@ namespace Microsoft.Win32.SafeHandles
             {
                 // Do a bi-directional shutdown.
                 retVal = Interop.Ssl.SslShutdown(handle);
+            }
+
+            if (retVal < 0)
+            {
+                // Clean up the errors
+                Interop.Crypto.ErrClearError();
             }
         }
 

@@ -66,15 +66,8 @@ namespace System.ComponentModel.DataAnnotations
 
         public override int GetHashCode() => _implementation.GetHashCode();
 
-        public override bool Equals(object obj)
-        {
-            var otherAttribute = obj as UIHintAttribute;
-            if (otherAttribute == null)
-            {
-                return false;
-            }
-            return _implementation.Equals(otherAttribute._implementation);
-        }
+        public override bool Equals(object obj) =>
+            obj is UIHintAttribute otherAttribute && _implementation.Equals(otherAttribute._implementation);
 
         internal class UIHintImplementation
         {
@@ -102,20 +95,11 @@ namespace System.ComponentModel.DataAnnotations
             /// </summary>
             public string PresentationLayer { get; }
 
-            public IDictionary<string, object> ControlParameters
-            {
-                get
-                {
-                    if (_controlParameters == null)
-                    {
-                        // Lazy load the dictionary. It's fine if this method executes multiple times in stress scenarios.
-                        // If the method throws (indicating that the input params are invalid) this property will throw
-                        // every time it's accessed.
-                        _controlParameters = BuildControlParametersDictionary();
-                    }
-                    return _controlParameters;
-                }
-            }
+            // Lazy load the dictionary. It's fine if this method executes multiple times in stress scenarios.
+            // If the method throws (indicating that the input params are invalid) this property will throw
+            // every time it's accessed.
+            public IDictionary<string, object> ControlParameters =>
+                _controlParameters ?? (_controlParameters = BuildControlParametersDictionary());
 
             /// <summary>
             ///     Returns the hash code for this UIHintAttribute.
@@ -186,8 +170,7 @@ namespace System.ComponentModel.DataAnnotations
                 }
                 if (inputControlParameters.Length % 2 != 0)
                 {
-                    throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
-                        SR.UIHintImplementation_NeedEvenNumberOfControlParameters));
+                    throw new InvalidOperationException(SR.UIHintImplementation_NeedEvenNumberOfControlParameters);
                 }
 
                 for (int i = 0; i < inputControlParameters.Length; i += 2)
@@ -196,32 +179,21 @@ namespace System.ComponentModel.DataAnnotations
                     object value = inputControlParameters[i + 1];
                     if (key == null)
                     {
-                        throw new InvalidOperationException(
-                            string.Format(
-                                CultureInfo.CurrentCulture,
-                                SR.UIHintImplementation_ControlParameterKeyIsNull,
-                                i));
+                        throw new InvalidOperationException(SR.Format(SR.UIHintImplementation_ControlParameterKeyIsNull, i));
                     }
 
-                    var keyString = key as string;
-                    if (keyString == null)
+                    if (!(key is string keyString))
                     {
-                        throw new InvalidOperationException(
-                            string.Format(
-                                CultureInfo.CurrentCulture,
-                                SR.UIHintImplementation_ControlParameterKeyIsNotAString,
-                                i,
-                                inputControlParameters[i].ToString()));
+                        throw new InvalidOperationException(SR.Format(SR.UIHintImplementation_ControlParameterKeyIsNotAString,
+                                                            i,
+                                                            inputControlParameters[i].ToString()));
                     }
 
                     if (controlParameters.ContainsKey(keyString))
                     {
-                        throw new InvalidOperationException(
-                            string.Format(
-                                CultureInfo.CurrentCulture,
-                                SR.UIHintImplementation_ControlParameterKeyOccursMoreThanOnce,
-                                i,
-                                keyString));
+                        throw new InvalidOperationException(SR.Format(SR.UIHintImplementation_ControlParameterKeyOccursMoreThanOnce,
+                                                            i,
+                                                            keyString));
                     }
 
                     controlParameters[keyString] = value;

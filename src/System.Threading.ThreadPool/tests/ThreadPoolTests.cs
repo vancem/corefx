@@ -87,14 +87,6 @@ namespace System.Threading.ThreadPools.Tests
             int minw, minc, maxw, maxc;
             ThreadPool.GetMinThreads(out minw, out minc);
             ThreadPool.GetMaxThreads(out maxw, out maxc);
-            Action resetThreadCounts =
-                () =>
-                {
-                    Assert.True(ThreadPool.SetMaxThreads(maxw, maxc));
-                    VerifyMaxThreads(maxw, maxc);
-                    Assert.True(ThreadPool.SetMinThreads(minw, minc));
-                    VerifyMinThreads(minw, minc);
-                };
 
             try
             {
@@ -135,7 +127,6 @@ namespace System.Threading.ThreadPools.Tests
                 VerifyMinThreads(MaxPossibleThreadCount, MaxPossibleThreadCount);
 
                 Assert.True(ThreadPool.SetMinThreads(0, 0));
-                VerifyMinThreads(0, 0);
                 Assert.True(ThreadPool.SetMaxThreads(1, 1));
                 VerifyMaxThreads(1, 1);
                 Assert.True(ThreadPool.SetMinThreads(1, 1));
@@ -143,38 +134,38 @@ namespace System.Threading.ThreadPools.Tests
             }
             finally
             {
-                resetThreadCounts();
+                Assert.True(ThreadPool.SetMaxThreads(maxw, maxc));
+                VerifyMaxThreads(maxw, maxc);
+                Assert.True(ThreadPool.SetMinThreads(minw, minc));
+                VerifyMinThreads(minw, minc);
             }
         }
 
         [Fact]
         // Desktop framework doesn't check for this and instead, hits an assertion failure
         [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.Mono)]
         [SkipOnTargetFramework(TargetFrameworkMonikers.UapAot, "ThreadPool.SetMinThreads and SetMaxThreads are not supported on UapAot.")]
         public static void SetMinMaxThreadsTest_ChangedInDotNetCore()
         {
             int minw, minc, maxw, maxc;
             ThreadPool.GetMinThreads(out minw, out minc);
             ThreadPool.GetMaxThreads(out maxw, out maxc);
-            Action resetThreadCounts =
-                () =>
-                {
-                    Assert.True(ThreadPool.SetMaxThreads(maxw, maxc));
-                    VerifyMaxThreads(maxw, maxc);
-                    Assert.True(ThreadPool.SetMinThreads(minw, minc));
-                    VerifyMinThreads(minw, minc);
-                };
 
             try
             {
                 Assert.True(ThreadPool.SetMinThreads(0, 0));
-                VerifyMinThreads(0, 0);
-                Assert.False(ThreadPool.SetMaxThreads(0, 0));
+                VerifyMinThreads(1, 1);
+                Assert.False(ThreadPool.SetMaxThreads(0, 1));
+                Assert.False(ThreadPool.SetMaxThreads(1, 0));
                 VerifyMaxThreads(maxw, maxc);
             }
             finally
             {
-                resetThreadCounts();
+                Assert.True(ThreadPool.SetMaxThreads(maxw, maxc));
+                VerifyMaxThreads(maxw, maxc);
+                Assert.True(ThreadPool.SetMinThreads(minw, minc));
+                VerifyMinThreads(minw, minc);
             }
         }
 
@@ -192,6 +183,45 @@ namespace System.Threading.ThreadPools.Tests
             ThreadPool.GetMaxThreads(out maxw, out maxc);
             Assert.Equal(expectedMaxw, maxw);
             Assert.Equal(expectedMaxc, maxc);
+        }
+
+        [Fact]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "Triggers an assertion failure.")]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.UapAot, "ThreadPool.SetMinThreads and SetMaxThreads are not supported on UapAot.")]
+        private static void SetMinThreadsTo0Test()
+        {
+            int minw, minc, maxw, maxc;
+            ThreadPool.GetMinThreads(out minw, out minc);
+            ThreadPool.GetMaxThreads(out maxw, out maxc);
+
+            try
+            {
+                Assert.True(ThreadPool.SetMinThreads(0, minc));
+                Assert.True(ThreadPool.SetMaxThreads(1, maxc));
+
+                int count = 0;
+                var done = new ManualResetEvent(false);
+                WaitCallback callback = null;
+                callback = state =>
+                {
+                    ++count;
+                    if (count > 100)
+                    {
+                        done.Set();
+                    }
+                    else
+                    {
+                        ThreadPool.QueueUserWorkItem(callback);
+                    }
+                };
+                ThreadPool.QueueUserWorkItem(callback);
+                done.WaitOne(ThreadTestHelpers.UnexpectedTimeoutMilliseconds);
+            }
+            finally
+            {
+                Assert.True(ThreadPool.SetMaxThreads(maxw, maxc));
+                Assert.True(ThreadPool.SetMinThreads(minw, minc));
+            }
         }
 
         [Fact]
@@ -316,14 +346,40 @@ namespace System.Threading.ThreadPools.Tests
             WaitOrTimerCallback callback = (state, timedOut) => { };
             Assert.Throws<ArgumentNullException>(() => ThreadPool.RegisterWaitForSingleObject(null, callback, null, 0, true));
             Assert.Throws<ArgumentNullException>(() => ThreadPool.RegisterWaitForSingleObject(waitHandle, null, null, 0, true));
-            Assert.Throws<ArgumentOutOfRangeException>(() =>
+            AssertExtensions.Throws<ArgumentOutOfRangeException>("millisecondsTimeOutInterval", () =>
                 ThreadPool.RegisterWaitForSingleObject(waitHandle, callback, null, -2, true));
-            Assert.Throws<ArgumentOutOfRangeException>(() =>
+            AssertExtensions.Throws<ArgumentOutOfRangeException>("millisecondsTimeOutInterval", () =>
                 ThreadPool.RegisterWaitForSingleObject(waitHandle, callback, null, (long)-2, true));
-            Assert.Throws<ArgumentOutOfRangeException>(() =>
+            if (!PlatformDetection.IsFullFramework) // netfx silently overflows the timeout
+            {
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("millisecondsTimeOutInterval", () =>
+                    ThreadPool.RegisterWaitForSingleObject(waitHandle, callback, null, (long)int.MaxValue + 1, true));
+            }
+            AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () =>
                 ThreadPool.RegisterWaitForSingleObject(waitHandle, callback, null, TimeSpan.FromMilliseconds(-2), true));
-            Assert.Throws<ArgumentOutOfRangeException>(() =>
+            AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () =>
                 ThreadPool.RegisterWaitForSingleObject(
+                    waitHandle,
+                    callback,
+                    null,
+                    TimeSpan.FromMilliseconds((double)int.MaxValue + 1),
+                    true));
+
+            Assert.Throws<ArgumentNullException>(() => ThreadPool.UnsafeRegisterWaitForSingleObject(null, callback, null, 0, true));
+            Assert.Throws<ArgumentNullException>(() => ThreadPool.UnsafeRegisterWaitForSingleObject(waitHandle, null, null, 0, true));
+            AssertExtensions.Throws<ArgumentOutOfRangeException>("millisecondsTimeOutInterval", () =>
+                ThreadPool.UnsafeRegisterWaitForSingleObject(waitHandle, callback, null, -2, true));
+            AssertExtensions.Throws<ArgumentOutOfRangeException>("millisecondsTimeOutInterval", () =>
+                ThreadPool.UnsafeRegisterWaitForSingleObject(waitHandle, callback, null, (long)-2, true));
+            if (!PlatformDetection.IsFullFramework) // netfx silently overflows the timeout
+            {
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("millisecondsTimeOutInterval", () =>
+                    ThreadPool.UnsafeRegisterWaitForSingleObject(waitHandle, callback, null, (long)int.MaxValue + 1, true));
+            }
+            AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () =>
+                ThreadPool.UnsafeRegisterWaitForSingleObject(waitHandle, callback, null, TimeSpan.FromMilliseconds(-2), true));
+            AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () =>
+                ThreadPool.UnsafeRegisterWaitForSingleObject(
                     waitHandle,
                     callback,
                     null,

@@ -10,7 +10,7 @@ namespace System.Net
 {
     internal static class SecurityStatusAdapterPal
     {
-        private const int StatusDictionarySize = 40;
+        private const int StatusDictionarySize = 41;
 
 #if DEBUG
         static SecurityStatusAdapterPal()
@@ -22,6 +22,7 @@ namespace System.Net
         private static readonly BidirectionalDictionary<Interop.SECURITY_STATUS, SecurityStatusPalErrorCode> s_statusDictionary = new BidirectionalDictionary<Interop.SECURITY_STATUS, SecurityStatusPalErrorCode>(StatusDictionarySize)
         {
             { Interop.SECURITY_STATUS.AlgorithmMismatch, SecurityStatusPalErrorCode.AlgorithmMismatch },
+            { Interop.SECURITY_STATUS.ApplicationProtocolMismatch, SecurityStatusPalErrorCode.ApplicationProtocolMismatch },
             { Interop.SECURITY_STATUS.BadBinding, SecurityStatusPalErrorCode.BadBinding },
             { Interop.SECURITY_STATUS.BufferNotEnough, SecurityStatusPalErrorCode.BufferNotEnough },
             { Interop.SECURITY_STATUS.CannotInstall, SecurityStatusPalErrorCode.CannotInstall },
@@ -75,7 +76,7 @@ namespace System.Net
             if (!s_statusDictionary.TryGetForward(win32SecurityStatus, out statusCode))
             {
                 Debug.Fail("Unknown Interop.SecurityStatus value: " + win32SecurityStatus);
-                throw new InternalException();
+                throw new InternalException(win32SecurityStatus);
             }
 
             if (attachException)
@@ -94,7 +95,7 @@ namespace System.Net
             if (!s_statusDictionary.TryGetBackward(status.ErrorCode, out interopStatus))
             {
                 Debug.Fail("Unknown SecurityStatus value: " + status);
-                throw new InternalException();
+                throw new InternalException(status.ErrorCode);
             }
             return interopStatus;
         }

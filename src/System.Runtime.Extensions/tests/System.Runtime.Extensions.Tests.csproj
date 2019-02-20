@@ -1,43 +1,41 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.props))\dir.props" />
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectGuid>{6C314C9B-3D28-4B05-9B4C-B57A00A9B3B9}</ProjectGuid>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DefineConstants Condition="'$(TargetsUnix)' == 'true'">$(DefineConstants);Unix</DefineConstants>
-    <DefineConstants Condition="'$(TargetGroup)'=='netcoreapp'">$(DefineConstants);netcoreapp</DefineConstants>
-    <DefineConstants Condition="'$(TargetGroup)'=='uapaot'">$(DefineConstants);uapaot</DefineConstants>
+    <Configurations>netcoreapp-Unix-Debug;netcoreapp-Unix-Release;netcoreapp-Windows_NT-Debug;netcoreapp-Windows_NT-Release;netstandard-Unix-Debug;netstandard-Unix-Release;netstandard-Windows_NT-Debug;netstandard-Windows_NT-Release;uap-Windows_NT-Debug;uap-Windows_NT-Release</Configurations>
+    <TestRuntime>true</TestRuntime>
   </PropertyGroup>
-  <!-- Default configurations to help VS understand the configurations -->
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netcoreapp-Unix-Debug|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netcoreapp-Unix-Release|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netcoreapp-Windows_NT-Debug|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netcoreapp-Windows_NT-Release|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netstandard-Unix-Debug|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netstandard-Unix-Release|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netstandard-Windows_NT-Debug|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'netstandard-Windows_NT-Release|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'uap-Windows_NT-Debug|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'uap-Windows_NT-Release|AnyCPU'" />
   <ItemGroup>
     <Compile Include="System\ApplicationIdTests.cs" />
     <Compile Include="System\Convert.cs" />
     <Compile Include="System\EnvironmentTests.cs" />
+    <Compile Include="System\IO\PathTests.cs" />
+    <Compile Include="System\IO\PathTests_Windows_NetFX.cs" />
+    <Compile Include="System\IO\PathTests_Windows.cs" />
     <Compile Include="System\OperatingSystemTests.cs" />
     <Compile Include="System\Runtime\Versioning\VersioningHelperTests.cs" />
     <Compile Include="System\AppDomainTests.cs" />
-    <Compile Include="$(CommonTestPath)\System\Runtime\Serialization\Formatters\BinaryFormatterHelpers.cs">
-      <Link>Common\System\Runtime\Serialization\Formatters\BinaryFormatterHelpers.cs</Link>
-    </Compile>
     <Compile Include="System\Reflection\AssemblyNameProxyTests.cs" />
     <Compile Include="System\MarshalByRefObjectTest.cs" />
+    <Compile Include="TestHelpers.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetGroup)'=='netcoreapp'">
+    <Compile Include="System\AppDomainTests.netcoreapp.cs" />
     <Compile Include="System\Random.netcoreapp.cs" />
+    <Compile Include="System\IO\Path.IsPathFullyQualified.netcoreapp.cs" />
+    <Compile Include="System\IO\PathTestsBase.netcoreapp.cs" />
+    <Compile Include="System\IO\PathTests_Windows.netcoreapp.cs" />
+    <Compile Include="System\IO\PathTests.netcoreapp.cs" />
+    <Compile Include="System\IO\PathTests_Unix.cs" />
+    <Compile Include="System\IO\PathTests_Join.netcoreapp.cs" />
+    <Compile Include="System\Runtime\ProfileOptimization.netcoreapp.cs" />
+    <Compile Include="System\Runtime\CompilerServices\SwitchExpressionExceptionTests.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetGroup)'!='netstandard'">
     <Compile Include="System\BitConverterSpan.cs" />
     <Compile Include="System\BitConverter.netcoreapp.cs" />
+    <Compile Include="System\Convert.netcoreapp.cs" />
     <Compile Include="System\IO\Path.GetRelativePath.cs" />
     <Compile Include="System\MathTests.netcoreapp.cs" />
     <Compile Include="System\MathF.netcoreapp.cs" />
@@ -52,9 +50,9 @@
     <Compile Include="System\Environment.UserName.cs" />
     <Compile Include="System\Diagnostics\Stopwatch.cs" />
     <Compile Include="System\Environment.MachineName.cs" />
-    <Compile Include="System\IO\Path.Combine.cs" />
+    <Compile Include="System\IO\PathTests_Combine.cs" />
     <Compile Include="System\Runtime\Versioning\FrameworkName.cs" />
-    <Compile Include="System\IO\PathTests.cs" />
+    <Compile Include="System\IO\PathTestsBase.cs" />
     <Compile Include="System\Net\WebUtility.cs" />
     <Compile Include="System\BitConverter.cs" />
     <Compile Include="System\Convert.BoxedObjectCheck.cs" />
@@ -102,15 +100,18 @@
     <Compile Include="$(CommonTestPath)\System\ShouldNotBeInvokedException.cs">
       <Link>Common\System\ShouldNotBeInvokedException.cs</Link>
     </Compile>
+    <Compile Include="$(CommonTestPath)\System\Security\Cryptography\ByteUtils.cs">
+      <Link>Common\System\Security\Cryptography\ByteUtils.cs</Link>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="$(CommonTestPath)\System\Diagnostics\RemoteExecutorConsoleApp\RemoteExecutorConsoleApp.csproj">
       <Project>{69e46a6f-9966-45a5-8945-2559fe337827}</Project>
       <Name>RemoteExecutorConsoleApp</Name>
     </ProjectReference>
-    <ProjectReference Include="AssemblyResolveTests\AssemblyResolveTests.csproj">
+    <ProjectReference Include="AssemblyResolveTestApp\AssemblyResolveTestApp.csproj">
       <Project>{ad83807c-8be5-4f27-85df-9793613233e1}</Project>
-      <Name>AssemblyResolveTests</Name>
+      <Name>AssemblyResolveTestApp</Name>
     </ProjectReference>
     <ProjectReference Include="TestAppOutsideOfTPA\TestAppOutsideOfTPA.csproj">
       <Project>{c44b33e3-f89f-40b9-b353-d380c1524988}</Project>
@@ -125,5 +126,7 @@
       <Name>TestApp</Name>
     </ProjectReference>
   </ItemGroup>
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.targets))\dir.targets" />
+  <ItemGroup>
+    <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
+  </ItemGroup>
 </Project>

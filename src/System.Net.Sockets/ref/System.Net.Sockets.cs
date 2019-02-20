@@ -45,9 +45,9 @@ namespace System.Net.Sockets
         TranslateHandle = (long)3355443213,
         UnicastInterface = (long)2550136838,
     }
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct IPPacketInformation
     {
+        private object _dummy;
         public System.Net.IPAddress Address { get { throw null; } }
         public int Interface { get { throw null; } }
         public override bool Equals(object comparand) { throw null; }
@@ -111,12 +111,18 @@ namespace System.Net.Sockets
         public override void EndWrite(IAsyncResult asyncResult) { }
         public override void Flush() { }
         public override System.Threading.Tasks.Task FlushAsync(System.Threading.CancellationToken cancellationToken) { throw null; }
+        public override int Read(System.Span<byte> buffer) { throw null; }
+        public override System.Threading.Tasks.ValueTask<int> ReadAsync(System.Memory<byte> buffer, System.Threading.CancellationToken cancellationToken = default) { throw null; }
         public override int Read(byte[] buffer, int offset, int size) { throw null; }
         public override System.Threading.Tasks.Task<int> ReadAsync(byte[] buffer, int offset, int size, System.Threading.CancellationToken cancellationToken) { throw null; }
+        public override int ReadByte() { throw null; }
         public override long Seek(long offset, System.IO.SeekOrigin origin) { throw null; }
         public override void SetLength(long value) { }
+        public override void Write(System.ReadOnlySpan<byte> buffer) { }
         public override void Write(byte[] buffer, int offset, int size) { }
+        public override System.Threading.Tasks.ValueTask WriteAsync(System.ReadOnlyMemory<byte> buffer, System.Threading.CancellationToken cancellationToken = default) { throw null; }
         public override System.Threading.Tasks.Task WriteAsync(byte[] buffer, int offset, int size, System.Threading.CancellationToken cancellationToken) { throw null; }
+        public override void WriteByte(byte value) { }
     }
     public enum ProtocolFamily
     {
@@ -180,6 +186,12 @@ namespace System.Net.Sockets
         Unknown = -1,
         Unspecified = 0,
     }
+
+    public sealed class SafeSocketHandle : Microsoft.Win32.SafeHandles.SafeHandleMinusOneIsInvalid
+    {
+        public SafeSocketHandle(IntPtr preexistingHandle, bool ownsHandle) : base(ownsHandle) { }
+        protected override bool ReleaseHandle() { throw null; }
+    }
     public enum SelectMode
     {
         SelectError = 2,
@@ -194,10 +206,17 @@ namespace System.Net.Sockets
         public SendPacketsElement(string filepath) { }
         public SendPacketsElement(string filepath, int offset, int count) { }
         public SendPacketsElement(string filepath, int offset, int count, bool endOfPacket) { }
+        public SendPacketsElement(string filepath, long offset, int count) { }
+        public SendPacketsElement(string filepath, long offset, int count, bool endOfPacket) { }
+        public SendPacketsElement(System.IO.FileStream fileStream) { }
+        public SendPacketsElement(System.IO.FileStream fileStream, long offset, int count) { }
+        public SendPacketsElement(System.IO.FileStream fileStream, long offset, int count, bool endOfPacket) { }
         public byte[] Buffer { get { throw null; } }
         public int Count { get { throw null; } }
+        public long OffsetLong { get { throw null; } }
         public bool EndOfPacket { get { throw null; } }
         public string FilePath { get { throw null; } }
+        public System.IO.FileStream FileStream { get { throw null; } }
         public int Offset { get { throw null; } }
     }
     public partial class Socket : System.IDisposable
@@ -225,12 +244,13 @@ namespace System.Net.Sockets
         public int ReceiveBufferSize { get { throw null; } set { } }
         public int ReceiveTimeout { get { throw null; } set { } }
         public System.Net.EndPoint RemoteEndPoint { get { throw null; } }
+        public SafeSocketHandle SafeHandle { get { throw null; } }
         public int SendBufferSize { get { throw null; } set { } }
         public int SendTimeout { get { throw null; } set { } }
         public System.Net.Sockets.SocketType SocketType { get { throw null; } }
-        [Obsolete("SupportsIPv4 is obsoleted for this type, please use OSSupportsIPv4 instead. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("SupportsIPv4 is obsoleted for this type, please use OSSupportsIPv4 instead. https://go.microsoft.com/fwlink/?linkid=14202")]
         public static bool SupportsIPv4 { get { throw null; } }
-        [Obsolete("SupportsIPv6 is obsoleted for this type, please use OSSupportsIPv6 instead. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("SupportsIPv6 is obsoleted for this type, please use OSSupportsIPv6 instead. https://go.microsoft.com/fwlink/?linkid=14202")]
         public static bool SupportsIPv6 { get { throw null; } }
         public short Ttl { get { throw null; } set { } }
         public bool UseOnlyOverlappedIO { get { throw null; } set { } }
@@ -293,6 +313,9 @@ namespace System.Net.Sockets
         public int IOControl(System.Net.Sockets.IOControlCode ioControlCode, byte[] optionInValue, byte[] optionOutValue) { throw null; }
         public void Listen(int backlog) { }
         public bool Poll(int microSeconds, System.Net.Sockets.SelectMode mode) { throw null; }
+        public int Receive(Span<byte> buffer) { throw null; }
+        public int Receive(Span<byte> buffer, System.Net.Sockets.SocketFlags socketFlags) { throw null; }
+        public int Receive(Span<byte> buffer, System.Net.Sockets.SocketFlags socketFlags, out System.Net.Sockets.SocketError errorCode) { throw null; }
         public int Receive(byte[] buffer) { throw null; }
         public int Receive(byte[] buffer, int offset, int size, System.Net.Sockets.SocketFlags socketFlags) { throw null; }
         public int Receive(byte[] buffer, int offset, int size, System.Net.Sockets.SocketFlags socketFlags, out System.Net.Sockets.SocketError errorCode) { throw null; }
@@ -310,6 +333,9 @@ namespace System.Net.Sockets
         public int ReceiveMessageFrom(byte[] buffer, int offset, int size, ref System.Net.Sockets.SocketFlags socketFlags, ref System.Net.EndPoint remoteEP, out System.Net.Sockets.IPPacketInformation ipPacketInformation) { throw null; }
         public bool ReceiveMessageFromAsync(System.Net.Sockets.SocketAsyncEventArgs e) { throw null; }
         public static void Select(System.Collections.IList checkRead, System.Collections.IList checkWrite, System.Collections.IList checkError, int microSeconds) { }
+        public int Send(ReadOnlySpan<byte> buffer) { throw null; }
+        public int Send(ReadOnlySpan<byte> buffer, System.Net.Sockets.SocketFlags socketFlags) { throw null; }
+        public int Send(ReadOnlySpan<byte> buffer, System.Net.Sockets.SocketFlags socketFlags, out System.Net.Sockets.SocketError errorCode) { throw null; }
         public int Send(byte[] buffer) { throw null; }
         public int Send(byte[] buffer, int offset, int size, System.Net.Sockets.SocketFlags socketFlags) { throw null; }
         public int Send(byte[] buffer, int offset, int size, System.Net.Sockets.SocketFlags socketFlags, out System.Net.Sockets.SocketError errorCode) { throw null; }
@@ -347,12 +373,14 @@ namespace System.Net.Sockets
         public int Count { get { throw null; } }
         public bool DisconnectReuseSocket { get { throw null; } set { } }
         public System.Net.Sockets.SocketAsyncOperation LastOperation { get { throw null; } }
+        public System.Memory<byte> MemoryBuffer { get { throw null; } }
         public int Offset { get { throw null; } }
         public System.Net.Sockets.IPPacketInformation ReceiveMessageFromPacketInfo { get { throw null; } }
         public System.Net.EndPoint RemoteEndPoint { get { throw null; } set { } }
         public System.Net.Sockets.SendPacketsElement[] SendPacketsElements { get { throw null; } set { } }
         public System.Net.Sockets.TransmitFileOptions SendPacketsFlags { get { throw null; } set { } }
         public int SendPacketsSendSize { get { throw null; } set { } }
+        public void SetBuffer(System.Memory<byte> buffer) { throw null; }
         public System.Net.Sockets.SocketError SocketError { get { throw null; } set { } }
         public System.Net.Sockets.SocketFlags SocketFlags { get { throw null; } set { } }
         public object UserToken { get { throw null; } set { } }
@@ -389,10 +417,10 @@ namespace System.Net.Sockets
         Peek = 2,
         Truncated = 256,
     }
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
-    public struct SocketInformation
+    public partial struct SocketInformation
     {
-        public SocketInformationOptions Options { get { throw null; } set { } }
+        private object _dummy;
+        public System.Net.Sockets.SocketInformationOptions Options { get { throw null; } set { } }
         public byte[] ProtocolInformation { get { throw null; } set { } }
     }
     [Flags]
@@ -453,6 +481,9 @@ namespace System.Net.Sockets
         SendBuffer = 4097,
         SendLowWater = 4099,
         SendTimeout = 4101,
+        TcpKeepAliveRetryCount = 16,
+        TcpKeepAliveTime = 3,
+        TcpKeepAliveInterval = 17,
         Type = 4104,
         TypeOfService = 3,
         UnblockSource = 18,
@@ -509,10 +540,12 @@ namespace System.Net.Sockets
         public static System.Threading.Tasks.Task ConnectAsync(this System.Net.Sockets.Socket socket, string host, int port) { throw null; }
         public static System.Threading.Tasks.Task<int> ReceiveAsync(this System.Net.Sockets.Socket socket, System.ArraySegment<byte> buffer, System.Net.Sockets.SocketFlags socketFlags) { throw null; }
         public static System.Threading.Tasks.Task<int> ReceiveAsync(this System.Net.Sockets.Socket socket, System.Collections.Generic.IList<System.ArraySegment<byte>> buffers, System.Net.Sockets.SocketFlags socketFlags) { throw null; }
+        public static System.Threading.Tasks.ValueTask<int> ReceiveAsync(this System.Net.Sockets.Socket socket, System.Memory<byte> buffer, System.Net.Sockets.SocketFlags socketFlags, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
         public static System.Threading.Tasks.Task<System.Net.Sockets.SocketReceiveFromResult> ReceiveFromAsync(this System.Net.Sockets.Socket socket, System.ArraySegment<byte> buffer, System.Net.Sockets.SocketFlags socketFlags, System.Net.EndPoint remoteEndPoint) { throw null; }
         public static System.Threading.Tasks.Task<System.Net.Sockets.SocketReceiveMessageFromResult> ReceiveMessageFromAsync(this System.Net.Sockets.Socket socket, System.ArraySegment<byte> buffer, System.Net.Sockets.SocketFlags socketFlags, System.Net.EndPoint remoteEndPoint) { throw null; }
         public static System.Threading.Tasks.Task<int> SendAsync(this System.Net.Sockets.Socket socket, System.ArraySegment<byte> buffer, System.Net.Sockets.SocketFlags socketFlags) { throw null; }
         public static System.Threading.Tasks.Task<int> SendAsync(this System.Net.Sockets.Socket socket, System.Collections.Generic.IList<System.ArraySegment<byte>> buffers, System.Net.Sockets.SocketFlags socketFlags) { throw null; }
+        public static System.Threading.Tasks.ValueTask<int> SendAsync(this System.Net.Sockets.Socket socket, System.ReadOnlyMemory<byte> buffer, System.Net.Sockets.SocketFlags socketFlags, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) { throw null; }
         public static System.Threading.Tasks.Task<int> SendToAsync(this System.Net.Sockets.Socket socket, System.ArraySegment<byte> buffer, System.Net.Sockets.SocketFlags socketFlags, System.Net.EndPoint remoteEP) { throw null; }
     }
     public enum SocketType
@@ -560,7 +593,7 @@ namespace System.Net.Sockets
     }
     public partial class TcpListener
     {
-        [System.ObsoleteAttribute("This method has been deprecated. Please use TcpListener(IPAddress localaddr, int port) instead. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [System.ObsoleteAttribute("This method has been deprecated. Please use TcpListener(IPAddress localaddr, int port) instead. https://go.microsoft.com/fwlink/?linkid=14202")]
         public TcpListener(int port) { }
         public TcpListener(System.Net.IPAddress localaddr, int port) { }
         public TcpListener(System.Net.IPEndPoint localEP) { }
@@ -638,9 +671,9 @@ namespace System.Net.Sockets
         public System.Threading.Tasks.Task<int> SendAsync(byte[] datagram, int bytes, string hostname, int port) { throw null; }
         public void AllowNatTraversal(bool allowed) { throw null; }
     }
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct UdpReceiveResult : System.IEquatable<System.Net.Sockets.UdpReceiveResult>
     {
+        private object _dummy;
         public UdpReceiveResult(byte[] buffer, System.Net.IPEndPoint remoteEndPoint) { throw null; }
         public byte[] Buffer { get { throw null; } }
         public System.Net.IPEndPoint RemoteEndPoint { get { throw null; } }
@@ -649,5 +682,9 @@ namespace System.Net.Sockets
         public override int GetHashCode() { throw null; }
         public static bool operator ==(System.Net.Sockets.UdpReceiveResult left, System.Net.Sockets.UdpReceiveResult right) { throw null; }
         public static bool operator !=(System.Net.Sockets.UdpReceiveResult left, System.Net.Sockets.UdpReceiveResult right) { throw null; }
+    }
+    public sealed partial class UnixDomainSocketEndPoint : System.Net.EndPoint
+    {
+        public UnixDomainSocketEndPoint(string path) { }
     }
 }

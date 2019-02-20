@@ -32,6 +32,7 @@ namespace System.Xml
         private bool _inList;
         private const string xmlnsNamespace = "http://www.w3.org/2000/xmlns/";
         private const string xmlNamespace = "http://www.w3.org/XML/1998/namespace";
+        private static BinHexEncoding _binhexEncoding;
         private static string[] s_prefixes = { "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z" };
 
         protected XmlBaseWriter()
@@ -113,6 +114,15 @@ namespace System.Xml
             throw System.Runtime.Serialization.DiagnosticUtility.ExceptionUtility.ThrowHelperError(new InvalidOperationException(SR.Format(SR.XmlWriterClosed)));
         }
 
+        private static BinHexEncoding BinHexEncoding
+        {
+            get
+            {
+                if (_binhexEncoding == null)
+                    _binhexEncoding = new BinHexEncoding();
+                return _binhexEncoding;
+            }
+        }
 
         public override string XmlLang
         {
@@ -824,13 +834,6 @@ namespace System.Xml
             return _nsMgr.LookupPrefix(ns);
         }
 
-        internal string LookupNamespace(string prefix)
-        {
-            if (prefix == null)
-                return null;
-            return _nsMgr.LookupNamespace(prefix);
-        }
-
         private string GetQualifiedNamePrefix(string namespaceUri, XmlDictionaryString xNs)
         {
             string prefix = _nsMgr.LookupPrefix(namespaceUri);
@@ -921,7 +924,7 @@ namespace System.Xml
                 throw System.Runtime.Serialization.DiagnosticUtility.ExceptionUtility.ThrowHelperError(new InvalidOperationException(SR.Format(SR.XmlInvalidDeclaration)));
 
             // The only thing the text can legitimately contain is version, encoding, and standalone.
-            // We only support version 1.0, we can only write whatever encoding we were supplied, 
+            // We only support version 1.0, we can only write whatever encoding we were supplied,
             // and we don't support DTDs, so whatever values are supplied in the text argument are irrelevant.
             _writer.WriteDeclaration();
         }
@@ -950,18 +953,6 @@ namespace System.Xml
             FinishDocument();
             _writeState = WriteState.Start;
             _documentState = DocumentState.End;
-        }
-
-        protected int NamespaceBoundary
-        {
-            get
-            {
-                return _nsMgr.NamespaceBoundary;
-            }
-            set
-            {
-                _nsMgr.NamespaceBoundary = value;
-            }
         }
 
         public override void WriteEntityRef(string name)
@@ -1478,6 +1469,14 @@ namespace System.Xml
             }
         }
 
+        public override void WriteBinHex(byte[] buffer, int offset, int count)
+        {
+            if (IsClosed)
+                ThrowClosed();
+
+            WriteRaw(BinHexEncoding.GetString(buffer, offset, count));
+        }
+
         public override void WriteBase64(byte[] buffer, int offset, int count)
         {
             if (IsClosed)
@@ -1855,7 +1854,6 @@ namespace System.Xml
             private int _attributeCount;
             private XmlSpace _space;
             private string _lang;
-            private int _namespaceBoundary;
             private int _nsTop;
             private Namespace _defaultNamespace;
 
@@ -1898,26 +1896,6 @@ namespace System.Xml
                 _space = XmlSpace.None;
                 _lang = null;
                 _lastNameSpace = null;
-                _namespaceBoundary = 0;
-            }
-
-            public int NamespaceBoundary
-            {
-                get
-                {
-                    return _namespaceBoundary;
-                }
-                set
-                {
-                    int i;
-                    for (i = 0; i < _nsCount; i++)
-                        if (_namespaces[i].Depth >= value)
-                            break;
-
-                    _nsTop = i;
-                    _namespaceBoundary = value;
-                    _lastNameSpace = null;
-                }
             }
 
             public void Close()

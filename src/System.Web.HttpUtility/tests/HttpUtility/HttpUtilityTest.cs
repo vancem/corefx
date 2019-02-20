@@ -349,6 +349,14 @@ namespace System.Web.Tests
             Assert.Equal("\"" + encoded + "\"", HttpUtility.JavaScriptStringEncode(decoded, true));
         }
 
+
+        [Theory]
+        [MemberData(nameof(JavaScriptStringEncodeData))]
+        public void JavaScriptStringEncode_ExplicitDontAddQuotes(string decoded, string encoded)
+        {
+            Assert.Equal(encoded, HttpUtility.JavaScriptStringEncode(decoded, false));
+        }
+
         #endregion JavaScriptStringEncode
 
         #region ParseQueryString
@@ -740,9 +748,26 @@ namespace System.Web.Tests
         [InlineData("http://EXAMPLE.NET/défault.xxx?sdsd=sds", "http://EXAMPLE.NET/d%c3%a9fault.xxx?sdsd=sds")]
         [InlineData("file:///C/Users", "file:///C/Users")]
         [InlineData("mailto:user@example.net", "mailto:user@example.net")]
+        [InlineData("http://example\u200E.net/", "http://example%e2%80%8e.net/")]
         public void UrlPathEncode(string decoded, string encoded)
         {
             Assert.Equal(encoded, HttpUtility.UrlPathEncode(decoded));
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("name=foo&desc=foo")]
+        [InlineData("type=foo&type=bar")]
+        [InlineData("name=&desc=foo")]
+        [InlineData("name=&name=foo")]
+        [InlineData("foo&bar")]
+        [InlineData("foo&name=bar")]
+        [InlineData("name=bar&foo&foo")]
+        public void ParseAndToStringMaintainAllKeyValuePairs(string input)
+        {
+            var values = HttpUtility.ParseQueryString(input);
+            var output = values.ToString();
+            Assert.Equal(input, output);
         }
     }
 }

@@ -15,10 +15,12 @@ namespace System.Threading
     {
         [ThreadStatic]
         private static Thread t_currentThread;
+        private static AsyncLocal<IPrincipal> s_asyncLocalPrincipal;
 
         private readonly RuntimeThread _runtimeThread;
         private Delegate _start;
-        private IPrincipal _principal;
+        private CultureInfo _startCulture;
+        private CultureInfo _startUICulture;
 
         private Thread(RuntimeThread runtimeThread)
         {
@@ -82,24 +84,36 @@ namespace System.Threading
             _start = start;
         }
 
-        private void ThreadMain_ThreadStart()
+        private Delegate InitializeNewThread()
         {
             t_currentThread = this;
 
             Delegate start = _start;
             _start = null;
-            Debug.Assert(start is ThreadStart);
-            ((ThreadStart)start)();
+
+            if (_startCulture != null)
+            {
+                CultureInfo.CurrentCulture = _startCulture;
+                _startCulture = null;
+            }
+
+            if (_startUICulture != null)
+            {
+                CultureInfo.CurrentUICulture = _startUICulture;
+                _startUICulture = null;
+            }
+
+            return start;
+        }
+
+        private void ThreadMain_ThreadStart()
+        {
+            ((ThreadStart)InitializeNewThread())();
         }
 
         private void ThreadMain_ParameterizedThreadStart(object parameter)
         {
-            t_currentThread = this;
-
-            Delegate start = _start;
-            _start = null;
-            Debug.Assert(start is ParameterizedThreadStart);
-            ((ParameterizedThreadStart)start)(parameter);
+            ((ParameterizedThreadStart)InitializeNewThread())(parameter);
         }
 
         public static Thread CurrentThread
@@ -123,6 +137,19 @@ namespace System.Threading
             }
         }
 
+        private void SetCultureOnUnstartedThread(CultureInfo value, ref CultureInfo culture)
+        {
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+            if ((_runtimeThread.ThreadState & ThreadState.Unstarted) == 0)
+            {
+                throw new InvalidOperationException(SR.Thread_Operation_RequiresCurrentThread);
+            }
+            culture = value;
+        }
+
         public CultureInfo CurrentCulture
         {
             get
@@ -132,7 +159,11 @@ namespace System.Threading
             }
             set
             {
-                RequireCurrentThread();
+                if (this != CurrentThread)
+                {
+                    SetCultureOnUnstartedThread(value, ref _startCulture);
+                    return;
+                }
                 CultureInfo.CurrentCulture = value;
             }
         }
@@ -146,7 +177,11 @@ namespace System.Threading
             }
             set
             {
-                RequireCurrentThread();
+                if (this != CurrentThread)
+                {
+                    SetCultureOnUnstartedThread(value, ref _startUICulture);
+                    return;
+                }
                 CultureInfo.CurrentUICulture = value;
             }
         }
@@ -155,11 +190,23 @@ namespace System.Threading
         {
             get
             {
-                return CurrentThread._principal;
+                if (s_asyncLocalPrincipal is null)
+                {
+                    CurrentPrincipal = AppDomain.CurrentDomain.GetThreadPrincipal();
+                }
+                return s_asyncLocalPrincipal?.Value;
             }
             set
             {
-                CurrentThread._principal = value;
+                if (s_asyncLocalPrincipal is null)
+                {
+                    if (value is null)
+                    {
+                        return;
+                    }
+                    Interlocked.CompareExchange(ref s_asyncLocalPrincipal, new AsyncLocal<IPrincipal>(), null);
+                }
+                s_asyncLocalPrincipal.Value = value;
             }
         }
 
@@ -187,13 +234,13 @@ namespace System.Threading
             throw new PlatformNotSupportedException(SR.PlatformNotSupported_ThreadAbort);
         }
 
-        [ObsoleteAttribute("Thread.Suspend has been deprecated.  Please use other classes in System.Threading, such as Monitor, Mutex, Event, and Semaphore, to synchronize Threads or protect resources.  http://go.microsoft.com/fwlink/?linkid=14202", false)]
+        [ObsoleteAttribute("Thread.Suspend has been deprecated.  Please use other classes in System.Threading, such as Monitor, Mutex, Event, and Semaphore, to synchronize Threads or protect resources.  https://go.microsoft.com/fwlink/?linkid=14202", false)]
         public void Suspend()
         {
             throw new PlatformNotSupportedException(SR.PlatformNotSupported_ThreadSuspend);
         }
 
-        [ObsoleteAttribute("Thread.Resume has been deprecated.  Please use other classes in System.Threading, such as Monitor, Mutex, Event, and Semaphore, to synchronize Threads or protect resources.  http://go.microsoft.com/fwlink/?linkid=14202", false)]
+        [ObsoleteAttribute("Thread.Resume has been deprecated.  Please use other classes in System.Threading, such as Monitor, Mutex, Event, and Semaphore, to synchronize Threads or protect resources.  https://go.microsoft.com/fwlink/?linkid=14202", false)]
         public void Resume()
         {
             throw new PlatformNotSupportedException(SR.PlatformNotSupported_ThreadSuspend);
@@ -272,6 +319,7 @@ namespace System.Threading
             throw new InvalidOperationException(SR.Thread_GetSetCompressedStack_NotSupported);
         }
 
+        public static int GetCurrentProcessorId() => RuntimeThread.GetCurrentProcessorId();
         public static AppDomain GetDomain() => AppDomain.CurrentDomain;
         public static int GetDomainID() => GetDomain().Id;
         public override int GetHashCode() => ManagedThreadId;

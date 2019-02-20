@@ -206,7 +206,7 @@ namespace System.Security.Cryptography.EcDsa.OpenSsl.Tests
         public void VerifyDuplicateKey_NullHandle()
         {
             SafeEvpPKeyHandle pkey = null;
-            Assert.Throws<ArgumentNullException>(() => new RSAOpenSsl(pkey));
+            Assert.Throws<ArgumentNullException>(() => new ECDsaOpenSsl(pkey));
         }
 
         [Fact]
@@ -294,5 +294,8 @@ internal static partial class Interop
 
         [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_EcKeyDestroy")]
         internal static extern void EcKeyDestroy(IntPtr r);
+
+        [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_OpenSslVersionNumber")]
+        internal static extern uint OpenSslVersionNumber();
     }
 }

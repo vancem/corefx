@@ -63,7 +63,12 @@ namespace System.Data.Common
             OverflowException e = new OverflowException(error, inner);
             return e;
         }
-
+        internal static TypeLoadException TypeLoad(string error)
+        {
+            TypeLoadException e = new TypeLoadException(error);
+            TraceExceptionAsReturnValue(e);
+            return e;
+        }
         internal static PlatformNotSupportedException DbTypeNotSupported(string dbType)
         {
             PlatformNotSupportedException e = new PlatformNotSupportedException(SR.GetString(SR.SQL_DbTypeNotSupportedOnThisPlatform, dbType));
@@ -461,10 +466,11 @@ namespace System.Data.Common
             return IO(SR.GetString(SR.SqlMisc_StreamErrorMessage), internalException);
         }
 
-        internal static ArgumentException InvalidDataType(string typeName)
+        internal static ArgumentException InvalidDataType(TypeCode typecode)
         {
-            return Argument(SR.GetString(SR.ADP_InvalidDataType, typeName));
+            return Argument(SR.GetString(SR.ADP_InvalidDataType, typecode.ToString()));
         }
+
         internal static ArgumentException UnknownDataType(Type dataType)
         {
             return Argument(SR.GetString(SR.ADP_UnknownDataType, dataType.FullName));
@@ -474,6 +480,10 @@ namespace System.Data.Common
         {
             return Argument(SR.GetString(SR.ADP_DbTypeNotSupported, type.ToString(), enumtype.Name));
         }
+        internal static ArgumentException UnknownDataTypeCode(Type dataType, TypeCode typeCode)
+        {
+            return Argument(SR.GetString(SR.ADP_UnknownDataTypeCode, ((int)typeCode).ToString(CultureInfo.InvariantCulture), dataType.FullName));
+        }
         internal static ArgumentException InvalidOffsetValue(int value)
         {
             return Argument(SR.GetString(SR.ADP_InvalidOffsetValue, value.ToString(CultureInfo.InvariantCulture)));
@@ -482,7 +492,7 @@ namespace System.Data.Common
         {
             return Argument(SR.GetString(SR.ADP_InvalidSizeValue, value.ToString(CultureInfo.InvariantCulture)));
         }
-        internal static ArgumentException ParameterValueOutOfRange(Decimal value)
+        internal static ArgumentException ParameterValueOutOfRange(decimal value)
         {
             return ADP.Argument(SR.GetString(SR.ADP_ParameterValueOutOfRange, value.ToString((IFormatProvider)null)));
         }
@@ -852,6 +862,65 @@ namespace System.Data.Common
         internal static InvalidOperationException TransactionCompletedButNotDisposed()
         {
             return Provider(SR.GetString(SR.ADP_TransactionCompletedButNotDisposed));
+        }
+
+        internal static ArgumentOutOfRangeException InvalidUserDefinedTypeSerializationFormat(Microsoft.SqlServer.Server.Format value)
+        {
+            return InvalidEnumerationValue(typeof(Microsoft.SqlServer.Server.Format), (int)value);
+        }
+
+        internal static ArgumentOutOfRangeException NotSupportedUserDefinedTypeSerializationFormat(Microsoft.SqlServer.Server.Format value, string method)
+        {
+            return NotSupportedEnumerationValue(typeof(Microsoft.SqlServer.Server.Format), value.ToString(), method);
+        }
+
+        internal static ArgumentOutOfRangeException ArgumentOutOfRange(string message, string parameterName, object value)
+        {
+            ArgumentOutOfRangeException e = new ArgumentOutOfRangeException(parameterName, value, message);
+            TraceExceptionAsReturnValue(e);
+            return e;
+        }
+
+        internal static ArgumentException InvalidArgumentLength(string argumentName, int limit)
+        {
+            return Argument(SR.GetString(SR.ADP_InvalidArgumentLength, argumentName, limit));
+        }
+
+        internal static ArgumentException MustBeReadOnly(string argumentName)
+        {
+            return Argument(SR.GetString(SR.ADP_MustBeReadOnly, argumentName));
+        }
+
+        internal static InvalidOperationException InvalidMixedUsageOfSecureAndClearCredential()
+        {
+            return InvalidOperation(SR.GetString(SR.ADP_InvalidMixedUsageOfSecureAndClearCredential));
+        }
+
+        internal static ArgumentException InvalidMixedArgumentOfSecureAndClearCredential()
+        {
+            return Argument(SR.GetString(SR.ADP_InvalidMixedUsageOfSecureAndClearCredential));
+        }
+
+        internal static InvalidOperationException InvalidMixedUsageOfSecureCredentialAndIntegratedSecurity()
+        {
+            return InvalidOperation(SR.GetString(SR.ADP_InvalidMixedUsageOfSecureCredentialAndIntegratedSecurity));
+        }
+
+        internal static ArgumentException InvalidMixedArgumentOfSecureCredentialAndIntegratedSecurity()
+        {
+            return Argument(SR.GetString(SR.ADP_InvalidMixedUsageOfSecureCredentialAndIntegratedSecurity));
+        }
+        internal static InvalidOperationException InvalidMixedUsageOfAccessTokenAndIntegratedSecurity()
+        {
+            return ADP.InvalidOperation(SR.GetString(SR.ADP_InvalidMixedUsageOfAccessTokenAndIntegratedSecurity));
+        }
+        static internal InvalidOperationException InvalidMixedUsageOfAccessTokenAndUserIDPassword()
+        {
+            return ADP.InvalidOperation(SR.GetString(SR.ADP_InvalidMixedUsageOfAccessTokenAndUserIDPassword));
+        }
+        static internal Exception InvalidMixedUsageOfCredentialAndAccessToken()
+        {
+            return ADP.InvalidOperation(SR.GetString(SR.ADP_InvalidMixedUsageOfCredentialAndAccessToken));
         }
     }
 }

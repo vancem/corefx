@@ -9,6 +9,8 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace System.Xml
 {
@@ -624,9 +626,8 @@ namespace System.Xml
             {
                 //this will be hit when user create a XmlReader by setting Async, but the first call is Read() instead of ReadAsync(), 
                 //then we still should create an async stream here. And wait for the method finish.
-                System.Threading.Tasks.Task<object> t = _laterInitParam.inputUriResolver.GetEntityAsync(_laterInitParam.inputbaseUri, string.Empty, typeof(Stream));
-                t.Wait();
-                stream = (Stream)t.Result;
+                Task<object> t = _laterInitParam.inputUriResolver.GetEntityAsync(_laterInitParam.inputbaseUri, string.Empty, typeof(Stream));
+                stream = (Stream)t.GetAwaiter().GetResult();
             }
             else
             {
@@ -1008,7 +1009,7 @@ namespace System.Xml
         public override string GetAttribute(string name)
         {
             int i;
-            if (name.IndexOf(':') == -1)
+            if (!name.Contains(':'))
             {
                 i = GetIndexOfAttributeWithoutPrefix(name);
             }
@@ -1048,7 +1049,7 @@ namespace System.Xml
         public override bool MoveToAttribute(string name)
         {
             int i;
-            if (name.IndexOf(':') == -1)
+            if (!name.Contains(':'))
             {
                 i = GetIndexOfAttributeWithoutPrefix(name);
             }
@@ -1377,7 +1378,7 @@ namespace System.Xml
         }
 
         // Returns NamespaceURI associated with the specified prefix in the current namespace scope.
-        public override String LookupNamespace(String prefix)
+        public override string LookupNamespace(string prefix)
         {
             if (!_supportNamespaces)
             {
@@ -3253,14 +3254,14 @@ namespace System.Xml
                 return _ps.encoding;
             }
 
-            if (String.Equals(newEncodingName, "ucs-2", StringComparison.OrdinalIgnoreCase) ||
-                String.Equals(newEncodingName, "utf-16", StringComparison.OrdinalIgnoreCase) ||
-                String.Equals(newEncodingName, "iso-10646-ucs-2", StringComparison.OrdinalIgnoreCase) ||
-                String.Equals(newEncodingName, "ucs-4", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(newEncodingName, "ucs-2", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(newEncodingName, "utf-16", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(newEncodingName, "iso-10646-ucs-2", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(newEncodingName, "ucs-4", StringComparison.OrdinalIgnoreCase))
             {
                 if (_ps.encoding.WebName != "utf-16BE" &&
                      _ps.encoding.WebName != "utf-16" &&
-                     !String.Equals(newEncodingName, "ucs-4", StringComparison.OrdinalIgnoreCase))
+                     !string.Equals(newEncodingName, "ucs-4", StringComparison.OrdinalIgnoreCase))
                 {
                     if (_afterResetState)
                     {
@@ -3275,7 +3276,7 @@ namespace System.Xml
             }
 
             Encoding newEncoding = null;
-            if (String.Equals(newEncodingName, "utf-8", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(newEncodingName, "utf-8", StringComparison.OrdinalIgnoreCase))
             {
                 newEncoding = UTF8BomThrowing;
             }
@@ -9633,7 +9634,6 @@ namespace System.Xml
             }
         }
 
-        [System.Security.SecuritySafeCritical]
         internal static unsafe void AdjustLineInfo(char[] chars, int startPos, int endPos, bool isNormalized, ref LineInfo lineInfo)
         {
             Debug.Assert(startPos >= 0);
@@ -9646,7 +9646,6 @@ namespace System.Xml
             }
         }
 
-        [System.Security.SecuritySafeCritical]
         internal static unsafe void AdjustLineInfo(string str, int startPos, int endPos, bool isNormalized, ref LineInfo lineInfo)
         {
             Debug.Assert(startPos >= 0);
@@ -9659,7 +9658,6 @@ namespace System.Xml
             }
         }
 
-        [System.Security.SecurityCritical]
         internal static unsafe void AdjustLineInfo(char* pChars, int length, bool isNormalized, ref LineInfo lineInfo)
         {
             int lastNewLinePos = -1;

@@ -19,6 +19,9 @@ namespace System.Runtime.Loader
     public abstract partial class AssemblyLoadContext
     {
         protected AssemblyLoadContext() { }
+        protected AssemblyLoadContext(bool isCollectible) { }
+        public bool IsCollectible { get { throw null; } }
+        public void Unload() { throw null; }
         public static System.Runtime.Loader.AssemblyLoadContext Default { get { throw null; } }
         public static System.Reflection.AssemblyName GetAssemblyName(string assemblyPath) { throw null; }
         public static System.Runtime.Loader.AssemblyLoadContext GetLoadContext(System.Reflection.Assembly assembly) { throw null; }
@@ -33,6 +36,14 @@ namespace System.Runtime.Loader
         public void SetProfileOptimizationRoot(string directoryPath) { }
         public void StartProfileOptimization(string profile) { }
         public event Func<AssemblyLoadContext, System.Reflection.AssemblyName, System.Reflection.Assembly> Resolving;
+        public event Func<System.Reflection.Assembly, string, System.IntPtr> ResolvingUnmanagedDll;
         public event Action<AssemblyLoadContext> Unloading;
+    }
+
+    public sealed class AssemblyDependencyResolver
+    {
+        public AssemblyDependencyResolver(string componentAssemblyPath) { }
+        public string ResolveAssemblyToPath(System.Reflection.AssemblyName assemblyName) { throw null; }
+        public string ResolveUnmanagedDllToPath(string unmanagedDllName) { throw null; }
     }
 }

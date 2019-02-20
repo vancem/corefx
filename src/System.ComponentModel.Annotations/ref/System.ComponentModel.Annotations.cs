@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 // ------------------------------------------------------------------------------
@@ -8,6 +8,12 @@
 
 namespace System.ComponentModel.DataAnnotations
 {
+    public partial class AssociatedMetadataTypeTypeDescriptionProvider : System.ComponentModel.TypeDescriptionProvider
+    {
+        public AssociatedMetadataTypeTypeDescriptionProvider(System.Type type) { }
+        public AssociatedMetadataTypeTypeDescriptionProvider(System.Type type, System.Type associatedMetadataType) { }
+        public override System.ComponentModel.ICustomTypeDescriptor GetTypeDescriptor(System.Type objectType, object instance) { throw null; }
+    }
     [System.AttributeUsageAttribute((System.AttributeTargets)(384), AllowMultiple = false, Inherited = true)]
     [System.ObsoleteAttribute("This attribute is no longer in use and will be ignored if applied.")]
     public sealed partial class AssociationAttribute : System.Attribute
@@ -81,7 +87,7 @@ namespace System.ComponentModel.DataAnnotations
         public virtual string GetDataTypeName() { throw null; }
         public override bool IsValid(object value) { throw null; }
     }
-    [System.AttributeUsageAttribute((System.AttributeTargets)(2496), AllowMultiple = false)]
+    [System.AttributeUsageAttribute(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = false)]
     public sealed partial class DisplayAttribute : System.Attribute
     {
         public DisplayAttribute() { }
@@ -184,6 +190,12 @@ namespace System.ComponentModel.DataAnnotations
         public override string FormatErrorMessage(string name) { throw null; }
         public override bool IsValid(object value) { throw null; }
     }
+    [System.AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
+    public sealed partial class MetadataTypeAttribute : System.Attribute
+    {
+        public System.Type MetadataClassType { get { throw null; } }
+        public MetadataTypeAttribute(System.Type metadataClassType) { }
+    }
     [System.AttributeUsageAttribute((System.AttributeTargets)(2432), AllowMultiple = false)]
     public partial class MinLengthAttribute : System.ComponentModel.DataAnnotations.ValidationAttribute
     {
@@ -204,9 +216,11 @@ namespace System.ComponentModel.DataAnnotations
         public RangeAttribute(double minimum, double maximum) { }
         public RangeAttribute(int minimum, int maximum) { }
         public RangeAttribute(System.Type type, string minimum, string maximum) { }
+        public bool ConvertValueInInvariantCulture { get { throw null; } set { } }
         public object Maximum { get { throw null; } }
         public object Minimum { get { throw null; } }
         public System.Type OperandType { get { throw null; } }
+        public bool ParseLimitsInInvariantCulture { get { throw null; } set { } }
         public override string FormatErrorMessage(string name) { throw null; }
         public override bool IsValid(object value) { throw null; }
     }
